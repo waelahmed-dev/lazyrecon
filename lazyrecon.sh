@@ -1,10 +1,20 @@
 #!/bin/bash
 
 discovery(){
-  hostalive $1
-  screenshot $1
-  cleanup $1
+  # screenshot $1
+  # cleanup $1
   cat ./$1/$foldername/responsive-$(date +"%Y-%m-%d").txt | sort -u | while read line; do
+    sleep 1
+    dirsearcher $line
+    report $1 $line
+    echo "$line report genareted"
+    sleep 1
+  done
+}
+discovery_2(){
+  # screenshot $1
+  # cleanup $1
+  cat ./$1/$foldername/live.txt | sort -u | while read line; do
     sleep 1
     dirsearcher $line
     report $1 $line
@@ -33,22 +43,52 @@ hostalive(){
   done
 }
 
+checkhost(){
+  while read subdomain; do
+  if host -t A "$subdomain" > /dev/null;
+  then
+    # If host is live, print it into
+    # a file called "live.txt".
+    echo "$subdomain" >> ./$1/$foldername/host_live.txt
+  else
+    echo "$subdomain was unreachable"
+    touch ./$1/$foldername/unreachable.html
+    echo "<b>$subdomain</b> was unreachable<br>" >> ./$1/$foldername/unreachable.html
+  fi
+  done < ./$1/$foldername/subdomain-list.txt
+}
+
+checkhttprobe(){
+  cat ./$1/$foldername/host_live.txt | httprobe > ./$1/$foldername/live.txt
+}
+
+checkmeg(){
+  ../meg/meg -d 10 -c 200 / ./$1/$foldername/live.txt
+}
+
 screenshot(){
     echo "taking a screenshot of $line"
     python ~/tools/webscreenshot/webscreenshot.py -o ./$1/$foldername/screenshots/ -i ./$1/$foldername/responsive-$(date +"%Y-%m-%d").txt --timeout=10 -m
 }
 
 recon(){
+  echo "Enumerate all known domains using sublist3r..."
+  python3 ../Sublist3r/sublist3r.py -d $1 -t 10 -v -o ./$1/$foldername/subdomain-list.txt
 
-  python ~/tools/Sublist3r/sublist3r.py -d $1 -t 10 -v -o ./$1/$foldername/$1.txt
-  curl -s https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1 >> ./$1/$foldername/$1.txt
-  discovery $1
+  checkhost $1
+  checkhttprobe $1
+  checkmeg $1
+  # hostalive $1
+
+  # curl -s https://certspotter.com/api/v0/certs\?domain\=$1 | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $1 >> ./$1/$foldername/$1.txt
+  discovery_2 $1
   cat ./$1/$foldername/$1.txt | sort -u > ./$1/$foldername/$1.txt
 
 }
 
 dirsearcher(){
-  python3 ~/tools/dirsearch/dirsearch.py -e php,asp,aspx,jsp,html,zip,jar,sql -u $line
+  echo "Recursively bruteforce directories..."
+  python3 ../dirsearch/dirsearch.py -x 301,302,503 -e php,asp,aspx,jsp,html,zip,jar,sql,log,txt,js,sh -r -R 3 -u $line
 }
 
 
@@ -105,17 +145,53 @@ report(){
 
 }
 
+# Use colors, but only if connected to a terminal, and that terminal
+# supports them.
+if [ -t 1 ]; then
+  RB_RED=$(printf '\033[38;5;196m')
+  RB_ORANGE=$(printf '\033[38;5;202m')
+  RB_YELLOW=$(printf '\033[38;5;226m')
+  RB_GREEN=$(printf '\033[38;5;082m')
+  RB_BLUE=$(printf '\033[38;5;021m')
+  RB_INDIGO=$(printf '\033[38;5;093m')
+  RB_VIOLET=$(printf '\033[38;5;163m')
+
+  RED=$(printf '\033[31m')
+  GREEN=$(printf '\033[32m')
+  YELLOW=$(printf '\033[33m')
+  BLUE=$(printf '\033[34m')
+  BOLD=$(printf '\033[1m')
+  RESET=$(printf '\033[m')
+else
+  RB_RED=""
+  RB_ORANGE=""
+  RB_YELLOW=""
+  RB_GREEN=""
+  RB_BLUE=""
+  RB_INDIGO=""
+  RB_VIOLET=""
+
+  RED=""
+  GREEN=""
+  YELLOW=""
+  BLUE=""
+  BOLD=""
+  RESET=""
+fi
+
 logo(){
-  #can't have a bash script without a cool logo :D
-  echo "
+  printf "${BLUE}%s\n" "reconnaissance starting up!"
+  printf '  %s _%s        %s    %s      %s     %s   %s     %s     %s \n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf '  %s| |%s __ _ %s____%s _   _ %s_ __ %s___%s  ___ %s ___%s  _ __%s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf '  %s| |%s/ _  |%s_  /%s| | | %s|  __%s/ _ \%s/ __|%s/ _ \%s|  _ \ %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf '  %s| |%s (_|  %s/ / %s| | | %s| | %s|  __/%s (__ %s (_) %s| | | %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf '  %s|_|%s\__ _|%s___/%s \__  %s|_ %s  \___|%s\___|%s\___/%s|_| |_ %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf '  %s   %s      %s    %s |___/%s    %s       %s     %s     %s       %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+  printf "\n"
+  printf "${BLUE}%s\n" "nahamsec/lazyrecon v1.0 forked by storenth/lazyrecon v2.0"
+  printf "${BLUE}${BOLD}%s${RESET}\n" "To keep up on the latest news and updates, follow me on Twitter: https://twitter.com/storenth"
+  printf "${BLUE}${BOLD}%s${RESET}\n" "I am looking for your support: https://github.com/storenth/lazyrecon"
 
-  _     ____  ____ ___  _ ____  _____ ____ ____  _
- / \   /  _ \/_   \\  \///  __\/  __//   _Y  _ \/ \  /|
- | |   | / \| /   / \  / |  \/||  \  |  / | / \|| |\ ||
- | |_/\| |-||/   /_ / /  |    /|  /_ |  \_| \_/|| | \||
- \____/\_/ \|\____//_/   \_/\_\\____\\____|____/\_/  \|
-
-                                                      "
 }
 
 main(){
@@ -132,6 +208,11 @@ main(){
   mkdir ./$1/$foldername/reports/
   mkdir ./$1/$foldername/screenshots/
   touch ./$1/$foldername/unreachable.html
+  # touch ./$1/$foldername/subdomain-list.txt
+  # touch ./$1/$foldername/host_live.txt
+  # touch ./$1/$foldername/live.txt
+
+
   touch ./$1/$foldername/responsive-$(date +"%Y-%m-%d").txt
 
     recon $1
