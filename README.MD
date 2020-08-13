@@ -21,7 +21,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Filtering out for working http and https servers using `meg`
 - Grab the response and sieving through to exclude false-positives such us `Location` headers
 - Check for request smuggling vulnerabilities using `smuggler`
-- [WIP][x] Perform `masscan` on live servers
+- [WIP][x] Perform `masscan` on live servers using `dnmasscan`
 - [WIP][x] Perform `dirsearch` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt)
 - Generate a HTML report in case of a vulnerable domain found.
 
@@ -42,6 +42,7 @@ For example:
 ~/httprobe
 ~/smuggler
 ~/masscan
+~/dnmasscan
 ```
 Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
@@ -50,14 +51,16 @@ Make sure all tools correctly installed and enabled with execute permissions: `c
 4. [httprobe](https://github.com/tomnomnom/httprobe)
 5. [smuggler](https://github.com/storenth/requestsmuggler)
 6. [masscan](https://github.com/robertdavidgraham/masscan)
+6. [dnmasscan](https://github.com/rastating/dnmasscan)
 
 If you faced with some issues, feel free to open PR/bug or just reach me out.
 
 # Notes
 
- - `Sublist3r` replaced with `subfinder` based on Twitter [disscussion](https://twitter.com/Jhaddix/status/1293118260808843264)
+ - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
  - `nmap` replaced with `masscan` based on its features
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
  - `grep` `meg`'s output for [Location](https://twitter.com/hunter0x7/status/1293168500672954368) in order to exclude 301/302 status codes
+ - WIP: you can track activity in Projects To Do board
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
