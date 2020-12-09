@@ -12,7 +12,9 @@ enumeratesubdomains(){
   echo "subfinder..."
   ../subfinder/subfinder -d $1 -o ./$1/$foldername/subfinder-subdomain-list.txt 
   sleep 5
-  sort -u ./$1/$foldername/subfinder-subdomain-list.txt > ./$1/$foldername/1-all-subfinder-subdomain.txt
+  echo "amass..."
+  amass enum -d $1 -o ./$1/$foldername/amass-subdomain-list.txt
+  sort -u ./$1/$foldername/subfinder-subdomain-list.txt ./$1/$foldername/amass-subdomain-list.txt > ./$1/$foldername/1-all-subdomain.txt
   sleep 5
 }
 
@@ -22,25 +24,25 @@ checkhost(){
     if host -W 3 -t A "$subdomain" > /dev/null; then
       # If host is live, print it into
       # a file called "host_live.txt".
-      echo "$subdomain" >> ./$1/$foldername/2-all-subfinder-subdomain-live.txt
+      echo "$subdomain" >> ./$1/$foldername/2-all-subdomain-live.txt
     else
       # need to implement dig here
       echo "${subdomain} unreachable"
       echo "$subdomain" >> ./$1/$foldername/unreachable.txt
     fi
-  done < ./$1/$foldername/1-all-subfinder-subdomain.txt
+  done < ./$1/$foldername/1-all-subdomain.txt
 }
 
 permutatesubdomains(){
-  if [ ! -e ./$1/$foldername/2-all-subfinder-subdomain-live.txt ]; then
+  if [ ! -e ./$1/$foldername/2-all-subdomain-live.txt ]; then
     echo "[checkhost] There is no live servers. Exit 1"
     Exit 1
   fi
   echo "altdns..."
-  altdns -i ./$1/$foldername/2-all-subfinder-subdomain-live.txt -o ./$1/$foldername/altdns_output.txt -w $dirsearchWordlist -r -s ./$1/$foldername/99-altdns-live-ip.txt
+  altdns -i ./$1/$foldername/2-all-subdomain-live.txt -o ./$1/$foldername/altdns_output.txt -w $dirsearchWordlist -r -s ./$1/$foldername/99-altdns-live-ip.txt
   sleep 5
   cut -d ':' -f 1 ./$1/$foldername/99-altdns-live-ip.txt > ./$1/$foldername/99-altdns-live.txt
-  sort -u ./$1/$foldername/2-all-subfinder-subdomain-live.txt ./$1/$foldername/99-altdns-live.txt > ./$1/$foldername/2-all-subdomain-live.txt
+  sort -u ./$1/$foldername/2-all-subdomain-live.txt ./$1/$foldername/99-altdns-live.txt > ./$1/$foldername/2-all-subdomain-live.txt
 }
 
 checkhttprobe(){
