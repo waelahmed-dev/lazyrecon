@@ -3,7 +3,7 @@
 # Invoke with sudo because of dnmasscan
 
 # Config
-dirsearchWordlist=./lazyWordLists/altdns_wordlist.txt
+dirsearchWordlist=./lazyWordLists/altdns_wordlist_small.txt
 dirsearchThreads=50
 
 # definitions
@@ -88,6 +88,10 @@ avoidredirect(){
   fi
 }
 
+nuclei(){
+  nuclei -l ./$1/$foldername/5-live-scheme.txt -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/fuzzing/ -t ../nuclei-templates/security-misconfiguration/ -t /nuclei-templates/cves/ -t /nuclei-templates/misc/ -t ../nuclei-templates/files/ -o 99_nuclei_results.txt
+}
+
 checkparams(){
   echo "[phase 7] Get the parameters and paths..."
   cat ./$1/$foldername/6-live.txt | ../gau/gau > ./$1/$foldername/gau_output.txt
@@ -158,6 +162,7 @@ recon(){
   checkmeg $1
   sortliveservers $1
   avoidredirect $1
+  nuclei $1
   # checkparams $1
   dnmasscan $1
   brutespray $1
