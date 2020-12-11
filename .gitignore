@@ -3,3 +3,17 @@ out/
 *ru/
 *net/
 *io/
+lazyWordLists/altdns_wordlist_uniq.txt.bak
+smuggler/.DS_Store
+smuggler/output
+lazyWordLists/.DS_Store
+test_lazy.sh
+.DS_Store
+ffufoutput.html
+masscan_output_og.txt
+99_nuclei_results_delivery_club.txt
+99_nuclei_results.txt
+lazyrecon_old.sh
+nmap.gnmap
+nmap.xml
+lazyWordLists/all.txt
