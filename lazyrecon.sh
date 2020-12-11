@@ -10,25 +10,36 @@ dirsearchThreads=50
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
   echo "subfinder..."
-  ../subfinder/subfinder -d $1 -o ./$1/$foldername/subfinder-subdomain-list.txt 
+  ../subfinder/subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
   echo "amass..."
-  amass enum -brute -min-for-recursive 2 -d $1 -o ./$1/$foldername/amass-subdomain-list.txt
-  sort -u ./$1/$foldername/subfinder-subdomain-list.txt ./$1/$foldername/amass-subdomain-list.txt > ./$1/$foldername/1-all-subdomain.txt
+  amass enum -brute -min-for-recursive 3 -d $1 -o ./$1/$foldername/amass-list.txt
+}
+
+checkwaybackurls(){
+  echo "gau..."
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt > ./$1/$foldername/phase-1-subdomain.txt
+  cat ./$1/$foldername/phase-1-subdomain.txt | ../gau/gau -subs -o ./$1/$foldername/99_gau_output.txt
+  # gau-list needs for checkparams
+  cat ./$1/$foldername/99_gau_output.txt | ../unfurl/unfurl --unique domains > ./$1/$foldername/gau-list.txt
+}
+
+sortsubdomains(){
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/gau-list.txt > ./$1/$foldername/1-real-subdomains.txt
 }
 
 permutatesubdomains(){
-  if [ ! -e ./$1/$foldername/1-all-subdomain.txt ]; then
+  if [ ! -e ./$1/$foldername/1-real-subdomains.txt ]; then
     echo "[permutatesubdomains] There is no urls found. Exit 1"
     Exit 1
   fi
   echo "altdns..."
-  altdns -i ./$1/$foldername/1-all-subdomain.txt -o ./$1/$foldername/altdns_output.txt -w $dirsearchWordlist
-  sort -u ./$1/$foldername/1-all-subdomain.txt ./$1/$foldername/altdns_output.txt > ./$1/$foldername/2-all-subdomain.txt
+  altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/99_altdns_output.txt -w $dirsearchWordlist
+  sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/99_altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
 }
 
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
-  httpx -l ./$1/$foldername/2-all-subdomain.txt -silent -follow-host-redirects -fc 301,403,404,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 301,403,404,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
 nucleitest(){
@@ -48,13 +59,6 @@ sortliveservers(){
     echo "[sortliveservers] No live hosts found Exit 1"
     exit 1
   fi
-}
-
-checkparams(){
-  echo "[phase NA] Get the parameters and paths..."
-  cat ./$1/$foldername/4-live.txt | ../gau/gau > ./$1/$foldername/gau_output.txt
-  cat ./$1/$foldername/4-live.txt | ../waybackurls/waybackurls > ./$1/$foldername/waybackurls_output.txt
-  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/params_list.txt
 }
 
 # nmap(){
@@ -92,6 +96,15 @@ smuggler(){
   fi
 }
 
+# prepare custom wordlist for directory bruteforce
+checkparams(){
+  echo "gau..."
+  cat ./$1/$foldername/1-all-subdomain.txt | ../gau/gau -subs | ../unfurl/unfurl --unique domains > ./$1/$foldername/gau_output.txt
+  echo "waybackurls..."
+  cat ./$1/$foldername/4-live.txt | ../waybackurls/waybackurls > ./$1/$foldername/waybackurls_output.txt
+  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/params_list.txt
+}
+
 dirsearch(){
   if [ -s ./$1/$foldername/live-list-scheme.txt ]; then
     echo "[phase NA] Start directory bruteforce..."
@@ -113,6 +126,8 @@ ffuf(){
 
 recon(){
   enumeratesubdomains $1
+  checkwaybackurls $1
+  sortsubdomains $1
   permutatesubdomains $1
   checkhttprobe $1
   nucleitest $1
@@ -130,7 +145,6 @@ recon(){
 }
 
 
-
 main(){
   if [ -d "./$1" ]
   then
@@ -143,7 +157,13 @@ main(){
   fi
 
   mkdir ./$1/$foldername
-  mkdir ./$1/$foldername/reports/
+  # subfinder list of subdomains
+  touch ./$1/$foldername/subfinder-list.txt 
+  # amass list of subdomains
+  touch ./$1/$foldername/amass-list.txt
+  # gau list of subdomains
+  touch ./$1/$foldername/gau-list.txt
+  # mkdir ./$1/$foldername/reports/
   # mkdir ./$1/$foldername/dirsearchoutput/
 
   echo "Reports goes to: ./${1}/${foldername}"
