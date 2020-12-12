@@ -3,8 +3,9 @@
 # Invoke with sudo because of dnmasscan
 
 # Config
-dirsearchWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
-dirsearchThreads=50
+altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
+dirsearchWordlist=./lazyWordLists/curated_top100.txt
+dirsearchThreads=100
 
 # definitions
 enumeratesubdomains(){
@@ -18,13 +19,17 @@ enumeratesubdomains(){
 checkwaybackurls(){
   echo "gau..."
   sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt > ./$1/$foldername/phase-1-subdomain.txt
-  cat ./$1/$foldername/phase-1-subdomain.txt | ../gau/gau -subs -o ./$1/$foldername/99_gau_output.txt
-  # gau-list needs for checkparams
-  cat ./$1/$foldername/99_gau_output.txt | ../unfurl/unfurl --unique domains > ./$1/$foldername/gau-list.txt
+  cat ./$1/$foldername/phase-1-subdomain.txt | ../gau/gau -subs -o ./$1/$foldername/gau_output.txt
+  echo "waybackurls..."
+  cat ./$1/$foldername/phase-1-subdomain.txt | ../waybackurls/waybackurls > ./$1/$foldername/waybackurls_output.txt
+
+  # 99_wayback_list needs for checkparams
+  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/99_wayback_list.txt
+  cat ./$1/$foldername/99_wayback_list.txt | ../unfurl/unfurl --unique domains > ./$1/$foldername/wayback-list.txt
 }
 
 sortsubdomains(){
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/gau-list.txt > ./$1/$foldername/1-real-subdomains.txt
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/wayback-list.txt > ./$1/$foldername/1-real-subdomains.txt
 }
 
 permutatesubdomains(){
@@ -33,13 +38,13 @@ permutatesubdomains(){
     Exit 1
   fi
   echo "altdns..."
-  altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/99_altdns_output.txt -w $dirsearchWordlist
+  altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/99_altdns_output.txt -w $altdnsWordlist
   sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/99_altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
 }
 
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
-  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 301,403,404,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 301,302,403,404,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
 nucleitest(){
@@ -53,12 +58,7 @@ nucleitest(){
 
 sortliveservers(){
   echo "[phase 4] Sorting live hosts..."
-  if [ -s ./$1/$foldername/3-all-subdomain-live-scheme.txt ]; then
-    sed -e 's/\http\:\/\///g;s/\https\:\/\///g' ./$1/$foldername/3-all-subdomain-live-scheme.txt | sort -u > ./$1/$foldername/4-live.txt
-  else
-    echo "[sortliveservers] No live hosts found Exit 1"
-    exit 1
-  fi
+  sed -e 's/\http\:\/\///g;s/\https\:\/\///g' ./$1/$foldername/3-all-subdomain-live-scheme.txt | sort -u > ./$1/$foldername/4-live.txt
 }
 
 # nmap(){
@@ -98,30 +98,19 @@ smuggler(){
 
 # prepare custom wordlist for directory bruteforce
 checkparams(){
-  echo "gau..."
-  cat ./$1/$foldername/1-all-subdomain.txt | ../gau/gau -subs | ../unfurl/unfurl --unique domains > ./$1/$foldername/gau_output.txt
-  echo "waybackurls..."
-  cat ./$1/$foldername/4-live.txt | ../waybackurls/waybackurls > ./$1/$foldername/waybackurls_output.txt
-  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/params_list.txt
+  echo "[phase 8] Prepare custom wordlist using unfurl"
+  cat ./$1/$foldername/99_wayback_list.txt | ../unfurl/unfurl paths | sed 's/\///' > ./$1/$foldername/101_wayback_params_list.txt
+  # merge base dirsearchWordlist with target-specific
+  sort -u ./$1/$foldername/101_wayback_params_list.txt $dirsearchWordlist > ./$1/$foldername/101_params_list.txt
 }
 
-dirsearch(){
-  if [ -s ./$1/$foldername/live-list-scheme.txt ]; then
-    echo "[phase NA] Start directory bruteforce..."
-    ../dirsearch/dirsearch.py -L ./$1/$foldername/live-list-scheme.txt -r -R 2 -e php,asp,aspx,jsp,html,zip,jar,sql,log,txt,js,sh -w $dirsearchWordlist -t $dirsearchThreads --plain-text-report=./$1/$foldername/dirsearchoutput/dirsearchreport.txt
-  else
-    echo "There are no live host found, so shut down with exit 1."
-    Exit 1
-  fi
-}
-ffuf(){
-  if [ -s ./$1/$foldername/live-list-scheme.txt ]; then
-    echo "[phase NA] Start directory bruteforce..."
-    ../ffuf/ffuf.py -L ./$1/$foldername/live-list-scheme.txt -r -R 2 -e php,asp,aspx,jsp,html,zip,jar,sql,log,txt,js,sh -w $dirsearchWordlist -t $dirsearchThreads -o ./$1/$foldername/ffufoutput.txt
-  else
-    echo "There are no live host found, so shut down with exit 1."
-    Exit 1
-  fi
+ffufbrute(){
+  echo "[phase 9] Start directory bruteforce..."
+  iterator=1
+  while read subdomain; do
+    iterator=$((iterator+1))
+    ffuf -c -u ${subdomain}/FUZZ -sf -mc all -fc 300,301,302,303,304 -recursion -recursion-depth 3 -w ./$1/$foldername/101_params_list.txt -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+  done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
 recon(){
@@ -132,15 +121,14 @@ recon(){
   checkhttprobe $1
   nucleitest $1
   sortliveservers $1
-  # checkparams $1
   dnmasscan $1
   brutespray $1
-
   smuggler $1
-  # dirsearch $1
-  # ffuf $1
 
-  echo "Generating HTML-report here..."
+  checkparams $1
+  ffufbrute $1
+
+  # echo "Generating HTML-report here..."
   echo "Lazy done."
 }
 
@@ -157,14 +145,17 @@ main(){
   fi
 
   mkdir ./$1/$foldername
+  # ffuf dir uses to store brute output
+  mkdir ./$1/$foldername/ffuf/
   # subfinder list of subdomains
   touch ./$1/$foldername/subfinder-list.txt 
   # amass list of subdomains
   touch ./$1/$foldername/amass-list.txt
-  # gau list of subdomains
-  touch ./$1/$foldername/gau-list.txt
+  # gau/waybackurls list of subdomains
+  touch ./$1/$foldername/wayback-list.txt
+  # gau list of only params
+  touch ./$1/$foldername/101_wayback_params_list.txt
   # mkdir ./$1/$foldername/reports/
-  # mkdir ./$1/$foldername/dirsearchoutput/
 
   echo "Reports goes to: ./${1}/${foldername}"
 
