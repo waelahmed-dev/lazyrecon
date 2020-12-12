@@ -11,7 +11,7 @@ dirsearchThreads=100
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
   echo "subfinder..."
-  ../subfinder/subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
+  subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
   echo "amass..."
   amass enum -brute -min-for-recursive 3 -d $1 -o ./$1/$foldername/amass-list.txt
 }
@@ -19,13 +19,13 @@ enumeratesubdomains(){
 checkwaybackurls(){
   echo "gau..."
   sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt > ./$1/$foldername/phase-1-subdomain.txt
-  cat ./$1/$foldername/phase-1-subdomain.txt | ../gau/gau -subs -o ./$1/$foldername/gau_output.txt
+  cat ./$1/$foldername/phase-1-subdomain.txt | gau -subs -o ./$1/$foldername/gau_output.txt
   echo "waybackurls..."
-  cat ./$1/$foldername/phase-1-subdomain.txt | ../waybackurls/waybackurls > ./$1/$foldername/waybackurls_output.txt
+  cat ./$1/$foldername/phase-1-subdomain.txt | waybackurls > ./$1/$foldername/waybackurls_output.txt
 
   # 99_wayback_list needs for checkparams
   sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/99_wayback_list.txt
-  cat ./$1/$foldername/99_wayback_list.txt | ../unfurl/unfurl --unique domains > ./$1/$foldername/wayback-list.txt
+  cat ./$1/$foldername/99_wayback_list.txt | unfurl --unique domains > ./$1/$foldername/wayback-list.txt
 }
 
 sortsubdomains(){
@@ -67,7 +67,7 @@ sortliveservers(){
 # }
 dnmasscan(){
   echo "[phase 5] Test for unexpected open ports..."
-  ../dnmasscan/dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/masscan_output.gnmap --rate 1200
+  dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/masscan_output.gnmap --rate 1200
 }
 
 brutespray(){
@@ -79,7 +79,7 @@ brutespray(){
 
 smuggler(){
   echo "[phase 7] Try to find request smuggling vulnerabilities..."
-  ../requestsmuggler/smuggler.py -u ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  smuggler.py -u ./$1/$foldername/3-all-subdomain-live-scheme.txt
 
   # check for VULNURABLE keyword
   if [ -s ./smuggler/output ]; then
@@ -99,7 +99,7 @@ smuggler(){
 # prepare custom wordlist for directory bruteforce
 checkparams(){
   echo "[phase 8] Prepare custom wordlist using unfurl"
-  cat ./$1/$foldername/99_wayback_list.txt | ../unfurl/unfurl paths | sed 's/\///' > ./$1/$foldername/101_wayback_params_list.txt
+  cat ./$1/$foldername/99_wayback_list.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/101_wayback_params_list.txt
   # merge base dirsearchWordlist with target-specific
   sort -u ./$1/$foldername/101_wayback_params_list.txt $dirsearchWordlist > ./$1/$foldername/101_params_list.txt
 }
