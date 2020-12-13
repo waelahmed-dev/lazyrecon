@@ -163,9 +163,45 @@ main(){
     # master_report $1
 }
 
+usage(){
+  echo "Usage: $FUNCNAME \"<target>\""
+  echo "Example: $FUNCNAME \"example.com\""
+}
+
+invokation(){
+  echo "Warn: unexpected positional argument: $1"
+  echo "$(basename $0) [[-h] | [--help]]"
+}
+
+# check for specifiec arguments (help)
+checkhelp(){
+  while [ "$1" != "" ]; do
+      case $1 in
+          -h | --help )           usage
+                                  exit
+                                  ;;
+          # * )                     invokation $1
+          #                         exit 1
+      esac
+      shift
+  done
+}
+
+
+##### Main
+echo "Check params 1: $@"
+
+if [ $# -eq 1 ]; then
+  checkhelp "$@"
+# else
+#   if [ $# -ne 3 ]; then
+#     echo "Error: expected arguments count"
+#     usage
+#     exit 1
+#   fi
+fi
 if [[ -z $@ ]]; then
-  echo "Error: no targets specified."
-  echo "Usage: ./lazyrecon.sh <target>"
+  usage
   exit 1
 fi
 
@@ -173,4 +209,6 @@ fi
 path=$(pwd)
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
+
+# invoke with asn
 main $1
