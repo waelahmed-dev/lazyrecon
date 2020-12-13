@@ -20,6 +20,12 @@ enumeratesubdomains(){
   sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated-subdomains.txt
 }
 
+dnsprobing(){
+  echo "dnsprobe..."
+  # dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r CNAME -o ./$1/$foldername/dns-alias-subdomains.txt
+  dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r A -o ./$1/$foldername/dns-ip-subdomains.txt
+}
+
 checkwaybackurls(){
   echo "gau..."
   # gau -subs mean include subdomains
@@ -37,10 +43,6 @@ sortsubdomains(){
 }
 
 permutatesubdomains(){
-  if [ ! -e ./$1/$foldername/1-real-subdomains.txt ]; then
-    echo "[permutatesubdomains] There is no urls found. Exit 1"
-    Exit 1
-  fi
   echo "altdns..."
   altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/99_altdns_output.txt -w $altdnsWordlist
   sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/99_altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
@@ -48,7 +50,7 @@ permutatesubdomains(){
 
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
-  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 301,302,403,404,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
 nucleitest(){
@@ -57,7 +59,7 @@ nucleitest(){
     Exit 1
   fi
   echo "[phase 3] nuclei testing..."
-  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -o ./$1/$foldername/99_nuclei_results.txt
+  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -o ./$1/$foldername/99_nuclei_results.txt
 }
 
 sortliveservers(){
@@ -157,6 +159,8 @@ main(){
   touch ./$1/$foldername/amass-list.txt
   # assetfinder list of subdomains
   touch ./$1/$foldername/assetfinder-list.txt
+  # dnsprobe list of IPs
+  touch ./$1/$foldername/dns-ip-subdomains.txt
   # gau/waybackurls list of subdomains
   touch ./$1/$foldername/wayback-list.txt
   # gau list of only params
