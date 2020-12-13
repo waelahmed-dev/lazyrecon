@@ -20,12 +20,6 @@ enumeratesubdomains(){
   sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated-subdomains.txt
 }
 
-dnsprobing(){
-  echo "dnsprobe..."
-  # dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r CNAME -o ./$1/$foldername/dns-alias-subdomains.txt
-  dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r A -o ./$1/$foldername/dns-ip-subdomains.txt
-}
-
 checkwaybackurls(){
   echo "gau..."
   # gau -subs mean include subdomains
@@ -48,9 +42,19 @@ permutatesubdomains(){
   sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/99_altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
 }
 
+# dnsprobing(){
+#   echo "dnsprobe..."
+#   # dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r CNAME -o ./$1/$foldername/dns-alias-subdomains.txt
+#   dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r A -o ./$1/$foldername/dns-ip-subdomains.txt
+# }
+
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
-  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303,503 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  # resolve hosts with IPs, remove [ and ] symbols
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -ip -follow-host-redirects -fc 300,301,302,303,503 | tr -d '\r' > ./$1/$foldername/httpx_output.txt
+  # split resolved hosts ans its IP (for masscan)
+  cut -f1 -d ' ' < ./$1/$foldername/httpx_output.txt > 3-all-subdomain-live-scheme.txt
+  cut -f2 -d ' ' < ./$1/$foldername/httpx_output.txt > 3-all-subdomain-live-ip.txt
 }
 
 nucleitest(){
