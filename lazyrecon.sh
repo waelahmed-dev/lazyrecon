@@ -11,17 +11,21 @@ dirsearchThreads=100
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
   echo "subfinder..."
-  subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
+  subfinder -d $1 -recursive -o ./$1/$foldername/subfinder-list.txt
+  echo "assetfinder..."
+  assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
   echo "amass..."
-  amass enum -brute -min-for-recursive 3 -d $1 -o ./$1/$foldername/amass-list.txt
+  amass enum -brute -min-for-recursive 4 -d $1 -o ./$1/$foldername/amass-list.txt
+  # sort enumerated subdomains
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated-subdomains.txt
 }
 
 checkwaybackurls(){
   echo "gau..."
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt > ./$1/$foldername/phase-1-subdomain.txt
-  cat ./$1/$foldername/phase-1-subdomain.txt | gau -subs -o ./$1/$foldername/gau_output.txt
+  # gau -subs mean include subdomains
+  cat ./$1/$foldername/enumerated-subdomains.txt | gau -subs -o ./$1/$foldername/gau_output.txt
   echo "waybackurls..."
-  cat ./$1/$foldername/phase-1-subdomain.txt | waybackurls > ./$1/$foldername/waybackurls_output.txt
+  cat ./$1/$foldername/enumerated-subdomains.txt | waybackurls > ./$1/$foldername/waybackurls_output.txt
 
   # 99_wayback_list needs for checkparams
   sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/99_wayback_list.txt
@@ -29,7 +33,7 @@ checkwaybackurls(){
 }
 
 sortsubdomains(){
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/wayback-list.txt > ./$1/$foldername/1-real-subdomains.txt
+  sort -u ./$1/$foldername/enumerated-subdomains.txt ./$1/$foldername/wayback-list.txt > ./$1/$foldername/1-real-subdomains.txt
 }
 
 permutatesubdomains(){
@@ -151,6 +155,8 @@ main(){
   touch ./$1/$foldername/subfinder-list.txt 
   # amass list of subdomains
   touch ./$1/$foldername/amass-list.txt
+  # assetfinder list of subdomains
+  touch ./$1/$foldername/assetfinder-list.txt
   # gau/waybackurls list of subdomains
   touch ./$1/$foldername/wayback-list.txt
   # gau list of only params
