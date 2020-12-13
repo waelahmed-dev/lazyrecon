@@ -1,21 +1,22 @@
 #!/bin/bash
 
-# Invoke with sudo because of dnmasscan
+# Invoke with sudo because of masscan/nmap
 
 # Config
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
 dirsearchWordlist=./lazyWordLists/curated_top100.txt
+resolvers=./resolvers/mini_resolvers.txt
 dirsearchThreads=100
 
 # definitions
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
   echo "subfinder..."
-  subfinder -d $1 -recursive -o ./$1/$foldername/subfinder-list.txt
+  subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
   echo "assetfinder..."
   assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
   echo "amass..."
-  amass enum -brute -min-for-recursive 4 -d $1 -o ./$1/$foldername/amass-list.txt
+  amass enum -r $resolvers -brute -min-for-recursive 4 --max-dns-queries 1000 -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
   # sort enumerated subdomains
   sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated-subdomains.txt
 }
@@ -51,10 +52,10 @@ permutatesubdomains(){
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
   # resolve hosts with IPs, remove [ and ] symbols
-  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -ip -follow-host-redirects -fc 300,301,302,303,503 | tr -d '\r' > ./$1/$foldername/httpx_output.txt
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -ip -follow-host-redirects -fc 300,301,302,303,503 | tr -d '\[\]' > ./$1/$foldername/httpx_output.txt
   # split resolved hosts ans its IP (for masscan)
-  cut -f1 -d ' ' < ./$1/$foldername/httpx_output.txt > 3-all-subdomain-live-scheme.txt
-  cut -f2 -d ' ' < ./$1/$foldername/httpx_output.txt > 3-all-subdomain-live-ip.txt
+  cut -f1 -d ' ' < ./$1/$foldername/httpx_output.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  cut -f2 -d ' ' < ./$1/$foldername/httpx_output.txt | sort -u > ./$1/$foldername/3-all-subdomain-live-ip.txt
 }
 
 nucleitest(){
@@ -75,15 +76,20 @@ sortliveservers(){
 #   echo "[phase 7] Test for unexpected open ports..."
 #   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt  
 # }
+masscantest(){
+  # max-rate for accuracy
+  masscan -p1-65535 -iL ./$1/$foldername/3-all-subdomain-live-ip.txt --max-rate 1000 -oG ./$1/$foldername/masscan_output.log
+}
+
 dnmasscan(){
   echo "[phase 5] Test for unexpected open ports..."
-  dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/masscan_output.gnmap --rate 1200
+  dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/dnmasscan_output.gnmap --rate 1000
 }
 
 brutespray(){
-  if [ -s ./$1/$foldername/masscan_output.gnmap ]; then
+  if [ -s ./$1/$foldername/dnmasscan_output.gnmap ]; then
     echo "[phase 6] Brutespray test..."
-    ../brutespray/brutespray.py --file ./$1/$foldername/masscan_output.gnmap
+    ../brutespray/brutespray.py --file ./$1/$foldername/dnmasscan_output.gnmap
   fi
 }
 
@@ -131,6 +137,7 @@ recon(){
   checkhttprobe $1
   nucleitest $1
   sortliveservers $1
+  masscantest $1
   dnmasscan $1
   brutespray $1
   smuggler $1
@@ -163,8 +170,6 @@ main(){
   touch ./$1/$foldername/amass-list.txt
   # assetfinder list of subdomains
   touch ./$1/$foldername/assetfinder-list.txt
-  # dnsprobe list of IPs
-  touch ./$1/$foldername/dns-ip-subdomains.txt
   # gau/waybackurls list of subdomains
   touch ./$1/$foldername/wayback-list.txt
   # gau list of only params

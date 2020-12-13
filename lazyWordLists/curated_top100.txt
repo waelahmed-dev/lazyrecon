@@ -433,6 +433,10 @@ search/
 search/?
 search/users
 shop/securelogin
+static
+static../
+static../static.conf
+static../config.conf
 site/login
 site/wp-admin/
 siteadmin/
@@ -583,7 +587,7 @@ wp-admin/
 wp-admin/*
 wp-admin/</pre></body></html>
 wp-admin/admin-ajax.php
-wp-admin/ 
+wp-admin/
 wp-login
 wp-login.php
 wp-login.php*
