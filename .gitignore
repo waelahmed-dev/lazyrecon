@@ -1,4 +1,6 @@
 out/
+demo*
+*.*/
 *com/
 *ru/
 *net/

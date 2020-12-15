@@ -97,8 +97,10 @@ dev_qa
 devteam
 dork
 edit
+git
 host
 hosting
+infra
 internal
 integration
 integration1
@@ -133,7 +135,9 @@ mice
 mini-app
 mini_app
 mobileapi
+moscow
 msk
+registry
 s5
 s7
 socket
@@ -239,6 +243,7 @@ testuser
 testuser1
 test-private
 testprivate
+token
 tomcat
 tomcat1
 try
