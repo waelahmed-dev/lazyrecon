@@ -3,22 +3,30 @@
 # Invoke with sudo because of masscan/nmap
 
 # Config
-altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
-dirsearchWordlist=./lazyWordLists/curated_top100.txt
+altdnsWordlist=./lazyWordLists/subdomains_wordlist.txt
+dirsearchWordlist=./lazyWordLists/curated_top10000_fuzzBo0oM_dotAssetnote.txt
 resolvers=./resolvers/mini_resolvers.txt
-dirsearchThreads=100
+dirsearchThreads=200
 
 # definitions
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
+  # Passive subdomain enumeration
   echo "subfinder..."
   subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
   echo "assetfinder..."
   assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
+  # Active subdomain enumeration
   echo "amass..."
-  amass enum -r $resolvers -brute -min-for-recursive 4 --max-dns-queries 1000 -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
+  amass enum -rf $resolvers -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
+
   # sort enumerated subdomains
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated-subdomains.txt
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated_subdomains_tmp.txt
+  echo "shuffledns bruteforcing..."
+  shuffledns -d $1 -list ./$1/$foldername/enumerated_subdomains_tmp -retries 1 -r $resolvers -w $altdnsWordlist -o ./$1/$foldername/shuffledns-list.txt
+  # one more time sort enumerated subdomains to avoid duplicates
+  sort -u ./$1/$foldername/enumerated_subdomains_tmp ./$1/$foldername/shuffledns-list.txt > ./$1/$foldername/enumerated-subdomains.txt
+
 }
 
 checkwaybackurls(){
@@ -29,8 +37,8 @@ checkwaybackurls(){
   cat ./$1/$foldername/enumerated-subdomains.txt | waybackurls > ./$1/$foldername/waybackurls_output.txt
 
   # 99_wayback_list needs for checkparams
-  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/99_wayback_list.txt
-  cat ./$1/$foldername/99_wayback_list.txt | unfurl --unique domains > ./$1/$foldername/wayback-list.txt
+  sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/wayback_output.txt
+  cat ./$1/$foldername/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-list.txt
 }
 
 sortsubdomains(){
@@ -39,23 +47,49 @@ sortsubdomains(){
 
 permutatesubdomains(){
   echo "altdns..."
-  altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/99_altdns_output.txt -w $altdnsWordlist
-  sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/99_altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
+  altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/altdns_output.txt -w $altdnsWordlist
+
+  sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/altdns_output.txt > ./$1/$foldername/2-all-subdomains.txt
 }
 
-# dnsprobing(){
-#   echo "dnsprobe..."
-#   # dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r CNAME -o ./$1/$foldername/dns-alias-subdomains.txt
-#   dnsprobe -l ./$1/$foldername/enumerated-subdomains.txt -r A -o ./$1/$foldername/dns-ip-subdomains.txt
-# }
+dnsprobing(){
+  # check file wirteup successfully from previous step
+  while [ ! -s ./$1/$foldername/2-all-subdomains.txt ]; do
+    echo "[dnsprobing] 2-all-subdomains.txt empty, sleep 1"
+    sleep 1
+  done
+  echo "dnsprobe..."
+  dnsprobe -l ./$1/$foldername/2-all-subdomains.txt -r A -s $resolvers -o ./$1/$foldername/dnsprobe_output.txt
+
+  # split resolved hosts ans its IP (for masscan)
+  cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output.txt > ./$1/$foldername/dnsprobe_subdomains.txt
+  cut -f2 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort -u > ./$1/$foldername/dnsprobe_ip.txt
+}
 
 checkhttprobe(){
   echo "[phase 2] Starting httpx probe testing..."
-  # resolve hosts with IPs, remove [ and ] symbols
-  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -ip -follow-host-redirects -fc 300,301,302,303,503 | tr -d '\[\]' > ./$1/$foldername/httpx_output.txt
+  # resolve IP and hosts with http|https for bruteforce
+  httpx -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -fc 300,301,302,303 -o ./$1/$foldername/httpx_output_1.txt
+  httpx -l ./$1/$foldername/2-all-subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303 -o ./$1/$foldername/httpx_output_2.txt
+
+  sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  # tr -d '\[\]' < ./$1/$foldername/httpx_output.txt > ./$1/$foldername/tr_httpx_output.txt
+
+  # check file wirteup successfully from previous step
+  # while [ ! -s ./$1/$foldername/httpx_output.txt ]; do
+  #   echo "[checkhttprobe] httpx_output.txt empty, sleep 1"
+  #   sleep 1
+  # done
+
   # split resolved hosts ans its IP (for masscan)
-  cut -f1 -d ' ' < ./$1/$foldername/httpx_output.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
-  cut -f2 -d ' ' < ./$1/$foldername/httpx_output.txt | sort -u > ./$1/$foldername/3-all-subdomain-live-ip.txt
+  # cut -f1 -d ' ' ./$1/$foldername/httpx_output.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  # cut -f2 -d ' ' ./$1/$foldername/httpx_output.txt | sort -u > ./$1/$foldername/3-all-subdomain-live-ip.txt
+}
+
+sortliveservers(){
+  echo "[phase 4] Sorting live hosts..."
+  
+  # sed -e 's/\http\:\/\///g;s/\https\:\/\///g' ./$1/$foldername/3-all-subdomain-live-scheme.txt | sort -u > ./$1/$foldername/4-live.txt
 }
 
 nucleitest(){
@@ -64,12 +98,7 @@ nucleitest(){
     Exit 1
   fi
   echo "[phase 3] nuclei testing..."
-  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -o ./$1/$foldername/99_nuclei_results.txt
-}
-
-sortliveservers(){
-  echo "[phase 4] Sorting live hosts..."
-  sed -e 's/\http\:\/\///g;s/\https\:\/\///g' ./$1/$foldername/3-all-subdomain-live-scheme.txt | sort -u > ./$1/$foldername/4-live.txt
+  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -o ./$1/$foldername/nuclei_output.txt
 }
 
 # nmap(){
@@ -78,20 +107,27 @@ sortliveservers(){
 # }
 masscantest(){
   # max-rate for accuracy
-  masscan -p1-65535 -iL ./$1/$foldername/3-all-subdomain-live-ip.txt --max-rate 1000 -oG ./$1/$foldername/masscan_output.log
+  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --max-rate 200 -oL ./$1/$foldername/masscan_output.txt
+}
+nmap_nse(){
+  awk '{ print $4 }' ./$1/$foldername/masscan_output.txt > ./$1/$foldername/nmap_input.txt
+  nmap --script "auth" -iL ./$1/$foldername/nmap_input.txt
+  nmap --script=nfs-ls -iL ./$1/$foldername/nmap_input.txt
+
 }
 
-dnmasscan(){
-  echo "[phase 5] Test for unexpected open ports..."
-  dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/dnmasscan_output.gnmap --rate 1000
-}
 
-brutespray(){
-  if [ -s ./$1/$foldername/dnmasscan_output.gnmap ]; then
-    echo "[phase 6] Brutespray test..."
-    ../brutespray/brutespray.py --file ./$1/$foldername/dnmasscan_output.gnmap
-  fi
-}
+# dnmasscan(){
+#   echo "[phase 5] Test for unexpected open ports..."
+#   dnmasscan ./$1/$foldername/4-live.txt ./$1/$foldername/live-ip-list.log -p1-65535 -oG ./$1/$foldername/dnmasscan_output.gnmap --rate 1000
+# }
+
+# brutespray(){
+#   if [ -s ./$1/$foldername/dnmasscan_output.gnmap ]; then
+#     echo "[phase 6] Brutespray test..."
+#     ../brutespray/brutespray.py --file ./$1/$foldername/dnmasscan_output.gnmap
+#   fi
+# }
 
 smuggler(){
   echo "[phase 7] Try to find request smuggling vulnerabilities..."
@@ -115,17 +151,18 @@ smuggler(){
 # prepare custom wordlist for directory bruteforce
 checkparams(){
   echo "[phase 8] Prepare custom wordlist using unfurl"
-  cat ./$1/$foldername/99_wayback_list.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/101_wayback_params_list.txt
+  cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/wayback_params_list.txt
   # merge base dirsearchWordlist with target-specific
-  sort -u ./$1/$foldername/101_wayback_params_list.txt $dirsearchWordlist > ./$1/$foldername/101_params_list.txt
+  sort -u ./$1/$foldername/wayback_params_list.txt $dirsearchWordlist > ./$1/$foldername/wordlist.txt
+  sudo sed -i .bak '/^[[:space:]]*$/d' ./$1/$foldername/wordlist.txt
 }
 
 ffufbrute(){
   echo "[phase 9] Start directory bruteforce..."
   iterator=1
   while read subdomain; do
+    ffuf -c -u ${subdomain}/FUZZ -mc all -fc 300,301,302,303,304 -recursion -recursion-depth 3 -w ./$1/$foldername/wordlist.txt -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
     iterator=$((iterator+1))
-    ffuf -c -u ${subdomain}/FUZZ -sf -mc all -fc 300,301,302,303,304 -recursion -recursion-depth 3 -w ./$1/$foldername/101_params_list.txt -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
   done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
@@ -134,12 +171,16 @@ recon(){
   checkwaybackurls $1
   sortsubdomains $1
   permutatesubdomains $1
+
+  dnsprobing $1
   checkhttprobe $1
+
+  # sortliveservers $1
   nucleitest $1
-  sortliveservers $1
   masscantest $1
-  dnmasscan $1
-  brutespray $1
+  nmap_nse $1
+  # dnmasscan $1
+  # brutespray $1
   smuggler $1
 
   checkparams $1
@@ -173,7 +214,7 @@ main(){
   # gau/waybackurls list of subdomains
   touch ./$1/$foldername/wayback-list.txt
   # gau list of only params
-  touch ./$1/$foldername/101_wayback_params_list.txt
+  touch ./$1/$foldername/wayback_params_list.txt
   # mkdir ./$1/$foldername/reports/
 
   echo "Reports goes to: ./${1}/${foldername}"
