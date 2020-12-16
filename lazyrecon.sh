@@ -8,6 +8,10 @@ dirsearchWordlist=./lazyWordLists/curated.txt
 resolvers=./resolvers/mini_resolvers.txt
 dirsearchThreads=200
 
+# optional positional arguments
+brute=
+mad=
+
 # definitions
 enumeratesubdomains(){
   echo "[phase 1] Enumerating all known domains using:"
@@ -18,16 +22,15 @@ enumeratesubdomains(){
   echo "assetfinder..."
   assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
 
-  # Active subdomain enumeration
-  echo "amass..."
-  amass enum -brute -min-for-recursive 2 -rf $resolvers -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
-
+  # Active subdomain enumeration (--mad option only)
+  if [ "$mad" = "1" ]; then
+    echo "amass bruteforcing..."
+    amass enum -brute -min-for-recursive 2 -rf $resolvers -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
+    echo "shuffledns bruteforcing..."
+    shuffledns -d $1 -retries 1 -r $resolvers -w $altdnsWordlist -o ./$1/$foldername/shuffledns-list.txt
+  fi
   # sort enumerated subdomains
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt > ./$1/$foldername/enumerated_subdomains_tmp.txt
-  echo "shuffledns bruteforcing..."
-  shuffledns -d $1 -retries 1 -r $resolvers -w $altdnsWordlist -o ./$1/$foldername/shuffledns-list.txt
-  # one more time sort enumerated subdomains to avoid duplicates
-  sort -u ./$1/$foldername/enumerated_subdomains_tmp.txt ./$1/$foldername/shuffledns-list.txt > ./$1/$foldername/enumerated-subdomains.txt
+  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/amass-list.txt ./$1/$foldername/assetfinder-list.txt ./$1/$foldername/shuffledns-list.txt > ./$1/$foldername/enumerated-subdomains.txt
 }
 
 checkwaybackurls(){
@@ -40,8 +43,12 @@ checkwaybackurls(){
   # wayback_output.txt needs for checkparams
   sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt > ./$1/$foldername/wayback_output.txt
   cat ./$1/$foldername/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-subdomains-list.txt
-  # parse for only subdomains to got target specific wordlist for permutation
-  # cat ./$1/$foldername/wayback_output.txt | unfurl format %S | sort | uniq > ./$1/$foldername/wayback-subdomains-wordlist.txt
+
+  # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
+  if [ "$mad" = "1" ]; then
+    cat ./$1/$foldername/wayback_output.txt | unfurl format %S | sort | uniq > ./$1/$foldername/wayback-subdomains-wordlist.txt
+    sort -u $altdnsWordlist ./$1/$foldername/wayback-subdomains-wordlist.txt -o $altdnsWordlist
+  fi
 }
 
 sortsubdomains(){
@@ -49,8 +56,6 @@ sortsubdomains(){
 }
 
 permutatesubdomains(){
-  # prepare target specific subdomains wordlist to run manually agains specific target (time optimization)
-  # sort -u $altdnsWordlist ./$1/$foldername/wayback-subdomains-wordlist.txt > ./$1/$foldername/subs_wordlist.txt
   echo "altdns..."
   altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/altdns_output.txt -w $altdnsWordlist
 
@@ -134,23 +139,26 @@ smuggler(){
   fi
 }
 
-# prepare custom wordlist for directory bruteforce
+# prepare custom wordlist for directory bruteforce using --mad and --brute mode only
 checkparams(){
-  echo "[phase 8] Prepare custom wordlist using unfurl"
-  cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/wayback_params_list.txt
-  # merge base dirsearchWordlist with target-specific for manually use only for specific target (save your time)
-  sort -u ./$1/$foldername/wayback_params_list.txt $dirsearchWordlist > ./$1/$foldername/wordlist.txt
-  sudo sed -i .bak '/^[[:space:]]*$/d' ./$1/$foldername/wordlist.txt
+  if [ "$brute" = "1" -a "$mad" = "1" ]; then
+    echo "Prepare custom wordlist using unfurl"
+    cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/wayback_params_list.txt
+    # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
+    sort -u ./$1/$foldername/wayback_params_list.txt $dirsearchWordlist -o $dirsearchWordlist
+    sudo sed -i .bak '/^[[:space:]]*$/d' $dirsearchWordlist
+  fi
 }
 
 ffufbrute(){
-  echo "[phase 9] Start directory bruteforce..."
-  iterator=1
-  while read subdomain; do
-    # dirsearchWordlist used because time optimization, use wordlist.txt only for specific target
-    ffuf -c -u ${subdomain}/FUZZ -mc all -fc 300,301,302,303,304,500,501,502,503 -recursion -recursion-depth 3 -w $dirsearchWordlist -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
-    iterator=$((iterator+1))
-  done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  if [ "$brute" = "1" ]; then
+    echo "Start directory bruteforce using ffuf..."
+    iterator=1
+    while read subdomain; do
+      ffuf -c -u ${subdomain}/FUZZ -mc all -fc 300,301,302,303,304,500,501,502,503 -recursion -recursion-depth 3 -w $dirsearchWordlist -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      iterator=$((iterator+1))
+    done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  fi
 }
 
 recon(){
@@ -192,10 +200,10 @@ main(){
   mkdir ./$1/$foldername/ffuf/
   # subfinder list of subdomains
   touch ./$1/$foldername/subfinder-list.txt 
-  # amass list of subdomains
-  touch ./$1/$foldername/amass-list.txt
   # assetfinder list of subdomains
   touch ./$1/$foldername/assetfinder-list.txt
+  # amass list of subdomains
+  touch ./$1/$foldername/amass-list.txt
   # shuffledns list of subdomains
   touch ./$1/$foldername/shuffledns-list.txt
   # gau/waybackurls list of subdomains
@@ -211,8 +219,8 @@ main(){
 }
 
 usage(){
-  echo "Usage: $FUNCNAME \"<target>\""
-  echo "Example: $FUNCNAME \"example.com\""
+  echo "Usage: $FUNCNAME <target> [[-b] | [--brute]] [[-m] | [--mad]]"
+  echo "Example: $FUNCNAME example.com -brute"
 }
 
 invokation(){
@@ -220,12 +228,27 @@ invokation(){
   echo "$(basename $0) [[-h] | [--help]]"
 }
 
-# check for specifiec arguments (help)
+# check for help arguments or exit with no arguments
 checkhelp(){
   while [ "$1" != "" ]; do
       case $1 in
           -h | --help )           usage
                                   exit
+                                  ;;
+          # * )                     invokation "$@"
+          #                         exit 1
+      esac
+      shift
+  done
+}
+
+# check for specifiec arguments (help)
+checkargs(){
+  while [ "$1" != "" ]; do
+      case $1 in
+          -b | --brute )          brute="1"
+                                  ;;
+          -m | --mad )            mad="1"
                                   ;;
           # * )                     invokation $1
           #                         exit 1
@@ -236,26 +259,31 @@ checkhelp(){
 
 
 ##### Main
-echo "Check params 1: $@"
 
-if [ $# -eq 1 ]; then
-  checkhelp "$@"
-# else
-#   if [ $# -ne 3 ]; then
-#     echo "Error: expected arguments count"
-#     usage
-#     exit 1
-#   fi
+if [ $# -eq 0 ]; then
+    echo "Error: expected positional arguments"
+    usage
+    exit 1
+else
+  if [ $# -eq 1 ]; then
+    checkhelp "$@"
+  fi
 fi
-if [[ -z $@ ]]; then
-  usage
-  exit 1
+
+if [ $# -gt 1 ]; then
+  checkargs "$@"
 fi
+
+echo "Check params: $@"
+echo "Check # of params: $#"
+echo "Check params \$1: $1"
+echo "Check params \$brute: $brute"
+echo "Check params \$mad: $mad"
 
 ./logo.sh
 path=$(pwd)
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 
-# invoke with asn
+# invoke
 main $1
