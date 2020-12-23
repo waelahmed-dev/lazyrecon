@@ -113,6 +113,10 @@ dork
 edit
 git
 gitlab
+hack
+hacking
+hd
+hook
 host
 hosting
 infra
@@ -149,6 +153,7 @@ login1
 m
 m9
 mail
+md
 mini
 mise
 mice
@@ -158,6 +163,7 @@ mobileapi
 moscow
 msk
 registry
+s1
 s5
 s7
 socket
@@ -211,6 +217,7 @@ rc1
 rc2
 rout
 safe
+sd
 sentry
 server
 server1
