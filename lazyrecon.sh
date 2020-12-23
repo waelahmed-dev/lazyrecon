@@ -42,6 +42,7 @@ checkwaybackurls(){
 
     # wayback_output.txt needs for checkparams
     sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt -o ./$1/$foldername/wayback_output.txt
+    sed -i '' '/web.archive.org/d' ./$1/$foldername/wayback_output.txt
     cat ./$1/$foldername/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-subdomains-list.txt
   fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
@@ -92,8 +93,9 @@ dnsprobing(){
     echo "[massdns] dnsprobing..."
     # pure massdns:
     massdns -r $madResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
+    sed -i '' '/CNAME/d' ./$1/$foldername/massdns_output.txt
     cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
-    cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
+    cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
   fi
 }
 
@@ -102,9 +104,9 @@ dnsprobing(){
 #   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt
 # }
 masscantest(){
+  echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
-  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oL ./$1/$foldername/masscan_output.txt
-  sed '1d;$d' ./$1/$foldername/masscan_output.txt > ./$1/$foldername/masscan_output_tmp.txt
+  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 5000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
 }
 
 # scan for specifiec PORTS (21,22,...)
@@ -113,16 +115,24 @@ masscantest(){
   #  old approach
   # nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
 nmap_nse(){
+  echo "[brutespray] Brute known services on open ports..."
+  brutespray.py --file ./$1/$foldername/masscan_output.gnmap --threads 5 --hosts 5 -c -o ./$1/$foldername/brutespray_output
+
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
   # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
-  while read line; do
-    IP=$(echo $line | awk '{ print $4 }')
-    PORT=$(echo $line | awk '{ print $3 }')
-    echo "[nmap] scanning IP:$IP using $PORT port"
-    FILENAME=$(echo $line | awk '{ print "nmap_"$4}' )
-    nmap -vv -sV --version-intensity 5 -sT -O --max-rate 5000 -Pn -T3 -p$PORT -oA ./$1/$foldername/nmap/$FILENAME $IP
-  done < ./$1/$foldername/masscan_output_tmp.txt
+  # echo "${RB_VIOLET}${BOLD}[nmap] scanning...${RESET}"
+  # while read line; do
+  #   IP=$(echo $line | awk '{ print $4 }')
+  #   PORT=$(echo $line | awk '{ print $3 }')
+  #   FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
+
+  #   echo "${RB_VIOLET}[nmap] scanning $IP using $PORT port${RESET}"
+  #   nmap -vv -sV --version-intensity 5 -sT -O --max-rate 5000 -Pn -T3 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
+  #   sleep 1
+  #   echo "${RB_VIOLET}[brutespray] scanning on $FILENAME${RESET}"
+  #   brutespray.py --file ./$1/$foldername/nmap/${FILENAME} --threads 5 -c -o ./$1/$foldername/brutespray/$FILENAME
+  # done < ./$1/$foldername/masscan_output_tmp.txt
 }
 
 checkhttprobe(){
@@ -140,12 +150,12 @@ nucleitest(){
     echo "[nuclei] There is no live hosts. exit 1"
     exit 1
   fi
-  echo "[phase 3] nuclei testing..."
+  echo "[nuclei] CVE testing..."
   nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -o ./$1/$foldername/nuclei_output.txt
 }
 
 smuggler(){
-  echo "[phase 7] Try to find request smuggling vulnerabilities..."
+  echo "[smuggler] Try to find request smuggling vulnerabilities..."
   smuggler.py -u ./$1/$foldername/3-all-subdomain-live-scheme.txt
 
   # check for VULNURABLE keyword
@@ -170,7 +180,7 @@ checkparams(){
     cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/wayback_params_list.txt
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
     sort -u ./$1/$foldername/wayback_params_list.txt $dirsearchWordlist -o $customFfufWordList
-    sudo sed -i .bak '/^[[:space:]]*$/d' $customFfufWordList
+    sudo sed -i '' '/^[[:space:]]*$/d' $customFfufWordList
   fi
 }
 
@@ -234,7 +244,9 @@ main(){
     mkdir ./$1/$foldername/ffuf/
   fi
   # nmap output
-  mkdir ./$1/$foldername/nmap/
+  # mkdir ./$1/$foldername/nmap/
+  # brutespray output
+  mkdir ./$1/$foldername/brutespray/
   # subfinder list of subdomains
   touch ./$1/$foldername/subfinder-list.txt 
   # assetfinder list of subdomains

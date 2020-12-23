@@ -10,7 +10,11 @@
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
-./lazyrecon.sh target.com
+sudo ./lazyrecon.sh target.com
+```
+Force with options: `alt` (permutate subdomains), `brute` (directory bruteforce). `mad` mode uses wayback machine and merge subdomains and paths with corresponding wordlists to get the best out of it: 
+```bash
+sudo ./lazyrecon.sh target.com --mad --alt
 ```
 
 # About
@@ -20,10 +24,11 @@ This script is intended to automate your reconnaissance process in an organized 
 - Create a dated folder with recon notes for target
 - Grab subdomains using `subfinder`, `amass`, `assetfinder` and wayback machines `gau`, `waybackurls`
 - Subdomain discovery through alterations and permutations using `altdns`
-- Filtering out live subdomains from a list of hosts using `httpx` sieving through to exclude false-positives
+- Filtering out live subdomains from a list of hosts using `massdns`
+- Perform `masscan` on live servers
+- Automatically brute-forces services with default credentials using `brutespray`
+- Check http probes using `httpx`
 - Scanning for known paths and CVEs using `nuclei`
-- ~~Perform `masscan` on live servers using `dnmasscan`~~ (WIP: replased soon with `masscan` and `nmap` NSE)
-- ~~Automatically brute-forces services with default credentials using `brutespray`~~
 - Check for request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt) and [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - [WIP][x] Generate a HTML report in case of a vulnerable domain found.
@@ -37,20 +42,20 @@ The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/
 
 # Dependencies
 
-To start use this script, please clone and setup the next tools in the same level (near the lazyrecon directory). Next, you may copy each executable dependency to `cp ~/smuggler/smuggler.py /usr/local/bin/` or just export it to the PATH `export PATH=~/dnmasscan/dnmasscan:$PATH`
+To start use this script, please clone and setup the next tools in the same level (near the lazyrecon directory). Next, you may copy each executable dependency to `cp ~/smuggler/smuggler.py /usr/local/bin/` or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`
 
 ```bash
 ~/lazyrecon/
 ~/subfinder/
 ~/amass/
 ~/gau/
-~/masscan
+~/masscan/
+~/massdns/
 ~/unfurl/
 ~/altdns/
 ~/httpx/
 ~/nuclei/
 ~/nuclei-templates/
-~/dnmasscan/
 ~/brutespray/
 ~/smuggler/
 ~/ffuf/
@@ -63,8 +68,9 @@ Make sure all tools correctly installed and enabled with execute permissions: `c
 5. ~~[httprobe](https://github.com/tomnomnom/httprobe)~~
 6. [smuggler](https://github.com/storenth/requestsmuggler)
 7. [masscan](https://github.com/robertdavidgraham/masscan)
-8. [dnmasscan](https://github.com/rastating/dnmasscan)
-9. [brutespray](https://github.com/storenth/brutespray)
+8. [massdns](https://github.com/blechschmidt/massdns)
+9. ~~[dnmasscan](https://github.com/rastating/dnmasscan)~~
+10. [brutespray](https://github.com/storenth/brutespray)
 
 If you faced with some issues, feel free to open PR or bug.
 
@@ -75,7 +81,7 @@ If you faced with some issues, feel free to open PR or bug.
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
  - ~~`grep` `meg`'s output for [Location](https://twitter.com/hunter0x7/status/1293168500672954368) in order to exclude 301/302 status codes~~
  (replaced with `httpx -fc 301,302` approach)
- - `httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)
+ - ~~`httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)~~
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
  - WIP: you can track activity in Projects To Do board
 
