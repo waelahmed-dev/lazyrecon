@@ -4,7 +4,6 @@
 
 # Config
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
-madSubdomainWordlist=./lazyWordLists/subdomains_wordlist.txt
 dirsearchWordlist=./lazyWordLists/curated.txt
 miniResolvers=./resolvers/mini_resolvers.txt
 madResolvers=./resolvers/resolvers.txt
@@ -22,7 +21,7 @@ enumeratesubdomains(){
 
   # Passive subdomain enumeration
   echo "subfinder..."
-  subfinder -d $1 -o ./$1/$foldername/subfinder-list.txt
+  subfinder -d $1 -silent -o ./$1/$foldername/subfinder-list.txt
   echo "assetfinder..."
   assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
   # echo "amass..."
@@ -87,14 +86,14 @@ dnsprobing(){
     # clear file from [ and ] symbols
     tr -d '\[\]' < ./$1/$foldername/dnsprobe_output_tmp.txt > ./$1/$foldername/dnsprobe_output.txt
     # split resolved hosts ans its IP (for masscan)
-    cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
+    # cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
     cut -f2 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
   else
     echo "[massdns] dnsprobing..."
     # pure massdns:
     massdns -r $madResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
     sed -i '' '/CNAME/d' ./$1/$foldername/massdns_output.txt
-    cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
+    # cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
     cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
   fi
 }
@@ -138,11 +137,11 @@ nmap_nse(){
 checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for bruteforce
-  httpx -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 300 -o ./$1/$foldername/httpx_output_1.txt
+  httpx -silent -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 300 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
   # httpx -l ./$1/$foldername/dnsprobe_subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 300 -o ./$1/$foldername/httpx_output_2.txt
-  touch ./$1/$foldername/httpx_output_2.txt
+  # touch ./$1/$foldername/httpx_output_2.txt
 
-  sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  # sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
 }
 
 nucleitest(){
@@ -189,7 +188,7 @@ ffufbrute(){
     echo "Start directory bruteforce using ffuf..."
     iterator=1
     while read subdomain; do
-      ffuf -c -u ${subdomain}/FUZZ -mc all -fc 300,301,302,303,304,500,501,502,503 -recursion -recursion-depth 3 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      ffuf -c -u ${subdomain}/FUZZ -H "referer:${subdomain}/FUZZ" -mc all -fc 300,301,302,303,304,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
       iterator=$((iterator+1))
     done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
   fi
@@ -235,6 +234,11 @@ main(){
   customFfufWordList=./$1/$foldername/custom_ffuf_wordlist.txt
   cp $dirsearchWordlist $customFfufWordList
   # used to save target specific list for alterations (shuffledns, altdns)
+  # if [ "$mad" = "1" ]; then
+  #   altdnsWordlist=./lazyWordLists/altdns_wordlist.txt
+  # else
+  #   altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
+  # fi
   touch ./$1/$foldername/custom_subdomains_wordlist.txt
   customSubdomainsWordList=./$1/$foldername/custom_subdomains_wordlist.txt
   cp $altdnsWordlist $customSubdomainsWordList
@@ -243,6 +247,7 @@ main(){
     # ffuf dir uses to store brute output
     mkdir ./$1/$foldername/ffuf/
   fi
+
   # nmap output
   # mkdir ./$1/$foldername/nmap/
   # brutespray output
