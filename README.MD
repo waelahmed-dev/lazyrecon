@@ -26,14 +26,14 @@ This script is intended to automate your reconnaissance process in an organized 
 - Subdomain discovery through alterations and permutations using `altdns`
 - Filtering out live subdomains from a list of hosts using `massdns`
 - Perform `masscan` on live servers
-- Automatically brute-forces services with default credentials using `brutespray`
+- Automatically brute-forces services with default credentials using `hydra` and `brutespray`
 - Check http probes using `httpx`
 - Scanning for known paths and CVEs using `nuclei`
 - Check for request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt) and [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - [WIP][x] Generate a HTML report in case of a vulnerable domain found.
 
-The point is to get list of live hosts and check it using `nuclei`, `nmap` then performe directory bruteforce using `ffuf` and visit it at the end of your manual analysis.
+The point is to get list of live IPs, attack available network protocols, check for common CVEs, perform directory bruteforce. Then use lists files to do manual analysis or create target-specific connect-back shellcode.
 
 # Features
 
@@ -47,30 +47,39 @@ To start use this script, please clone and setup the next tools in the same leve
 ```bash
 ~/lazyrecon/
 ~/subfinder/
-~/amass/
+~/assetfinder/
+~/waybackurls/
 ~/gau/
+~/altdns/
 ~/masscan/
 ~/massdns/
+~/dnsx/
 ~/unfurl/
-~/altdns/
 ~/httpx/
 ~/nuclei/
 ~/nuclei-templates/
 ~/brutespray/
+~/hydra
 ~/smuggler/
 ~/ffuf/
 ```
 Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
-2. [altdns](https://github.com/infosec-au/altdns)
-3. ~~[dirsearch](https://github.com/maurosoria/dirsearch)~~
-4. ~~[meg](https://github.com/tomnomnom/meg)~~
-5. ~~[httprobe](https://github.com/tomnomnom/httprobe)~~
-6. [smuggler](https://github.com/storenth/requestsmuggler)
+2. [assetfinder](https://github.com/tomnomnom/assetfinder)
+3. [waybackurls](https://github.com/tomnomnom/waybackurls)
+4. [gau](https://github.com/lc/gau)
+5. [altdns](https://github.com/infosec-au/altdns)
+6. [unfurl](https://github.com/tomnomnom/unfurl)
 7. [masscan](https://github.com/robertdavidgraham/masscan)
 8. [massdns](https://github.com/blechschmidt/massdns)
-9. ~~[dnmasscan](https://github.com/rastating/dnmasscan)~~
+9. [dnsx](https://github.com/projectdiscovery/dnsx)
 10. [brutespray](https://github.com/storenth/brutespray)
+11. [hydra](https://github.com/vanhauser-thc/thc-hydra)
+12. [httpx](https://github.com/projectdiscovery/httpx)
+13. [nuclei](https://github.com/projectdiscovery/nuclei)
+14. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
+15. [smuggler](https://github.com/storenth/requestsmuggler)
+16. [ffuf](https://github.com/ffuf/ffuf)
 
 If you faced with some issues, feel free to open PR or bug.
 
@@ -90,6 +99,10 @@ If you faced with some issues, feel free to open PR or bug.
 - Investigate ANS like `amass intel -org 'MAILRU'` and pass it to `amass enum -d mail.ru -asn 12345` gives us more subdomains? (Or get list of ASN using `echo 'MAILRU' | metabigor net --org -v` or just manually get it through http://bgp.he.net). If yes positional arguments will be invoked just like:
 ```bash
 ./lazyrecon.sh target.com 12345
+```
+- Connect-back shellcode automation with simpest fuzzer implementation? Like:
+```bash
+cat /dev/urandom | nc hostname port
 ```
 
 
