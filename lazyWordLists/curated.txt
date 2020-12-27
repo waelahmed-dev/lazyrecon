@@ -1,3 +1,4 @@
+;/..;/manager
 *.mobile.userregteaser.html
 *.presentation.login.html
 *.unauthorized._responsive.detail.login.html

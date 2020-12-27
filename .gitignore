@@ -19,3 +19,6 @@ lazyrecon_old.sh
 nmap.gnmap
 nmap.xml
 lazyWordLists/all.txt
+gitTokenFile
+paused.conf
+hydra/

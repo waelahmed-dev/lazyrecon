@@ -3,11 +3,20 @@
 # Invoke with sudo because of masscan/nmap
 
 # Config
-altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
-dirsearchWordlist=./lazyWordLists/curated.txt
+altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
+
+dirsearchWordlist=./lazyWordLists/curated.txt # used in directory bruteforcing (--brute option)
+dirsearchThreads=200
+
 miniResolvers=./resolvers/mini_resolvers.txt
 madResolvers=./resolvers/resolvers.txt
-dirsearchThreads=200
+
+# used in hydra attack: too much words required up to 6 hours, use preferred list if possible
+# sort -u ../SecLists/Usernames/top-usernames-shortlist.txt ../SecLists/Usernames/cirt-default-usernames.txt ../SecLists/Usernames/mssql-usernames-nansh0u-guardicore.txt ./wordlist/users.txt -o wordlist/users.txt
+usersList=./wordlist/users.txt
+# sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
+passwordsList=./wordlist/passwords.txt
+
 
 # optional positional arguments
 brute= # enable directory bruteforce
@@ -69,11 +78,6 @@ permutatesubdomains(){
 # wildcard check like: `dig @188.93.60.15 A,CNAME {test123,0000}.$domain +short`
 # shuffledns uses for wildcard because massdn can't
 dnsprobing(){
-  # check file wirteup successfully from previous step
-  # while [ ! -s ./$1/$foldername/2-all-subdomains.txt ]; do
-  #   echo "[dnsprobing] 2-all-subdomains.txt empty, sleep 1"
-  #   sleep 1
-  # done
   if [ "$wildcard" = "1" ]; then
     echo "[shuffledns] massdns probing with wildcard sieving..."
     shuffledns -d $1 -list ./$1/$foldername/2-all-subdomains.txt -retries 1 -r $madResolvers -o ./$1/$foldername/shuffledns-list.txt
@@ -91,7 +95,7 @@ dnsprobing(){
   else
     echo "[massdns] dnsprobing..."
     # pure massdns:
-    massdns -r $madResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
+    massdns -q -r $madResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
     sed -i '' '/CNAME/d' ./$1/$foldername/massdns_output.txt
     # cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
     cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
@@ -132,6 +136,23 @@ nmap_nse(){
   #   echo "${RB_VIOLET}[brutespray] scanning on $FILENAME${RESET}"
   #   brutespray.py --file ./$1/$foldername/nmap/${FILENAME} --threads 5 -c -o ./$1/$foldername/brutespray/$FILENAME
   # done < ./$1/$foldername/masscan_output_tmp.txt
+}
+
+# hydra user/password attack on popular protocols
+hydratest(){
+  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+  echo "[hydra] attacking network protocols"
+  while read line; do
+    IP=$(echo $line | awk '{ print $4 }')
+    PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
+    PROTOCOL=$(echo $line | awk -F '[/ ]+' '{print $10}')
+    FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "hydra_"PORT"_"$4}' )
+
+    echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
+
+    hydra -o ./$1/$foldername/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+
+  done < ./$1/$foldername/masscan_output.gnmap
 }
 
 checkhttprobe(){
@@ -188,7 +209,8 @@ ffufbrute(){
     echo "Start directory bruteforce using ffuf..."
     iterator=1
     while read subdomain; do
-      ffuf -c -u ${subdomain}/FUZZ -H "referer:${subdomain}/FUZZ" -mc all -fc 300,301,302,303,304,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      # -c stands for colorized, -s for silent mode
+      ffuf -c -s -u ${subdomain}/FUZZ -H "referer:${subdomain}/FUZZ" -mc all -fc 300,301,302,303,304,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
       iterator=$((iterator+1))
     done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
   fi
@@ -203,6 +225,7 @@ recon(){
   dnsprobing $1
   masscantest $1
   nmap_nse $1
+  hydratest $1
 
   checkhttprobe $1
   nucleitest $1
@@ -250,6 +273,8 @@ main(){
 
   # nmap output
   # mkdir ./$1/$foldername/nmap/
+  # hydra output
+  mkdir ./$1/$foldername/hydra/
   # brutespray output
   mkdir ./$1/$foldername/brutespray/
   # subfinder list of subdomains
