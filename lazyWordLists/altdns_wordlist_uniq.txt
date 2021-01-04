@@ -110,6 +110,7 @@ dev_qa
 devteam
 dork
 edit
+ex
 git
 gitlab
 hack
@@ -265,6 +266,7 @@ rc2
 rout
 safe
 sd
+secure
 sentry
 server
 sever

@@ -5,17 +5,16 @@
 # Config
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
-dirsearchWordlist=./lazyWordLists/curated.txt # used in directory bruteforcing (--brute option)
+dirsearchWordlist=./lazyWordLists/fuzz-Bo0oM_top1000.txt # used in directory bruteforcing (--brute option)
 dirsearchThreads=200
 
 miniResolvers=./resolvers/mini_resolvers.txt
-madResolvers=./resolvers/resolvers.txt
 
 # used in hydra attack: too much words required up to 6 hours, use preferred list if possible
 # sort -u ../SecLists/Usernames/top-usernames-shortlist.txt ../SecLists/Usernames/cirt-default-usernames.txt ../SecLists/Usernames/mssql-usernames-nansh0u-guardicore.txt ./wordlist/users.txt -o wordlist/users.txt
 usersList=./wordlist/users.txt
 # sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
-passwordsList=./wordlist/passwords.txt
+passwordsList=./wordlist/top-20-common-SSH-passwords.txt
 
 
 # optional positional arguments
@@ -33,6 +32,8 @@ enumeratesubdomains(){
   subfinder -d $1 -silent -o ./$1/$foldername/subfinder-list.txt
   echo "assetfinder..."
   assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
+  # remove all lines start with *-asterix
+  sed -i '' '/^*/d' ./$1/$foldername/assetfinder-list.txt
   # echo "amass..."
   # amass enum --passive -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
 
@@ -52,6 +53,9 @@ checkwaybackurls(){
     sort -u ./$1/$foldername/gau_output.txt ./$1/$foldername/waybackurls_output.txt -o ./$1/$foldername/wayback_output.txt
     sed -i '' '/web.archive.org/d' ./$1/$foldername/wayback_output.txt
     cat ./$1/$foldername/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-subdomains-list.txt
+    sed -i '' '/[.]$/d' ./$1/$foldername/wayback-subdomains-list.txt
+    cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' | sort | uniq > ./$1/$foldername/wayback_params_list.txt
+    sed -i '' '/[.]$//' ./$1/$foldername/wayback_params_list.txt
   fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
@@ -68,9 +72,14 @@ sortsubdomains(){
 permutatesubdomains(){
   if [ "$alt" = "1" ]; then
     echo "altdns..."
-    altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/altdns_output.txt -w $customSubdomainsWordList
+    altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/altdns_out.txt -w $customSubdomainsWordList
 
-    sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/altdns_output.txt -o ./$1/$foldername/2-all-subdomains.txt
+    echo "dnsgen..."
+    dnsgen ./$1/$foldername/1-real-subdomains.txt -w $customSubdomainsWordList > ./$1/$foldername/dnsgen_out.txt
+    sed -i '' '/^[.]/d' ./$1/$foldername/dnsgen_out.txt
+    # sed -i '' '/^-/d' ./$1/$foldername/dnsgen_out.txt
+
+    sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/altdns_out.txt ./$1/$foldername/dnsgen_out.txt -o ./$1/$foldername/2-all-subdomains.txt
   fi
 }
 
@@ -80,24 +89,26 @@ permutatesubdomains(){
 dnsprobing(){
   if [ "$wildcard" = "1" ]; then
     echo "[shuffledns] massdns probing with wildcard sieving..."
-    shuffledns -d $1 -list ./$1/$foldername/2-all-subdomains.txt -retries 1 -r $madResolvers -o ./$1/$foldername/shuffledns-list.txt
+    shuffledns -silent -d $1 -list ./$1/$foldername/2-all-subdomains.txt -retries 1 -r $miniResolvers -o ./$1/$foldername/shuffledns-list.txt
     # additional resolving because shuffledns missing IP on output
     echo "[dnsx] dnsprobing..."
     # echo "[dnsx] wildcard filtering:"
     # dnsx -l ./$1/$foldername/shuffledns-list.txt -wd $1 -o ./$1/$foldername/dnsprobe_live.txt
     echo "[dnsx] getting hostnames and its A records:"
-    dnsx -a -resp -l ./$1/$foldername/shuffledns-list.txt -o ./$1/$foldername/dnsprobe_output_tmp.txt
+    # -t mean cuncurrency
+    dnsx -t 350 -a -resp -r $miniResolvers -l ./$1/$foldername/shuffledns-list.txt -o ./$1/$foldername/dnsprobe_out.txt
     # clear file from [ and ] symbols
-    tr -d '\[\]' < ./$1/$foldername/dnsprobe_output_tmp.txt > ./$1/$foldername/dnsprobe_output.txt
+    tr -d '\[\]' < ./$1/$foldername/dnsprobe_out.txt > ./$1/$foldername/dnsprobe_output_tmp.txt
     # split resolved hosts ans its IP (for masscan)
-    # cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
-    cut -f2 -d ' ' ./$1/$foldername/dnsprobe_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
+    cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output_tmp.txt | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
+    cut -f2 -d ' ' ./$1/$foldername/dnsprobe_output_tmp.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
   else
     echo "[massdns] dnsprobing..."
     # pure massdns:
-    massdns -q -r $madResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
+    massdns -q -r $miniResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
+    # 
     sed -i '' '/CNAME/d' ./$1/$foldername/massdns_output.txt
-    # cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
+    cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
     cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
   fi
 }
@@ -109,17 +120,17 @@ dnsprobing(){
 masscantest(){
   echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
-  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 5000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
+  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
 }
 
 # scan for specifiec PORTS (21,22,...)
 # -Pn: Treat all hosts as online -- skip host discovery
 # -sV: Probe open ports to determine service/version info
-  #  old approach
-  # nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
+#  old approach
+# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
 nmap_nse(){
   echo "[brutespray] Brute known services on open ports..."
-  brutespray.py --file ./$1/$foldername/masscan_output.gnmap --threads 5 --hosts 5 -c -o ./$1/$foldername/brutespray_output
+  brutespray.py --file ./$1/$foldername/masscan_output.gnmap --threads 5 --hosts 5 -c -o ./$1/$foldername/brutespray
 
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
@@ -157,12 +168,16 @@ hydratest(){
 
 checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
-  # resolve IP and hosts with http|https for bruteforce
-  httpx -silent -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 300 -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
-  # httpx -l ./$1/$foldername/dnsprobe_subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 300 -o ./$1/$foldername/httpx_output_2.txt
-  # touch ./$1/$foldername/httpx_output_2.txt
+  # resolve IP and hosts with http|https for nuclei, gospider and ffuf-bruteforce
+  httpx -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 500 -o ./$1/$foldername/httpx_output_1.txt
+  httpx -l ./$1/$foldername/dnsprobe_subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 500 -o ./$1/$foldername/httpx_output_2.txt
 
-  # sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt > ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+}
+
+gospidertest(){
+  echo "[gospider] Web crawling..."
+  gospider -S ./$1/$foldername/3-all-subdomain-live-scheme.txt --no-redirect --timeout 4 -o ./$1/$foldername/gospider -c 40 -t 40
 }
 
 nucleitest(){
@@ -171,7 +186,8 @@ nucleitest(){
     exit 1
   fi
   echo "[nuclei] CVE testing..."
-  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -o ./$1/$foldername/nuclei_output.txt
+  # -c maximum templates processed in parallel
+  nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
 }
 
 smuggler(){
@@ -197,7 +213,6 @@ smuggler(){
 checkparams(){
   if [ "$brute" = "1" -a "$mad" = "1" ]; then
     echo "Prepare custom wordlist using unfurl"
-    cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' > ./$1/$foldername/wayback_params_list.txt
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
     sort -u ./$1/$foldername/wayback_params_list.txt $dirsearchWordlist -o $customFfufWordList
     sudo sed -i '' '/^[[:space:]]*$/d' $customFfufWordList
@@ -210,7 +225,7 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -H "referer:${subdomain}/FUZZ" -mc all -fc 300,301,302,303,304,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 3 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
       iterator=$((iterator+1))
     done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
   fi
@@ -224,10 +239,12 @@ recon(){
 
   dnsprobing $1
   masscantest $1
-  nmap_nse $1
-  hydratest $1
+  # nmap_nse $1
+  # hydratest $1
 
   checkhttprobe $1
+  gospidertest $1
+
   nucleitest $1
   smuggler $1
 
@@ -274,7 +291,9 @@ main(){
   # nmap output
   # mkdir ./$1/$foldername/nmap/
   # hydra output
-  mkdir ./$1/$foldername/hydra/
+  # mkdir ./$1/$foldername/hydra/
+  # gospider output
+  mkdir ./$1/$foldername/gospider/
   # brutespray output
   mkdir ./$1/$foldername/brutespray/
   # subfinder list of subdomains

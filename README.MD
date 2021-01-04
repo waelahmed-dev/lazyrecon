@@ -81,10 +81,11 @@ Make sure all tools correctly installed and enabled with execute permissions: `c
 15. [smuggler](https://github.com/storenth/requestsmuggler)
 16. [ffuf](https://github.com/ffuf/ffuf)
 
-If you faced with some issues, feel free to open PR or bug.
+If you faced with some issues, feel free to open PR or file the bug.
 
 # Notes
 
+ - Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
  - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
  - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040)
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
