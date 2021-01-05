@@ -54,7 +54,12 @@ checkwaybackurls(){
     sed -i '' '/web.archive.org/d' ./$1/$foldername/wayback_output.txt
     cat ./$1/$foldername/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-subdomains-list.txt
     sed -i '' '/[.]$/d' ./$1/$foldername/wayback-subdomains-list.txt
-    cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' | sort | uniq > ./$1/$foldername/wayback_params_list.txt
+    # only paths, see https://github.com/tomnomnom/unfurl
+    cat ./$1/$foldername/wayback_output.txt | unfurl paths | sed 's/\///' | sort | uniq > ./$1/$foldername/wayback_paths_list.txt
+    # full paths+queries
+    cat ./$1/$foldername/wayback_output.txt | unfurl format '%p?%q' | sed 's/\///' | sort | uniq > ./$1/$foldername/wayback_paths_query_list.txt
+
+    sort -u ./$1/$foldername/wayback_paths_list.txt ./$1/$foldername/wayback_paths_query_list.txt -o ./$1/$foldername/wayback_params_list.txt
     sed -i '' '/[.]$//' ./$1/$foldername/wayback_params_list.txt
   fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
@@ -180,6 +185,11 @@ gospidertest(){
   gospider -S ./$1/$foldername/3-all-subdomain-live-scheme.txt --no-redirect --timeout 4 -o ./$1/$foldername/gospider -c 40 -t 40
 }
 
+hakrawlercrawling(){
+  echo "[hakrawler] Web crawling..."
+  cat ./$1/$foldername/1-real-subdomains.txt | hakrawler -insecure -depth 3 > ./$1/$foldername/hakrawler_out.txt
+}
+
 nucleitest(){
   if [ ! -e ./$1/$foldername/3-all-subdomain-live-scheme.txt ]; then
     echo "[nuclei] There is no live hosts. exit 1"
@@ -191,13 +201,21 @@ nucleitest(){
 }
 
 sqlmaptest(){
-  echo "[sqlmap] SQLi testing..."
-  # prepare list of the php urls from wayback and gospider
+  # prepare list of the php urls from wayback, hakrawler and gospider
+  echo "[sqlmap] wayback sqlist..."
   grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' ./$1/$foldername/wayback_output.txt | sort | uniq > ./$1/$foldername/wayback_sqli_list.txt
+
   # -h means Never print filename headers
-  grep -h 'linkfinder' ./$1/$foldername/gospider/* | cut -f3 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' | sort | uniq > ./$1/$foldername/gospider_sqli_list.txt
-  sort -u ./$1/$foldername/wayback_sqli_list.txt ./$1/$foldername/gospider_sqli_list.txt -o ./$1/$foldername/sqli_list.txt
+  echo "[sqlmap] gospider sqlist..."
+  grep -h '\[url\]' ./$1/$foldername/gospider/* | cut -f5 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' | sort | uniq > gospider_sqli_list.txt
+  grep -h 'linkfinder' ./$1/$foldername/gospider/* | cut -f3 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' | sort | uniq >> ./$1/$foldername/gospider_sqli_list.txt
+
+  echo "[sqlmap] hakrawler sqlist..."
+  grep -e '\[url\]' -e '\[form\]' ./$1/$foldername/hakrawler_out.txt | cut -f2 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' | sort | uniq > ./$1/$foldername/hakrawler_sqli_list.txt
+
+  sort -u ./$1/$foldername/wayback_sqli_list.txt ./$1/$foldername/gospider_sqli_list.txt ./$1/$foldername/hakrawler_sqli_list.txt -o ./$1/$foldername/sqli_list.txt
   # perform the sqlmap
+  echo "[sqlmap] SQLi testing..."
   ../sqlmap-dev/sqlmap.py -m ./$1/$foldername/sqli_list.txt --batch --random-agent --output-dir=./$1/$foldername/sqlmap/
 }
 
@@ -255,6 +273,7 @@ recon(){
 
   checkhttprobe $1
   gospidertest $1
+  hakrawlercrawling $1
 
   nucleitest $1
   sqlmaptest $1
