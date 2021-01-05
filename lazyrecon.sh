@@ -190,6 +190,17 @@ nucleitest(){
   nuclei -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
 }
 
+sqlmaptest(){
+  echo "[sqlmap] SQLi testing..."
+  # prepare list of the php urls from wayback and gospider
+  grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' ./$1/$foldername/wayback_output.txt | sort | uniq > ./$1/$foldername/wayback_sqli_list.txt
+  # -h means Never print filename headers
+  grep -h 'linkfinder' ./$1/$foldername/gospider/* | cut -f3 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '\*$' | sort | uniq > ./$1/$foldername/gospider_sqli_list.txt
+  sort -u ./$1/$foldername/wayback_sqli_list.txt ./$1/$foldername/gospider_sqli_list.txt -o ./$1/$foldername/sqli_list.txt
+  # perform the sqlmap
+  ../sqlmap-dev/sqlmap.py -m ./$1/$foldername/sqli_list.txt --batch --random-agent --output-dir=./$1/$foldername/sqlmap/
+}
+
 smuggler(){
   echo "[smuggler] Try to find request smuggling vulnerabilities..."
   smuggler.py -u ./$1/$foldername/3-all-subdomain-live-scheme.txt
@@ -246,6 +257,7 @@ recon(){
   gospidertest $1
 
   nucleitest $1
+  sqlmaptest $1
   smuggler $1
 
   checkparams $1
@@ -294,6 +306,8 @@ main(){
   # mkdir ./$1/$foldername/hydra/
   # gospider output
   mkdir ./$1/$foldername/gospider/
+  # sqlmap output
+  mkdir ./$1/$foldername/sqlmap/
   # brutespray output
   mkdir ./$1/$foldername/brutespray/
   # subfinder list of subdomains
