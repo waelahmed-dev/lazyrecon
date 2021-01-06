@@ -5442,6 +5442,7 @@ wp-content/plugins
 wp-content/plugins/
 wp-content/themes
 wp-content/themes/
+wp-content/uploads
 wp-contentbackup-db/
 wp-contentbackups/
 wp-contentblogs.dir/
@@ -5457,6 +5458,8 @@ wp-contentuploads/dump.sql
 wp-feed
 wp-includes
 wp-includes/
+wp-includes/uploads
+wp-includes/uploads/
 wp-includesrss-functions.php
 wp-json
 wp-jsonwp/v2/users/

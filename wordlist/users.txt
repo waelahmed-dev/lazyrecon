@@ -8,6 +8,7 @@ ansible
 apache
 azureuser
 cisco
+developer
 docker
 ec2-user
 ftp
