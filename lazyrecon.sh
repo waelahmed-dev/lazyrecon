@@ -92,7 +92,7 @@ permutatesubdomains(){
     echo "dnsgen..."
     dnsgen ./$1/$foldername/1-real-subdomains.txt -w $customSubdomainsWordList > ./$1/$foldername/alterated/dnsgen_out.txt
     sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' ./$1/$foldername/alterated/dnsgen_out.txt
-    # sed -i '' '/^[-]/d' ./$1/$foldername/alterated/dnsgen_out.txt
+    sed -i '' '/^[-]/d' ./$1/$foldername/alterated/dnsgen_out.txt
 
     # combine permutated domains and exclude out of scope domains
     SCOPE=$1
@@ -133,54 +133,6 @@ dnsprobing(){
   fi
 }
 
-# nmap(){
-#   echo "[phase 7] Test for unexpected open ports..."
-#   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt
-# }
-masscantest(){
-  echo "[masscan] Looking for open ports..."
-  # max-rate for accuracy
-  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
-}
-
-# scan for specifiec PORTS (21,22,...)
-# -Pn: Treat all hosts as online -- skip host discovery
-# -sV: Probe open ports to determine service/version info
-#  old approach
-# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
-nmap_nse(){
-  # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
-  # https://youtu.be/La3iWKRX-tE?t=1200
-  # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
-  # echo "$[nmap] scanning..."
-  # while read line; do
-  #   IP=$(echo $line | awk '{ print $4 }')
-  #   PORT=$(echo $line | awk '{ print $3 }')
-  #   FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
-
-  #   echo "[nmap] scanning $IP using $PORT port"
-  #   nmap -vv -sV --version-intensity 5 -sT -O --max-rate 5000 -Pn -T3 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
-  #   sleep 1
-  # done < ./$1/$foldername/masscan_output_tmp.txt
-}
-
-# hydra user/password attack on popular protocols
-hydratest(){
-  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
-  echo "[hydra] attacking network protocols"
-  while read line; do
-    IP=$(echo $line | awk '{ print $4 }')
-    PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
-    PROTOCOL=$(echo $line | awk -F '[/ ]+' '{print $10}')
-    FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "hydra_"PORT"_"$4}' )
-
-    echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
-
-    hydra -o ./$1/$foldername/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
-
-  done < ./$1/$foldername/masscan_output.gnmap
-}
-
 checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for nuclei, gospider and ffuf-bruteforce
@@ -188,16 +140,6 @@ checkhttprobe(){
   httpx -l ./$1/$foldername/dnsprobe_subdomains.txt -silent -follow-host-redirects -fc 300,301,302,303 -threads 500 -o ./$1/$foldername/httpx_output_2.txt
 
   sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
-}
-
-gospidertest(){
-  echo "[gospider] Web crawling..."
-  gospider -S ./$1/$foldername/3-all-subdomain-live-scheme.txt --no-redirect --timeout 4 -o ./$1/$foldername/gospider -c 40 -t 40
-}
-
-hakrawlercrawling(){
-  echo "[hakrawler] Web crawling..."
-  cat ./$1/$foldername/1-real-subdomains.txt | hakrawler -plain -insecure -depth 3 > ./$1/$foldername/hakrawler_out.txt
 }
 
 nucleitest(){
@@ -208,6 +150,16 @@ nucleitest(){
   echo "[nuclei] CVE testing..."
   # -c maximum templates processed in parallel
   nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
+}
+
+gospidertest(){
+  echo "[gospider] Web crawling..."
+  gospider -S ./$1/$foldername/3-all-subdomain-live-scheme.txt --no-redirect --timeout 4 -o ./$1/$foldername/gospider -c 40 -t 40
+}
+
+hakrawlercrawling(){
+  echo "[hakrawler] Web crawling..."
+  cat ./$1/$foldername/1-real-subdomains.txt | hakrawler -plain -insecure -depth 3 > ./$1/$foldername/hakrawler_out.txt
 }
 
 sqlmaptest(){
@@ -241,7 +193,7 @@ smugglertest(){
   if [ -s ./smuggler/output ]; then
     cat ./smuggler/output | grep 'VULNERABLE' > ./$1/$foldername/smugglinghosts.txt
     if [ -s ./$1/$foldername/smugglinghosts.txt ]; then
-      printf "${RB_RED}%sSmuggling vulnerability found under the next hosts:${RESET}"
+      echo "Smuggling vulnerability found under the next hosts:"
       echo
       cat ./$1/$foldername/smugglinghosts.txt | grep 'VULN'
     else
@@ -250,6 +202,55 @@ smugglertest(){
   else
     echo "smuggler doesn\'t provide the output, check it issue!"
   fi
+}
+
+# nmap(){
+#   echo "[phase 7] Test for unexpected open ports..."
+#   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt
+# }
+masscantest(){
+  echo "[masscan] Looking for open ports..."
+  # max-rate for accuracy
+  # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
+  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
+}
+
+# scan for specifiec PORTS (21,22,...)
+# -Pn: Treat all hosts as online -- skip host discovery
+# -sV: Probe open ports to determine service/version info
+#  old approach
+# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
+# nmap_nse(){
+  # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
+  # https://youtu.be/La3iWKRX-tE?t=1200
+  # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
+  # echo "$[nmap] scanning..."
+  # while read line; do
+  #   IP=$(echo $line | awk '{ print $4 }')
+  #   PORT=$(echo $line | awk '{ print $3 }')
+  #   FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
+
+  #   echo "[nmap] scanning $IP using $PORT port"
+  #   nmap -vv -sV --version-intensity 5 -sT -O --max-rate 5000 -Pn -T3 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
+  #   sleep 1
+  # done < ./$1/$foldername/masscan_output_tmp.txt
+# }
+
+# hydra user/password attack on popular protocols
+hydratest(){
+  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+  echo "[hydra] attacking network protocols"
+  while read line; do
+    IP=$(echo $line | awk '{ print $4 }')
+    PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
+    PROTOCOL=$(echo $line | awk -F '[/ ]+' '{print $10}')
+    FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "hydra_"PORT"_"$4}' )
+
+    echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
+
+    hydra -o ./$1/$foldername/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+
+  done < ./$1/$foldername/masscan_output.gnmap
 }
 
 # prepare custom wordlist for directory bruteforce using --mad and --brute mode only
@@ -281,15 +282,15 @@ recon(){
   permutatesubdomains $1
 
   dnsprobing $1
+  checkhttprobe $1
+  nucleitest $1
+
+  sqlmaptest $1
+  smugglertest $1
+
   masscantest $1
   # nmap_nse $1
   # hydratest $1
-
-  checkhttprobe $1
-
-  nucleitest $1
-  sqlmaptest $1
-  smugglertest $1
 
   checkparams $1
   ffufbrute $1

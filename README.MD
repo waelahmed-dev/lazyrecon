@@ -42,7 +42,7 @@ The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/
 
 # Dependencies
 
-To start use this script, please clone and setup the next tools in the same level (near the lazyrecon directory). Next, you may copy each executable dependency to `cp ~/smuggler/smuggler.py /usr/local/bin/` or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`
+To start use this script, please clone and setup the next tools in the same level (near the lazyrecon directory). Next, you may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`
 
 ```bash
 ~/lazyrecon/
