@@ -90,7 +90,7 @@ permutatesubdomains(){
     sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' ./$1/$foldername/alterated/altdns_out.txt
 
     echo "dnsgen..."
-    dnsgen ./$1/$foldername/1-real-subdomains.txt -w $customSubdomainsWordList > ./$1/$foldername/alterated/dnsgen_out.txt
+    dnsgen -f ./$1/$foldername/1-real-subdomains.txt -w $customSubdomainsWordList > ./$1/$foldername/alterated/dnsgen_out.txt
     sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' ./$1/$foldername/alterated/dnsgen_out.txt
     sed -i '' '/^[-]/d' ./$1/$foldername/alterated/dnsgen_out.txt
 
@@ -149,7 +149,7 @@ nucleitest(){
   fi
   echo "[nuclei] CVE testing..."
   # -c maximum templates processed in parallel
-  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -t ../nuclei-templates/subdomain-takeover -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
+  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
 }
 
 gospidertest(){
@@ -212,33 +212,38 @@ masscantest(){
   echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
   # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
+  # masscan -p21,22,23,25,53,80,110,113,587,995,3306,3389,5432,5900,8080,27017 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
   masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
+  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
 }
 
-# scan for specifiec PORTS (21,22,...)
-# -Pn: Treat all hosts as online -- skip host discovery
-# -sV: Probe open ports to determine service/version info
-#  old approach
+#  NSE-approach
 # nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
-# nmap_nse(){
+nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
   # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
-  # echo "$[nmap] scanning..."
-  # while read line; do
-  #   IP=$(echo $line | awk '{ print $4 }')
-  #   PORT=$(echo $line | awk '{ print $3 }')
-  #   FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
+  echo "$[nmap] scanning..."
+  while read line; do
+    IP=$(echo $line | awk '{ print $4 }')
+    PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
+    FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
 
-  #   echo "[nmap] scanning $IP using $PORT port"
-  #   nmap -vv -sV --version-intensity 5 -sT -O --max-rate 5000 -Pn -T3 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
-  #   sleep 1
-  # done < ./$1/$foldername/masscan_output_tmp.txt
-# }
+    echo "[nmap] scanning $IP using $PORT port"
+    # -n: no DNS resolution
+    # -Pn: Treat all hosts as online - skip host discovery
+    # -sV: Probe open ports to determine service/version info (--version-intensity 9: means maximum probes)
+    # -sS: raw packages
+    # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
+    nmap -n -O -sC -sV --version-intensity 9 -sS --max-rate 500 -Pn -T3 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
+    echo
+    echo
+    sleep 1
+  done < ./$1/$foldername/masscan_output.gnmap
+}
 
 # hydra user/password attack on popular protocols
 hydratest(){
-  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
   echo "[hydra] attacking network protocols"
   while read line; do
     IP=$(echo $line | awk '{ print $4 }')
@@ -289,7 +294,7 @@ recon(){
   smugglertest $1
 
   masscantest $1
-  # nmap_nse $1
+  nmap_nse $1
   # hydratest $1
 
   checkparams $1
@@ -333,7 +338,7 @@ main(){
   fi
 
   # nmap output
-  # mkdir ./$1/$foldername/nmap/
+  mkdir ./$1/$foldername/nmap/
   # hydra output
   # mkdir ./$1/$foldername/hydra/
   if [ "$mad" = "1" ]; then
