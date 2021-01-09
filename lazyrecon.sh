@@ -164,10 +164,6 @@ nucleitest(){
   echo "[nuclei] CVE testing..."
   # -c maximum templates processed in parallel
   nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
-
-  if [ -s ./$1/$foldername/nuclei_output.txt ]; then
-
-  fi
 }
 
 gospidertest(){
