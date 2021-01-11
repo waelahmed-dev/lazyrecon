@@ -163,7 +163,21 @@ nucleitest(){
   fi
   echo "[nuclei] CVE testing..."
   # -c maximum templates processed in parallel
-  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -o ./$1/$foldername/nuclei_output.txt
+  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/fuzzing/ -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -exclude ../nuclei-templates/fuzzing/basic-auth-bruteforce.yaml -o ./$1/$foldername/nuclei/nuclei_output.txt
+  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/ -o ./$1/$foldername/nuclei/nuclei_output_technology.txt
+
+  if [ -s ./$1/$foldername/nuclei/nuclei_output.txt ]; then
+    cut -f4 -d ' ' ./$1/$foldername/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt
+    # filter first and first-second paths from full paths and remove empty lines
+    cut -f1 -d '/' ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_paths.txt
+    cut -f1-2 -d '/' ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq >> ./$1/$foldername/nuclei/nuclei_paths.txt
+
+    # full paths+queries
+    cut -f4 -d ' ' ./$1/$foldername/nuclei/nuclei_output.txt | unfurl format '%p%?%q' | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_paths_queries.txt
+    sort -u ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt ./$1/$foldername/nuclei/nuclei_paths.txt ./$1/$foldername/nuclei/nuclei_paths_queries.txt -o ./$1/$foldername/nuclei/nuclei-paths-list.txt
+  else
+    touch ./$1/$foldername/nuclei/nuclei-paths-list.txt
+  fi
 }
 
 gospidertest(){
@@ -277,7 +291,7 @@ nmap_nse(){
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
     # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap --spoof-mac Cisco -n -O -sC -sV --version-intensity 9 -sS -Pn -T4 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
+    nmap --spoof-mac Cisco -n -sV --version-intensity 9 --script=default,http-headers -sT -Pn -T4 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
     echo
     echo
     sleep 1
@@ -305,7 +319,7 @@ custompathlist(){
   if [ "$mad" = "1" ]; then
     echo "Prepare custom wordlist"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
-    sort -u ./$1/$foldername/wayback/wayback-paths-list.txt ./$1/$foldername/gospider/gospider-paths-list.txt ./$1/$foldername/hakrawler/hakrawler-paths-list.txt $dirsearchWordlist -o $customFfufWordList
+    sudo sort -u ./$1/$foldername/nuclei/nuclei-paths-list.txt ./$1/$foldername/wayback/wayback-paths-list.txt ./$1/$foldername/gospider/gospider-paths-list.txt ./$1/$foldername/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
     # sed -i '' '/^$/d' $customFfufWordList ?need to check!
   fi
 }
@@ -316,7 +330,7 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 3 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 5 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
       iterator=$((iterator+1))
     done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
   fi
@@ -384,6 +398,8 @@ main(){
     mkdir ./$1/$foldername/ffuf/
   fi
 
+  # nuclei output
+  mkdir ./$1/$foldername/nuclei/
   # nmap output
   mkdir ./$1/$foldername/nmap/
   # hydra output
@@ -496,3 +512,4 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 
 # invoke
 main $1
+exit 0
