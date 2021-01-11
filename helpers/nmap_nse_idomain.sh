@@ -9,12 +9,13 @@ nmap_nse(){
 
     echo "[nmap] scanning $IP..."
     # -Pn: Treat all hosts as online - skip host discovery
+    # -n: no DNS resolution
     # -sV: Probe open ports to determine service/version info (--version-intensity 9: means maximum probes)
     # -sS: raw packages
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
     # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap --spoof-mac Cisco -O -sC -sV --version-intensity 9 -sS -Pn -T4 $IP
+    nmap --spoof-mac Cisco -n -sC -sV --version-intensity 9 -sS -Pn -T4 $IP
     echo
 }
 
