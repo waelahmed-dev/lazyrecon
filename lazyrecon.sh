@@ -373,7 +373,7 @@ main(){
   then
     echo "This is a known target."
   else
-    mkdir ./$storageDir/$1
+    mkdir $storageDir/$1
   fi
 
   mkdir $targetDir

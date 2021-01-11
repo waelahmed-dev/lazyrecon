@@ -22,3 +22,6 @@ lazyWordLists/all.txt
 gitTokenFile
 paused.conf
 hydra/
+twitter_friends.txt
+lazyrecon_test_brute.sh
+index.html
