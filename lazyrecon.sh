@@ -3,6 +3,8 @@
 # Invoke with sudo because of masscan/nmap
 
 # Config
+storageDir=$HOME/lazytargets # where all targets
+
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
 dirsearchWordlist=./lazyWordLists/fuzz-Bo0oM_top1000.txt # used in directory bruteforcing (--brute option)
@@ -29,25 +31,25 @@ enumeratesubdomains(){
 
   # Passive subdomain enumeration
   echo "subfinder..."
-  subfinder -d $1 -silent -o ./$1/$foldername/subfinder-list.txt
-  echo $1 >> ./$1/$foldername/subfinder-list.txt # to be sure main domain added in case of one domain scope
+  subfinder -d $1 -silent -o $targetDir/subfinder-list.txt
+  echo $1 >> $targetDir/subfinder-list.txt # to be sure main domain added in case of one domain scope
   echo "assetfinder..."
-  assetfinder --subs-only $1 > ./$1/$foldername/assetfinder-list.txt
+  assetfinder --subs-only $1 > $targetDir/assetfinder-list.txt
   # remove all lines start with *-asterix and out-of-scope domains
   SCOPE=$1
   echo "SCOPE=$SCOPE"
-  grep "[.]${SCOPE}$" ./$1/$foldername/assetfinder-list.txt | sort -u -o ./$1/$foldername/assetfinder-list.txt
-  sed -i '' '/^*/d' ./$1/$foldername/assetfinder-list.txt
+  grep "[.]${SCOPE}$" $targetDir/assetfinder-list.txt | sort -u -o $targetDir/assetfinder-list.txt
+  sed -i '' '/^*/d' $targetDir/assetfinder-list.txt
 
   echo "github-subdomains.py..."
-  github-subdomains -d $1 > ./$1/$foldername/github-subdomains-list.txt
+  github-subdomains -d $1 > $targetDir/github-subdomains-list.txt
 
   # echo "amass..."
-  # amass enum --passive -log ./$1/$foldername/amass_errors.log -d $1 -o ./$1/$foldername/amass-list.txt
+  # amass enum --passive -log $targetDir/amass_errors.log -d $1 -o $targetDir/amass-list.txt
 
   # sort enumerated subdomains
-  sort -u ./$1/$foldername/subfinder-list.txt ./$1/$foldername/assetfinder-list.txt ./$1/$foldername/github-subdomains-list.txt -o ./$1/$foldername/enumerated-subdomains.txt
-  sed -i '' '/^[.]/d' ./$1/$foldername/enumerated-subdomains.txt
+  sort -u $targetDir/subfinder-list.txt $targetDir/assetfinder-list.txt $targetDir/github-subdomains-list.txt -o $targetDir/enumerated-subdomains.txt
+  sed -i '' '/^[.]/d' $targetDir/enumerated-subdomains.txt
 
 }
 
@@ -55,65 +57,65 @@ checkwaybackurls(){
   if [ "$mad" = "1" ]; then
     echo "gau..."
     # gau -subs mean include subdomains
-    cat ./$1/$foldername/enumerated-subdomains.txt | gau -subs -o ./$1/$foldername/wayback/gau_output.txt
+    cat $targetDir/enumerated-subdomains.txt | gau -subs -o $targetDir/wayback/gau_output.txt
     echo "waybackurls..."
-    cat ./$1/$foldername/enumerated-subdomains.txt | waybackurls > ./$1/$foldername/wayback/waybackurls_output.txt
+    cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
     echo "github-endpoints.py..."
-    github-endpoints -d $1 > ./$1/$foldername/wayback/github-endpoints_out.txt
+    github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
 
     # need to get some extras subdomains
-    sort -u ./$1/$foldername/wayback/gau_output.txt ./$1/$foldername/wayback/waybackurls_output.txt ./$1/$foldername/wayback/github-endpoints_out.txt -o ./$1/$foldername/wayback/wayback_output.txt
-    sed -i '' '/web.archive.org/d' ./$1/$foldername/wayback/wayback_output.txt
+    sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
+    sed -i '' '/web.archive.org/d' $targetDir/wayback/wayback_output.txt
     # remove all out-of-scope lines
     SCOPE=$1
-    grep -e "[.]${SCOPE}" -e "//${SCOPE}" ./$1/$foldername/wayback/wayback_output.txt | sort -u -o ./$1/$foldername/wayback/wayback_output.txt
+    grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
 
-    cat ./$1/$foldername/wayback/wayback_output.txt | unfurl --unique domains > ./$1/$foldername/wayback-subdomains-list.txt
-    sed -i '' '/[.]$/d' ./$1/$foldername/wayback-subdomains-list.txt
+    cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains > $targetDir/wayback-subdomains-list.txt
+    sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
 
     # wayback_output.txt needs for custompathlist (ffuf dirsearch custom list)
     # full paths, see https://github.com/tomnomnom/unfurl
-    cat ./$1/$foldername/wayback/wayback_output.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/wayback/wayback_paths_out.txt
+    cat $targetDir/wayback/wayback_output.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_out.txt
     # filter first and first-second paths from full paths and remove empty lines
-    cut -f1 -d '/' ./$1/$foldername/wayback/wayback_paths_out.txt | sed '/^$/d' | sort -u -o ./$1/$foldername/wayback/wayback_paths.txt
-    cut -f1-2 -d '/' ./$1/$foldername/wayback/wayback_paths_out.txt | sed '/^$/d' | sort | uniq >> ./$1/$foldername/wayback/wayback_paths.txt
+    cut -f1 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort -u -o $targetDir/wayback/wayback_paths.txt
+    cut -f1-2 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/wayback/wayback_paths.txt
 
     # full paths+queries
-    cat ./$1/$foldername/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/wayback/wayback_paths_queries.txt
+    cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_queries.txt
 
-    sort -u ./$1/$foldername/wayback/wayback_paths_out.txt ./$1/$foldername/wayback/wayback_paths.txt ./$1/$foldername/wayback/wayback_paths_queries.txt -o ./$1/$foldername/wayback/wayback-paths-list.txt
-    # sed -i '' '/[.]$/d' ./$1/$foldername/wayback/wayback-paths-list.txt
+    sort -u $targetDir/wayback/wayback_paths_out.txt $targetDir/wayback/wayback_paths.txt $targetDir/wayback/wayback_paths_queries.txt -o $targetDir/wayback/wayback-paths-list.txt
+    # sed -i '' '/[.]$/d' $targetDir/wayback/wayback-paths-list.txt
   fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
-    cat ./$1/$foldername/wayback/wayback_output.txt | unfurl format %S | sort | uniq > ./$1/$foldername/wayback-subdomains-wordlist.txt
-    sort -u $altdnsWordlist ./$1/$foldername/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
+    cat $targetDir/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $targetDir/wayback-subdomains-wordlist.txt
+    sort -u $altdnsWordlist $targetDir/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
   fi
 }
 
 sortsubdomains(){
-  sort -u ./$1/$foldername/enumerated-subdomains.txt ./$1/$foldername/wayback-subdomains-list.txt -o ./$1/$foldername/1-real-subdomains.txt
-  cp ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/2-all-subdomains.txt
+  sort -u $targetDir/enumerated-subdomains.txt $targetDir/wayback-subdomains-list.txt -o $targetDir/1-real-subdomains.txt
+  cp $targetDir/1-real-subdomains.txt $targetDir/2-all-subdomains.txt
 }
 
 permutatesubdomains(){
   if [ "$alt" = "1" ]; then
-    mkdir ./$1/$foldername/alterated/
+    mkdir $targetDir/alterated/
     echo "altdns..."
-    altdns -i ./$1/$foldername/1-real-subdomains.txt -o ./$1/$foldername/alterated/altdns_out.txt -w $customSubdomainsWordList
-    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' ./$1/$foldername/alterated/altdns_out.txt
+    altdns -i $targetDir/1-real-subdomains.txt -o $targetDir/alterated/altdns_out.txt -w $customSubdomainsWordList
+    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/altdns_out.txt
 
     echo "dnsgen..."
-    dnsgen -f ./$1/$foldername/1-real-subdomains.txt -w $customSubdomainsWordList > ./$1/$foldername/alterated/dnsgen_out.txt
-    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' ./$1/$foldername/alterated/dnsgen_out.txt
-    sed -i '' '/^[-]/d' ./$1/$foldername/alterated/dnsgen_out.txt
+    dnsgen -f $targetDir/1-real-subdomains.txt -w $customSubdomainsWordList > $targetDir/alterated/dnsgen_out.txt
+    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/dnsgen_out.txt
+    sed -i '' '/^[-]/d' $targetDir/alterated/dnsgen_out.txt
 
     # combine permutated domains and exclude out of scope domains
     SCOPE=$1
     echo "SCOPE=$SCOPE"
-    grep -r -h "[.]${SCOPE}$" ./$1/$foldername/alterated | sort | uniq > ./$1/$foldername/alterated/permutated-list.txt
+    grep -r -h "[.]${SCOPE}$" $targetDir/alterated | sort | uniq > $targetDir/alterated/permutated-list.txt
 
-    sort -u ./$1/$foldername/1-real-subdomains.txt ./$1/$foldername/alterated/permutated-list.txt -o ./$1/$foldername/2-all-subdomains.txt
+    sort -u $targetDir/1-real-subdomains.txt $targetDir/alterated/permutated-list.txt -o $targetDir/2-all-subdomains.txt
   fi
 }
 
@@ -123,133 +125,133 @@ permutatesubdomains(){
 dnsprobing(){
   if [ "$wildcard" = "1" ]; then
     echo "[shuffledns] massdns probing with wildcard sieving..."
-    shuffledns -silent -d $1 -list ./$1/$foldername/2-all-subdomains.txt -retries 1 -r $miniResolvers -o ./$1/$foldername/shuffledns-list.txt
+    shuffledns -silent -d $1 -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
     # additional resolving because shuffledns missing IP on output
     echo "[dnsx] dnsprobing..."
     # echo "[dnsx] wildcard filtering:"
-    # dnsx -l ./$1/$foldername/shuffledns-list.txt -wd $1 -o ./$1/$foldername/dnsprobe_live.txt
+    # dnsx -l $targetDir/shuffledns-list.txt -wd $1 -o $targetDir/dnsprobe_live.txt
     echo "[dnsx] getting hostnames and its A records:"
     # -t mean cuncurrency
-    dnsx -t 350 -a -resp -r $miniResolvers -l ./$1/$foldername/shuffledns-list.txt -o ./$1/$foldername/dnsprobe_out.txt
+    dnsx -t 350 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
     # clear file from [ and ] symbols
-    tr -d '\[\]' < ./$1/$foldername/dnsprobe_out.txt > ./$1/$foldername/dnsprobe_output_tmp.txt
+    tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
     # split resolved hosts ans its IP (for masscan)
-    cut -f1 -d ' ' ./$1/$foldername/dnsprobe_output_tmp.txt | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
-    cut -f2 -d ' ' ./$1/$foldername/dnsprobe_output_tmp.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
+    cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
+    cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
   else
     echo "[massdns] dnsprobing..."
     # pure massdns:
-    massdns -q -r $miniResolvers -o S -w ./$1/$foldername/massdns_output.txt ./$1/$foldername/2-all-subdomains.txt
+    massdns -q -r $miniResolvers -o S -w $targetDir/massdns_output.txt $targetDir/2-all-subdomains.txt
     # 
-    sed -i '' '/CNAME/d' ./$1/$foldername/massdns_output.txt
-    cut -f1 -d ' ' ./$1/$foldername/massdns_output.txt | sed 's/.$//' | sort | uniq > ./$1/$foldername/dnsprobe_subdomains.txt
-    cut -f3 -d ' ' ./$1/$foldername/massdns_output.txt | sort | uniq > ./$1/$foldername/dnsprobe_ip.txt
+    sed -i '' '/CNAME/d' $targetDir/massdns_output.txt
+    cut -f1 -d ' ' $targetDir/massdns_output.txt | sed 's/.$//' | sort | uniq > $targetDir/dnsprobe_subdomains.txt
+    cut -f3 -d ' ' $targetDir/massdns_output.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
   fi
 }
 
 checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for nuclei, gospider and ffuf-bruteforce
-  httpx -l ./$1/$foldername/dnsprobe_ip.txt -silent -follow-host-redirects -threads 500 -o ./$1/$foldername/httpx_output_1.txt
-  httpx -l ./$1/$foldername/dnsprobe_subdomains.txt -silent -follow-host-redirects -threads 500 -o ./$1/$foldername/httpx_output_2.txt
+  httpx -l $targetDir/dnsprobe_ip.txt -silent -follow-host-redirects -threads 500 -o $targetDir/httpx_output_1.txt
+  httpx -l $targetDir/dnsprobe_subdomains.txt -silent -follow-host-redirects -threads 500 -o $targetDir/httpx_output_2.txt
 
-  sort -u ./$1/$foldername/httpx_output_1.txt ./$1/$foldername/httpx_output_2.txt -o ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
 }
 
 nucleitest(){
-  if [ ! -e ./$1/$foldername/3-all-subdomain-live-scheme.txt ]; then
+  if [ ! -e $targetDir/3-all-subdomain-live-scheme.txt ]; then
     echo "[nuclei] There is no live hosts. exit 1"
     exit 1
   fi
   echo "[nuclei] CVE testing..."
   # -c maximum templates processed in parallel
-  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/fuzzing/ -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -exclude ../nuclei-templates/fuzzing/basic-auth-bruteforce.yaml -o ./$1/$foldername/nuclei/nuclei_output.txt
-  nuclei -silent -l ./$1/$foldername/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/ -o ./$1/$foldername/nuclei/nuclei_output_technology.txt
+  nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/fuzzing/ -t ../nuclei-templates/technologies/s3-detect.yaml -t ../nuclei-templates/subdomain-takeover/ -t ../nuclei-templates/generic-detections/ -t ../nuclei-templates/vulnerabilities/ -t ../nuclei-templates/security-misconfiguration/ -t ../nuclei-templates/cves/ -t ../nuclei-templates/misc/ -t ../nuclei-templates/files/ -exclude ../nuclei-templates/misc/missing-csp.yaml -exclude ../nuclei-templates/misc/missing-x-frame-options.yaml -exclude ../nuclei-templates/misc/missing-hsts.yaml -exclude ../nuclei-templates/fuzzing/basic-auth-bruteforce.yaml -o $targetDir/nuclei/nuclei_output.txt
+  nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
 
-  if [ -s ./$1/$foldername/nuclei/nuclei_output.txt ]; then
-    cut -f4 -d ' ' ./$1/$foldername/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt
+  if [ -s $targetDir/nuclei/nuclei_output.txt ]; then
+    cut -f4 -d ' ' $targetDir/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_unfurl_paths.txt
     # filter first and first-second paths from full paths and remove empty lines
-    cut -f1 -d '/' ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_paths.txt
-    cut -f1-2 -d '/' ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq >> ./$1/$foldername/nuclei/nuclei_paths.txt
+    cut -f1 -d '/' $targetDir/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_paths.txt
+    cut -f1-2 -d '/' $targetDir/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq >> $targetDir/nuclei/nuclei_paths.txt
 
     # full paths+queries
-    cut -f4 -d ' ' ./$1/$foldername/nuclei/nuclei_output.txt | unfurl format '%p%?%q' | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > ./$1/$foldername/nuclei/nuclei_paths_queries.txt
-    sort -u ./$1/$foldername/nuclei/nuclei_unfurl_paths.txt ./$1/$foldername/nuclei/nuclei_paths.txt ./$1/$foldername/nuclei/nuclei_paths_queries.txt -o ./$1/$foldername/nuclei/nuclei-paths-list.txt
+    cut -f4 -d ' ' $targetDir/nuclei/nuclei_output.txt | unfurl format '%p%?%q' | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_paths_queries.txt
+    sort -u $targetDir/nuclei/nuclei_unfurl_paths.txt $targetDir/nuclei/nuclei_paths.txt $targetDir/nuclei/nuclei_paths_queries.txt -o $targetDir/nuclei/nuclei-paths-list.txt
   else
-    touch ./$1/$foldername/nuclei/nuclei-paths-list.txt
+    touch $targetDir/nuclei/nuclei-paths-list.txt
   fi
 }
 
 gospidertest(){
   echo "[gospider] Web crawling..."
-  gospider -r -S ./$1/$foldername/3-all-subdomain-live-scheme.txt --timeout 4 -o ./$1/$foldername/gospider -c 40 -t 40
+  gospider -r -S $targetDir/3-all-subdomain-live-scheme.txt --timeout 4 -o $targetDir/gospider -c 40 -t 40
   # sieving through founded links/urls for only domains in scope
-  grep -h -r "$1" ./$1/$foldername/gospider | sort -u -o ./$1/$foldername/gospider/gospider_out.txt
+  grep -h -r "$1" $targetDir/gospider | sort -u -o $targetDir/gospider/gospider_out.txt
 
   # prepare paths list
   SCOPE=$1
-  cut -f1 -d ' ' ./$1/$foldername/gospider/gospider_out.txt | grep -e "[.]${SCOPE}" -e "//${SCOPE}" | sort | uniq > ./$1/$foldername/gospider/form_js_link_url_out.txt
-  grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  ./$1/$foldername/gospider/gospider_out.txt | cut -f3 -d ' ' | sort | uniq >> ./$1/$foldername/gospider/form_js_link_url_out.txt
-  grep '\[url\]' ./$1/$foldername/gospider/gospider_out.txt | cut -f5 -d ' ' | sort | uniq >> ./$1/$foldername/gospider/form_js_link_url_out.txt
+  cut -f1 -d ' ' $targetDir/gospider/gospider_out.txt | grep -e "[.]${SCOPE}" -e "//${SCOPE}" | sort | uniq > $targetDir/gospider/form_js_link_url_out.txt
+  grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $targetDir/gospider/gospider_out.txt | cut -f3 -d ' ' | sort | uniq >> $targetDir/gospider/form_js_link_url_out.txt
+  grep '\[url\]' $targetDir/gospider/gospider_out.txt | cut -f5 -d ' ' | sort | uniq >> $targetDir/gospider/form_js_link_url_out.txt
 
   # prepare paths
-  cat ./$1/$foldername/gospider/form_js_link_url_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/gospider/gospider_unfurl_paths_out.txt
+  cat $targetDir/gospider/form_js_link_url_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/gospider/gospider_unfurl_paths_out.txt
   # filter first and first-second paths from full paths and remove empty lines
-  cut -f1 -d '/' ./$1/$foldername/gospider/gospider_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > ./$1/$foldername/gospider/gospider_paths.txt
-  cut -f1-2 -d '/' ./$1/$foldername/gospider/gospider_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> ./$1/$foldername/gospider/gospider_paths.txt
+  cut -f1 -d '/' $targetDir/gospider/gospider_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > $targetDir/gospider/gospider_paths.txt
+  cut -f1-2 -d '/' $targetDir/gospider/gospider_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/gospider/gospider_paths.txt
 
   # full paths+queries
-  cat ./$1/$foldername/gospider/form_js_link_url_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/gospider/gospider_paths_queries.txt
+  cat $targetDir/gospider/form_js_link_url_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/gospider/gospider_paths_queries.txt
 
-  sort -u ./$1/$foldername/gospider/gospider_unfurl_paths_out.txt ./$1/$foldername/gospider/gospider_paths.txt ./$1/$foldername/gospider/gospider_paths_queries.txt -o ./$1/$foldername/gospider/gospider-paths-list.txt
+  sort -u $targetDir/gospider/gospider_unfurl_paths_out.txt $targetDir/gospider/gospider_paths.txt $targetDir/gospider/gospider_paths_queries.txt -o $targetDir/gospider/gospider-paths-list.txt
 }
 
 hakrawlercrawling(){
   echo "[hakrawler] Web crawling..."
-  cat ./$1/$foldername/3-all-subdomain-live-scheme.txt | hakrawler -plain -insecure -depth 3 > ./$1/$foldername/hakrawler/hakrawler_out.txt
+  cat $targetDir/3-all-subdomain-live-scheme.txt | hakrawler -plain -insecure -depth 3 > $targetDir/hakrawler/hakrawler_out.txt
   # prepare paths
-  cat ./$1/$foldername/hakrawler/hakrawler_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/hakrawler/hakrawler_unfurl_paths_out.txt
+  cat $targetDir/hakrawler/hakrawler_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt
   # filter first and first-second paths from full paths and remove empty lines
-  cut -f1 -d '/' ./$1/$foldername/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > ./$1/$foldername/hakrawler/hakrawler_paths.txt
-  cut -f1-2 -d '/' ./$1/$foldername/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> ./$1/$foldername/hakrawler/hakrawler_paths.txt
+  cut -f1 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler_paths.txt
+  cut -f1-2 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/hakrawler/hakrawler_paths.txt
 
   # full paths+queries
-  cat ./$1/$foldername/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > ./$1/$foldername/hakrawler/hakrawler_paths_queries.txt
+  cat $targetDir/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler_paths_queries.txt
 
-  sort -u ./$1/$foldername/hakrawler/hakrawler_unfurl_paths_out.txt ./$1/$foldername/hakrawler/hakrawler_paths.txt ./$1/$foldername/hakrawler/hakrawler_paths_queries.txt -o ./$1/$foldername/hakrawler/hakrawler-paths-list.txt
+  sort -u $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt $targetDir/hakrawler/hakrawler_paths.txt $targetDir/hakrawler/hakrawler_paths_queries.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
 }
 
 sqlmaptest(){
   if [ "$mad" = "1" ]; then
     # prepare list of the php urls from wayback, hakrawler and gospider
     echo "[sqlmap] wayback sqlist..."
-    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' ./$1/$foldername/wayback/wayback_output.txt  | sort | uniq > ./$1/$foldername/wayback_sqli_list.txt
+    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/wayback/wayback_output.txt  | sort | uniq > $targetDir/wayback_sqli_list.txt
 
     # -h means Never print filename headers
     echo "[sqlmap] gospider sqlist..."
-    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' ./$1/$foldername/gospider/form_js_link_url_out.txt | sort | uniq > ./$1/$foldername/gospider_sqli_list.txt
+    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/gospider/form_js_link_url_out.txt | sort | uniq > $targetDir/gospider_sqli_list.txt
 
     echo "[sqlmap] hakrawler sqlist..."
-    grep -e '\[url\]' -e '\[form\]' ./$1/$foldername/hakrawler/hakrawler_out.txt | cut -f2 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' | sort | uniq > ./$1/$foldername/hakrawler_sqli_list.txt
+    grep -e '\[url\]' -e '\[form\]' $targetDir/hakrawler/hakrawler_out.txt | cut -f2 -d ' ' | grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' | sort | uniq > $targetDir/hakrawler_sqli_list.txt
 
-    sort -u ./$1/$foldername/wayback_sqli_list.txt ./$1/$foldername/gospider_sqli_list.txt ./$1/$foldername/hakrawler_sqli_list.txt -o ./$1/$foldername/sqli_list.txt
+    sort -u $targetDir/wayback_sqli_list.txt $targetDir/gospider_sqli_list.txt $targetDir/hakrawler_sqli_list.txt -o $targetDir/sqli_list.txt
     # perform the sqlmap
     echo "[sqlmap.py] SQLi testing..."
-    sqlmap -m ./$1/$foldername/sqli_list.txt --batch --random-agent --output-dir=./$1/$foldername/sqlmap/
+    sqlmap -m $targetDir/sqli_list.txt --batch --random-agent --output-dir=$targetDir/sqlmap/
   fi
 }
 
 smugglertest(){
   echo "[smuggler.py] Try to find request smuggling vulnerabilities..."
-  smuggler -u ./$1/$foldername/3-all-subdomain-live-scheme.txt
+  smuggler -u $targetDir/3-all-subdomain-live-scheme.txt
 
   # check for VULNURABLE keyword
   if [ -s ./smuggler/output ]; then
-    cat ./smuggler/output | grep 'VULNERABLE' > ./$1/$foldername/smugglinghosts.txt
-    if [ -s ./$1/$foldername/smugglinghosts.txt ]; then
+    cat ./smuggler/output | grep 'VULNERABLE' > $targetDir/smugglinghosts.txt
+    if [ -s $targetDir/smugglinghosts.txt ]; then
       echo "Smuggling vulnerability found under the next hosts:"
       echo
-      cat ./$1/$foldername/smugglinghosts.txt | grep 'VULN'
+      cat $targetDir/smugglinghosts.txt | grep 'VULN'
     else
       echo "There are no Request Smuggling host found"
     fi
@@ -266,13 +268,13 @@ masscantest(){
   echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
   # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
-  # masscan -p21,22,23,25,53,80,110,113,587,995,3306,3389,5432,5900,8080,27017 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --open-only -oG ./$1/$foldername/masscan_output.gnmap
-  masscan -p1-65535 -iL ./$1/$foldername/dnsprobe_ip.txt --rate 1000 --spoof-mac Apple --open-only -oG ./$1/$foldername/masscan_output.gnmap
-  sed -i '' '1d;2d;$d' ./$1/$foldername/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+  # masscan -p21,22,23,25,53,80,110,113,587,995,3306,3389,5432,5900,8080,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
+  masscan -p1-65535 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --spoof-mac Apple --open-only -oG $targetDir/masscan_output.gnmap
+  sed -i '' '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
 }
 
 #  NSE-approach
-# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL ./$1/$foldername/nmap_input.txt
+# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL $targetDir/nmap_input.txt
 nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
@@ -291,11 +293,11 @@ nmap_nse(){
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
     # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap --spoof-mac Cisco -n -sV --version-intensity 9 --script=default,http-headers -sT -Pn -T4 -p$PORT -oG ./$1/$foldername/nmap/$FILENAME $IP
+    nmap --spoof-mac Cisco -n -sV --version-intensity 9 --script=default,http-headers -sT -Pn -T4 -p$PORT -oG $targetDir/nmap/$FILENAME $IP
     echo
     echo
     sleep 1
-  done < ./$1/$foldername/masscan_output.gnmap
+  done < $targetDir/masscan_output.gnmap
 }
 
 # hydra user/password attack on popular protocols
@@ -309,9 +311,9 @@ hydratest(){
 
     echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
 
-    hydra -o ./$1/$foldername/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+    hydra -o $targetDir/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
 
-  done < ./$1/$foldername/masscan_output.gnmap
+  done < $targetDir/masscan_output.gnmap
 }
 
 # prepare custom wordlist for directory bruteforce using --mad and --brute mode only
@@ -319,7 +321,7 @@ custompathlist(){
   if [ "$mad" = "1" ]; then
     echo "Prepare custom wordlist"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
-    sudo sort -u ./$1/$foldername/nuclei/nuclei-paths-list.txt ./$1/$foldername/wayback/wayback-paths-list.txt ./$1/$foldername/gospider/gospider-paths-list.txt ./$1/$foldername/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
+    sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
     # sed -i '' '/^$/d' $customFfufWordList ?need to check!
   fi
 }
@@ -330,9 +332,9 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 5 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o ./$1/$foldername/ffuf/${iterator}.csv -of csv
+      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 5 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o $targetDir/ffuf/${iterator}.csv -of csv
       iterator=$((iterator+1))
-    done < ./$1/$foldername/3-all-subdomain-live-scheme.txt
+    done < $targetDir/3-all-subdomain-live-scheme.txt
   fi
 }
 
@@ -367,21 +369,18 @@ recon(){
 
 
 main(){
-  if [ -d "./$1" ]
+  if [ -d "$storageDir/$1" ]
   then
     echo "This is a known target."
   else
-    mkdir ./$1
-  fi
-  if [ -s ./smuggler/output ]; then
-    rm ./smuggler/output
+    mkdir ./$storageDir/$1
   fi
 
-  mkdir ./$1/$foldername
+  mkdir $targetDir
 
   # used for ffuf bruteforce
-  touch ./$1/$foldername/custom_ffuf_wordlist.txt
-  customFfufWordList=./$1/$foldername/custom_ffuf_wordlist.txt
+  touch $targetDir/custom_ffuf_wordlist.txt
+  customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
   cp $dirsearchWordlist $customFfufWordList
   # used to save target specific list for alterations (shuffledns, altdns)
   # if [ "$mad" = "1" ]; then
@@ -389,47 +388,47 @@ main(){
   # else
   #   altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
   # fi
-  touch ./$1/$foldername/custom_subdomains_wordlist.txt
-  customSubdomainsWordList=./$1/$foldername/custom_subdomains_wordlist.txt
+  touch $targetDir/custom_subdomains_wordlist.txt
+  customSubdomainsWordList=$targetDir/custom_subdomains_wordlist.txt
   cp $altdnsWordlist $customSubdomainsWordList
 
   if [ "$brute" = "1" ]; then
     # ffuf dir uses to store brute output
-    mkdir ./$1/$foldername/ffuf/
+    mkdir $targetDir/ffuf/
   fi
 
   # nuclei output
-  mkdir ./$1/$foldername/nuclei/
+  mkdir $targetDir/nuclei/
   # nmap output
-  mkdir ./$1/$foldername/nmap/
+  mkdir $targetDir/nmap/
   # hydra output
-  # mkdir ./$1/$foldername/hydra/
+  # mkdir $targetDir/hydra/
   if [ "$mad" = "1" ]; then
     # gospider output
-    mkdir ./$1/$foldername/gospider/
+    mkdir $targetDir/gospider/
     # hakrawler output
-    mkdir ./$1/$foldername/hakrawler/
+    mkdir $targetDir/hakrawler/
     # sqlmap output
-    mkdir ./$1/$foldername/sqlmap/
+    mkdir $targetDir/sqlmap/
     # gau/waybackurls output
-    mkdir ./$1/$foldername/wayback/
+    mkdir $targetDir/wayback/
   fi
   # brutespray output
-  # mkdir ./$1/$foldername/brutespray/
+  # mkdir $targetDir/brutespray/
   # subfinder list of subdomains
-  touch ./$1/$foldername/subfinder-list.txt 
+  touch $targetDir/subfinder-list.txt 
   # assetfinder list of subdomains
-  touch ./$1/$foldername/assetfinder-list.txt
+  touch $targetDir/assetfinder-list.txt
   # all assetfinder/subfinder finded domains
-  touch ./$1/$foldername/enumerated-subdomains.txt
+  touch $targetDir/enumerated-subdomains.txt
   # amass list of subdomains
-  # touch ./$1/$foldername/amass-list.txt
+  # touch $targetDir/amass-list.txt
   # shuffledns list of subdomains
-  touch ./$1/$foldername/shuffledns-list.txt
+  touch $targetDir/shuffledns-list.txt
   # gau/waybackurls list of subdomains
-  touch ./$1/$foldername/wayback-subdomains-list.txt
+  touch $targetDir/wayback-subdomains-list.txt
 
-  # mkdir ./$1/$foldername/reports/
+  # mkdir $targetDir/reports/
   # echo "Reports goes to: ./${1}/${foldername}"
 
     recon $1
@@ -506,9 +505,10 @@ echo "Check params \$alt: $alt"
 echo "Check params \$wildcard: $wildcard"
 
 ./logo.sh
-path=$(pwd)
+
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
+targetDir=$storageDir/$1/$foldername
 
 # invoke
 main $1
