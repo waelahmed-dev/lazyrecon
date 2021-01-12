@@ -85,6 +85,10 @@ checkwaybackurls(){
 
     sort -u $targetDir/wayback/wayback_paths_out.txt $targetDir/wayback/wayback_paths.txt $targetDir/wayback/wayback_paths_queries.txt -o $targetDir/wayback/wayback-paths-list.txt
     # sed -i '' '/[.]$/d' $targetDir/wayback/wayback-paths-list.txt
+
+    # remove .jpg .webp .png .svg from paths
+    sed -i '.bak' '/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]webp$/d' $targetDir/wayback/wayback-paths-list.txt
+
   fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
@@ -206,6 +210,9 @@ gospidertest(){
   cat $targetDir/gospider/form_js_link_url_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/gospider/gospider_paths_queries.txt
 
   sort -u $targetDir/gospider/gospider_unfurl_paths_out.txt $targetDir/gospider/gospider_paths.txt $targetDir/gospider/gospider_paths_queries.txt -o $targetDir/gospider/gospider-paths-list.txt
+
+  # remove .jpg .webp .png .svg from paths
+  sed -i '.bak' '/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]webp$/d' $targetDir/gospider/gospider-paths-list.txt
 }
 
 hakrawlercrawling(){
