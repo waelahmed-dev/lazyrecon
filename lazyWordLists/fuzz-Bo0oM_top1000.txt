@@ -670,6 +670,7 @@ jobmanager/logs/..%252f..%252f..%252fetc%252fpasswd
 .web
 .web-server-pid
 .webassets-cache
+.well-known
 .workspace
 .wp-config.php.swp
 .www_acl
@@ -1292,6 +1293,7 @@ access_.log
 access_log
 access_log.1
 accesslog
+actuator
 account
 account$
 account*

@@ -185,12 +185,14 @@ nucleitest(){
 gospidertest(){
   echo "[gospider] Web crawling..."
   gospider -r -S $targetDir/3-all-subdomain-live-scheme.txt --timeout 4 -o $targetDir/gospider -c 40 -t 40
+
   # sieving through founded links/urls for only domains in scope
-  grep -h -r "$1" $targetDir/gospider | sort -u -o $targetDir/gospider/gospider_out.txt
+  cat $targetDir/gospider/* | sed '/w3.org/d;/web.archive.org/d;/google.com/d;/apple.com/d;/microsoft.com/d;/cloudflare.com/d;/opera.com/d;/mozilla.com/d;/pocoo.org/d' > $targetDir/gospider/gospider_out.txt
 
   # prepare paths list
-  SCOPE=$1
-  cut -f1 -d ' ' $targetDir/gospider/gospider_out.txt | grep -e "[.]${SCOPE}" -e "//${SCOPE}" | sort | uniq > $targetDir/gospider/form_js_link_url_out.txt
+  # cut -f1 -d ' ' $targetDir/gospider/gospider_out.txt | grep -e "[.]${SCOPE}" -e "//${SCOPE}" | sort | uniq > $targetDir/gospider/form_js_link_url_out.txt
+  cut -f1 -d ' ' $targetDir/gospider/gospider_out.txt | sort | uniq > $targetDir/gospider/form_js_link_url_out.txt
+
   grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $targetDir/gospider/gospider_out.txt | cut -f3 -d ' ' | sort | uniq >> $targetDir/gospider/form_js_link_url_out.txt
   grep '\[url\]' $targetDir/gospider/gospider_out.txt | cut -f5 -d ' ' | sort | uniq >> $targetDir/gospider/form_js_link_url_out.txt
 

@@ -43,3 +43,8 @@ Response
 HTTP/1.1 200 OK 
 ...
 Server Apache 2.4 
+
+======================================================================
+PHP POST Request
+https://t.co/kIUfsTSxMW?amp=1
+username=Admin&password=Admin --> add new serialized json one or more times {"username": "Admin", "password": "Admin"}
