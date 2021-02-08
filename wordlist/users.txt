@@ -1,8 +1,10 @@
 
 adm
 admin
+Admin
 admin1
 administrator
+administer
 anonymous
 ansible
 apache

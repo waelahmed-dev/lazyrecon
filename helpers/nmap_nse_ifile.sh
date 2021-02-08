@@ -18,7 +18,7 @@ nmap_nse(){
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
     # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap --spoof-mac Cisco -n -sV --version-intensity 9 -sS -Pn -T4 -p$PORT -oG ./nmap-test/$FILENAME $IP
+    nmap -vv --spoof-mac 0 -n -sV --version-intensity 9 -sS -Pn -T4 -p$PORT -oG ./nmap-test/$FILENAME $IP
     echo
     echo
     sleep 1

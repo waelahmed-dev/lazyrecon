@@ -1,0 +1,10 @@
+root
+adm
+admin
+administrator
+anonymous
+developer
+test
+testadmin
+ftp
+user

