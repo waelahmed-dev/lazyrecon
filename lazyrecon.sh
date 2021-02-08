@@ -4,24 +4,25 @@
 
 # Config
 storageDir=$HOME/lazytargets # where all targets
-unwantedpaths='/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d'
+unwantedpaths='/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d'
 
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
-dirsearchWordlist=./lazyWordLists/fuzz-Bo0oM_top1000.txt # used in directory bruteforcing (--brute option)
-dirsearchThreads=500
+dirsearchWordlist=./lazyWordLists/web-content-top10000.txt # used in directory bruteforcing (--brute option)
+dirsearchThreads=10 # to avoid blocking of waf
 
 miniResolvers=./resolvers/mini_resolvers.txt
 
 # used in hydra attack: too much words required up to 6 hours, use preferred list if possible
 # sort -u ../SecLists/Usernames/top-usernames-shortlist.txt ../SecLists/Usernames/cirt-default-usernames.txt ../SecLists/Usernames/mssql-usernames-nansh0u-guardicore.txt ./wordlist/users.txt -o wordlist/users.txt
-usersList=./wordlist/users.txt
+usersList=./wordlist/top-users.txt
 # sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
-passwordsList=./wordlist/top-20-common-SSH-passwords.txt
+passwordsList=./wordlist/top-passwords.txt
 
 
 # optional positional arguments
 ip= # test for specific single IP
+cidr= # test for CIDR based on ASN number, see https://bgp.he.net/
 single= # if just one target in scope
 brute= # enable directory bruteforce
 mad= # if you sad about subdomains count, call it
@@ -32,6 +33,8 @@ wildcard= # fight against multi-level wildcard DNS to avoid false-positive resul
 enumeratesubdomains(){
   if [ "$single" = "1" ]; then
     echo $1 > $targetDir/enumerated-subdomains.txt
+  elif [ "$cidr" = "1" ]; then
+    mapcidr -silent -cidr $1 -o $targetDir/enumerated-subdomains.txt
   else
     echo "Enumerating all known domains using:"
 
@@ -76,7 +79,7 @@ checkwaybackurls(){
     grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
 
     cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains > $targetDir/wayback-subdomains-list.txt
-    sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
+    # sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
 
     # wayback_output.txt needs for custompathlist (ffuf dirsearch custom list)
     # full paths, see https://github.com/tomnomnom/unfurl
@@ -136,7 +139,14 @@ dnsprobing(){
   if [[ -n $ip ]]; then
     echo "[dnsx] try to get PTR records"
     echo $1 > $targetDir/dnsprobe_ip.txt
-    echo $1 | dnsx -silent -resp-only -ptr -o $targetDir/dnsprobe_subdomains.txt # try to get subdomains too
+    echo $1 | dnsx -silent -ptr -resp-only -o $targetDir/dnsprobe_subdomains.txt # also try to get subdomains
+  elif [[ -n $cidr ]]; then
+    echo "[dnsx] try to get PTR records"
+    cp  $targetDir/enumerated-subdomains.txt $targetDir/dnsprobe_ip.txt
+    dnsx -silent -ptr -resp-only -r $miniResolvers -l $targetDir/dnsprobe_ip.txt -o $targetDir/dnsprobe_subdomains.txt # also try to get subdomains
+  elif [ "$single" = "1" ]; then
+    echo $1 | dnsx -silent -a -resp-only -o $targetDir/dnsprobe_ip.txt
+    echo $1 > $targetDir/dnsprobe_subdomains.txt
   elif [ "$wildcard" = "1" ]; then
       echo "[shuffledns] massdns probing with wildcard sieving..."
       shuffledns -silent -d $1 -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
@@ -166,10 +176,16 @@ dnsprobing(){
 checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for nuclei, gospider and ffuf-bruteforce
-  httpx -silent -l $targetDir/dnsprobe_ip.txt -silent -follow-host-redirects -threads 500 -o $targetDir/httpx_output_1.txt
-  httpx -silent -l $targetDir/dnsprobe_subdomains.txt -silent -follow-host-redirects -threads 500 -o $targetDir/httpx_output_2.txt
+  httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/httpx_output_1.txt
+  httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/httpx_output_2.txt
 
   sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
+}
+
+aquatoneshot(){
+  cat $targetDir/3-all-subdomain-live-scheme.txt |  ~/Downloads/aquatone_macos_amd64_1.7.0/aquatone -ports large -out $targetDir/aquatone
+  # enable report with screenshots
+  chown storenth: $targetDir/aquatone/screenshots/*
 }
 
 nucleitest(){
@@ -180,7 +196,14 @@ nucleitest(){
     sleep 1
     nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt \
                     -t ../nuclei-templates/vulnerabilities/generic/ \
+                    -t ../nuclei-templates/vulnerabilities/other/ \
+                    -t ../nuclei-templates/vulnerabilities/wordpress/ \
+                    -t ../nuclei-templates/vulnerabilities/thinkphp/thinkphp-2-rce.yaml \
+                    -t ../nuclei-templates/cves/2017/ \
+                    -t ../nuclei-templates/cves/2018/ \
+                    -t ../nuclei-templates/cves/2019/ \
                     -t ../nuclei-templates/cves/2020/ \
+                    -t ../nuclei-templates/cves/2021/ \
                     -t ../nuclei-templates/misconfiguration/ \
                     -t ../nuclei-templates/miscellaneous/ \
                     -exclude ../nuclei-templates/miscellaneous/old-copyright.yaml \
@@ -188,13 +211,14 @@ nucleitest(){
                     -exclude ../nuclei-templates/miscellaneous/missing-hsts.yaml \
                     -exclude ../nuclei-templates/miscellaneous/missing-csp.yaml \
                     -exclude ../nuclei-templates/miscellaneous/basic-cors-flash.yaml \
-                    -t ../nuclei-templates/fuzzing/ \
                     -t ../nuclei-templates/takeovers/subdomain-takeover.yaml \
                     -t ../nuclei-templates/exposures/configs/ \
                     -t ../nuclei-templates/exposures/logs/ \
                     -t ../nuclei-templates/exposures/files/server-private-keys.yaml \
                     -t ../nuclei-templates/exposed-panels/ \
                     -t ../nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
+                    -t ../nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
+                    -t ../nuclei-templates/fuzzing/ \
                     -exclude ../nuclei-templates/fuzzing/wp-plugin-scan.yaml \
                     -o $targetDir/nuclei/nuclei_output.txt
 
@@ -266,20 +290,26 @@ hakrawlercrawling(){
 sqlmaptest(){
   if [ "$mad" = "1" ]; then
     # prepare list of the php urls from wayback, hakrawler and gospider
-    echo "[sqlmap] wayback sqlist..."
-    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/wayback/wayback_output.txt  | sort | uniq > $targetDir/wayback_sqli_list.txt
+    echo "[sqlmap] prepare sqlist..."
+    grep -h -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '[.]php$' \
+                $targetDir/wayback/wayback_output.txt \
+                $targetDir/gospider/form_js_link_url_out.txt \
+                $targetDir/hakrawler/hakrawler_out.txt \
+                |  sort | uniq > $targetDir/sqli_list.txt
 
-    # -h means Never print filename headers
-    echo "[sqlmap] gospider sqlist..."
-    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/gospider/form_js_link_url_out.txt | sort | uniq > $targetDir/gospider_sqli_list.txt
+    # grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/wayback/wayback_output.txt  | sort | uniq > $targetDir/wayback_sqli_list.txt
 
-    echo "[sqlmap] hakrawler sqlist..."
-    grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '[.]php$' $targetDir/hakrawler/hakrawler_out.txt | sort | uniq > $targetDir/hakrawler_sqli_list.txt
+    # # -h means Never print filename headers
+    # echo "[sqlmap] gospider sqlist..."
+    # grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/gospider/form_js_link_url_out.txt | sort | uniq > $targetDir/gospider_sqli_list.txt
 
-    sort -u $targetDir/wayback_sqli_list.txt $targetDir/gospider_sqli_list.txt $targetDir/hakrawler_sqli_list.txt -o $targetDir/sqli_list.txt
+    # echo "[sqlmap] hakrawler sqlist..."
+    # grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '[.]php$' $targetDir/hakrawler/hakrawler_out.txt | sort | uniq > $targetDir/hakrawler_sqli_list.txt
+
+    # sort -u $targetDir/wayback_sqli_list.txt $targetDir/gospider_sqli_list.txt $targetDir/hakrawler_sqli_list.txt -o $targetDir/sqli_list.txt
     # perform the sqlmap
-    echo "[sqlmap.py] SQLi testing..."
-    sqlmap -m $targetDir/sqli_list.txt --batch --random-agent --output-dir=$targetDir/sqlmap/
+    # echo "[sqlmap.py] SQLi testing..."
+    # sqlmap -m $targetDir/sqli_list.txt --batch --random-agent -f --banner --dbs --users --risk=3 --level=5 --output-dir=$targetDir/sqlmap/
   fi
 }
 
@@ -310,14 +340,14 @@ masscantest(){
   echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
   # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
-  # masscan -p21,22,23,25,53,80,110,113,587,995,3306,3389,5432,5900,8080,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
-  masscan -p1-65535 -iL $targetDir/dnsprobe_ip.txt --rate 750 --open-only -oG $targetDir/masscan_output.gnmap
+  # masscan -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
+  masscan -p0-65535 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
   sleep 1
   sed -i '' '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
   # sort -k 7 -nb $targetDir/masscan_output.gnmap - o $targetDir/masscan_output.gnmap # sort by port number
 }
 
-#  NSE-approach
+# NSE-approach
 # nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL $targetDir/nmap_input.txt
 nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
@@ -336,12 +366,16 @@ nmap_nse(){
     # -sS: raw packages
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
-    # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap --spoof-mac Cisco -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -p$PORT -oG $targetDir/nmap/$FILENAME $IP
+    # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product (0=random)
+    # -f: used to fragment the packets (i.e. split them into smaller pieces) making it less likely that the packets will be detected by a firewall or IDS.
+
+    # grep smtp /usr/local/Cellar/nmap/7.91/share/nmap/scripts/script.db
+    # grep "intrusive" /usr/share/nmap/scripts/script.db
+    nmap --spoof-mac 0 -n -f -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -p$PORT -oG $targetDir/nmap/$FILENAME $IP
     echo
     echo
   done < $targetDir/masscan_output.gnmap
-  cat $targetDir/nmap/* > $targetDir/nmap/nmap_out.txt
+  # cat $targetDir/nmap/* > $targetDir/nmap/nmap_out.txt
   # echo "$[nmap] grep for known RCE"
   # grep -i -e "dotnetnuke" -e "dnnsoftware" $targetDir/nmap/nmap_out.txt # https://www.exploit-db.com/exploits/48336
 }
@@ -355,10 +389,10 @@ hydratest(){
     PROTOCOL=$(echo $line | awk -F '[/ ]+' '{print $10}')
     FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "hydra_"PORT"_"$4}' )
 
-    echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
-
-    hydra -o $targetDir/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
-
+    if [ "$PROTOCOL" = "ftp" -o "$PROTOCOL" = "ssh" -o "$PROTOCOL" = "smtp" -o "$PROTOCOL" = "mysql" ]; then
+      echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
+      hydra -o $targetDir/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+    fi
   done < $targetDir/masscan_output.gnmap
 }
 
@@ -369,6 +403,7 @@ custompathlist(){
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
     sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
     # sed -i '' '/^$/d' $customFfufWordList ?need to check!
+    chown storenth: $customFfufWordList
   fi
 }
 
@@ -378,7 +413,8 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -recursion -recursion-depth 5 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -w $customFfufWordList -t $dirsearchThreads -o $targetDir/ffuf/${iterator}.csv -of csv
+      ffuf -c -s -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $customFfufWordList -t $dirsearchThreads \
+          -o $targetDir/ffuf/${iterator}.html  -of html
       iterator=$((iterator+1))
     done < $targetDir/3-all-subdomain-live-scheme.txt
   fi
@@ -392,6 +428,7 @@ recon(){
 
   dnsprobing $1
   checkhttprobe $1
+  aquatoneshot $1
   nucleitest $1
 
   if [ "$mad" = "1" ]; then
@@ -399,12 +436,12 @@ recon(){
     hakrawlercrawling $1
   fi
 
-  # sqlmaptest $1
+  sqlmaptest $1
   # smugglertest $1
 
   masscantest $1
   nmap_nse $1
-  # hydratest $1
+  hydratest $1
 
   custompathlist $1
   ffufbrute $1
@@ -415,47 +452,57 @@ recon(){
 
 
 main(){
-  if [ -d "$storageDir/$1" ]
-  then
-    echo "This is a known target."
+  # parse cidr input to create valid directory
+  if [[ -n $cidr ]]; then
+    CIDRFILEDIR=$(echo $1 | sed "s/\//_/")
+    targetDir=$storageDir/$CIDRFILEDIR/$foldername
+    if [ -d "$storageDir/$CIDRFILEDIR" ]; then
+      echo "This is a known target."
+    else
+      mkdir $storageDir/$CIDRFILEDIR
+    fi
   else
-    mkdir $storageDir/$1
+    targetDir=$storageDir/$1/$foldername
+    if [ -d "$storageDir/$1" ]; then
+      echo "This is a known target."
+    else
+      mkdir $storageDir/$1
+    fi
   fi
-
   mkdir $targetDir
 
   # used for ffuf bruteforce
-  touch $targetDir/custom_ffuf_wordlist.txt
-  customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
-  cp $dirsearchWordlist $customFfufWordList
+  if [ "$mad" = "1" -o "$brute" = "1" ]; then
+    touch $targetDir/custom_ffuf_wordlist.txt
+    customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
+    cp $dirsearchWordlist $customFfufWordList
+  fi
   # used to save target specific list for alterations (shuffledns, altdns)
-  # if [ "$mad" = "1" ]; then
-  #   altdnsWordlist=./lazyWordLists/altdns_wordlist.txt
-  # else
-  #   altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt
-  # fi
-  touch $targetDir/custom_subdomains_wordlist.txt
-  customSubdomainsWordList=$targetDir/custom_subdomains_wordlist.txt
-  cp $altdnsWordlist $customSubdomainsWordList
+  if [ "$alt" = "1" ]; then
+    touch $targetDir/custom_subdomains_wordlist.txt
+    customSubdomainsWordList=$targetDir/custom_subdomains_wordlist.txt
+    cp $altdnsWordlist $customSubdomainsWordList
+  fi
 
   if [ "$brute" = "1" ]; then
     # ffuf dir uses to store brute output
     mkdir $targetDir/ffuf/
   fi
-
+  # aquatone output
+  mkdir $targetDir/aquatone
   # nuclei output
   mkdir $targetDir/nuclei/
   # nmap output
   mkdir $targetDir/nmap/
   # hydra output
-  # mkdir $targetDir/hydra/
+  mkdir $targetDir/hydra/
   if [ "$mad" = "1" ]; then
     # gospider output
     mkdir $targetDir/gospider/
     # hakrawler output
     mkdir $targetDir/hakrawler/
     # sqlmap output
-    mkdir $targetDir/sqlmap/
+    # mkdir $targetDir/sqlmap/
     # gau/waybackurls output
     mkdir $targetDir/wayback/
   fi
@@ -514,6 +561,8 @@ checkargs(){
                                   ;;
           -i | --ip )             ip="1"
                                   ;;
+          -c | --cidr )           cidr="1"
+                                  ;;
           -b | --brute )          brute="1"
                                   ;;
           -m | --mad )            mad="1"
@@ -551,6 +600,7 @@ echo "Check params: $@"
 echo "Check # of params: $#"
 echo "Check params \$1: $1"
 echo "Check params \$ip: $ip"
+echo "Check params \$cidr: $cidr"
 echo "Check params \$single: $single"
 echo "Check params \$brute: $brute"
 echo "Check params \$mad: $mad"
@@ -561,7 +611,6 @@ echo "Check params \$wildcard: $wildcard"
 
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
-targetDir=$storageDir/$1/$foldername
 
 # invoke
 main $1

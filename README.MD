@@ -108,3 +108,17 @@ cat /dev/urandom | nc hostname port
 
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
+
+# Methodology
+1. Run `./lazyrecon.sh`
+2. Google dorking
+3. Trello, Atlassian, Github, Bitbucket dorking
+4. RCE based on service version, deserialization, SQLi, File upload
+4. exploit-db.com for known target-specific CVE
+5. Brute dirsearch: fuzbo0oM-top10000 --> raft --> target specific
+6. continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+7. start new brute with POST method
+5. wireshark for plain http while login (missing ssl)
+6. `hydra`, 21, 22, 25 ports
+7. XSS `xsscrapy.py`
+8. Run `./lazyrecon.sh` using ASN --> cidr 
