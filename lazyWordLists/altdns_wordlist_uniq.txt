@@ -8,9 +8,10 @@
 666
 777
 a
-acc
-app
 _app
+app
+acc
+acpt
 acc-test
 acctest
 acceptance
@@ -112,6 +113,8 @@ dev_qa
 devteam
 devtrack
 dork
+dvlp
+dvlpr
 edit
 ex
 git
@@ -192,6 +195,8 @@ registry
 s1
 s5
 s7
+simulator
+smltr
 socket
 socket1
 slack

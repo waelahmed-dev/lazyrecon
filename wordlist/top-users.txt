@@ -4,6 +4,7 @@ admin
 administrator
 anonymous
 developer
+demo
 test
 testadmin
 ftp

