@@ -26,11 +26,12 @@ ATTACKER=http://LOCALSERVERIP:PORT
 ip= # test for specific single IP
 cidr= # test for CIDR based on ASN number, see https://bgp.he.net/
 single= # if just one target in scope
+list= # list of domains to test, no need wildcard support
+wildcard= # fight against multi-level wildcard DNS to avoid false-positive results while subdomain resolves
 brute= # enable directory bruteforce
 fuzz= # enable parameter fuzzing (local server need to be alive)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
-wildcard= # fight against multi-level wildcard DNS to avoid false-positive results while subdomain resolves
 
 # definitions
 enumeratesubdomains(){
@@ -38,6 +39,8 @@ enumeratesubdomains(){
     echo $1 > $targetDir/enumerated-subdomains.txt
   elif [ "$cidr" = "1" ]; then
     mapcidr -silent -cidr $1 -o $targetDir/enumerated-subdomains.txt
+  elif [ "$list" = "1" ]; then
+    cp $1 $targetDir/enumerated-subdomains.txt
   else
     echo "Enumerating all known domains using:"
 
@@ -65,42 +68,40 @@ enumeratesubdomains(){
 }
 
 checkwaybackurls(){
-  if [ "$mad" = "1" ]; then
-    echo "gau..."
-    # gau -subs mean include subdomains
-    cat $targetDir/enumerated-subdomains.txt | gau -subs -o $targetDir/wayback/gau_output.txt
-    echo "waybackurls..."
-    cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
-    echo "github-endpoints.py..."
-    github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
+  echo "gau..."
+  # gau -subs mean include subdomains
+  cat $targetDir/enumerated-subdomains.txt | gau -subs -o $targetDir/wayback/gau_output.txt
+  echo "waybackurls..."
+  cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
+  echo "github-endpoints.py..."
+  github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
 
-    # need to get some extras subdomains
-    sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
-    sed -i '' '/web.archive.org/d' $targetDir/wayback/wayback_output.txt
-    # remove all out-of-scope lines
-    SCOPE=$1
-    grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
+  # need to get some extras subdomains
+  sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
+  sed -i '' '/web.archive.org/d' $targetDir/wayback/wayback_output.txt
+  # remove all out-of-scope lines
+  SCOPE=$1
+  grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
 
-    cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains > $targetDir/wayback-subdomains-list.txt
-    # sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
+  cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains > $targetDir/wayback-subdomains-list.txt
+  # sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
 
-    # wayback_output.txt needs for custompathlist (ffuf dirsearch custom list)
-    # full paths, see https://github.com/tomnomnom/unfurl
-    cat $targetDir/wayback/wayback_output.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_out.txt
-    # filter first and first-second paths from full paths and remove empty lines
-    cut -f1 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort -u -o $targetDir/wayback/wayback_paths.txt
-    cut -f1-2 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/wayback/wayback_paths.txt
+  # wayback_output.txt needs for custompathlist (ffuf dirsearch custom list)
+  # full paths, see https://github.com/tomnomnom/unfurl
+  cat $targetDir/wayback/wayback_output.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_out.txt
+  # filter first and first-second paths from full paths and remove empty lines
+  cut -f1 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort -u -o $targetDir/wayback/wayback_paths.txt
+  cut -f1-2 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/wayback/wayback_paths.txt
 
-    # full paths+queries
-    cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_queries.txt
+  # full paths+queries
+  cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback_paths_queries.txt
 
-    sort -u $targetDir/wayback/wayback_paths_out.txt $targetDir/wayback/wayback_paths.txt $targetDir/wayback/wayback_paths_queries.txt -o $targetDir/wayback/wayback-paths-list.txt
-    # sed -i '' '/[.]$/d' $targetDir/wayback/wayback-paths-list.txt
+  sort -u $targetDir/wayback/wayback_paths_out.txt $targetDir/wayback/wayback_paths.txt $targetDir/wayback/wayback_paths_queries.txt -o $targetDir/wayback/wayback-paths-list.txt
+  # sed -i '' '/[.]$/d' $targetDir/wayback/wayback-paths-list.txt
 
-    # remove .jpg .jpeg .webp .png .svg .gif, css from paths
-    sed -i '' $unwantedpaths $targetDir/wayback/wayback-paths-list.txt
+  # remove .jpg .jpeg .webp .png .svg .gif, css from paths
+  sed -i '' $unwantedpaths $targetDir/wayback/wayback-paths-list.txt
 
-  fi
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
     cat $targetDir/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $targetDir/wayback-subdomains-wordlist.txt
@@ -150,6 +151,21 @@ dnsprobing(){
   elif [ "$single" = "1" ]; then
     echo $1 | dnsx -silent -a -resp-only -o $targetDir/dnsprobe_ip.txt
     echo $1 > $targetDir/dnsprobe_subdomains.txt
+  elif [[ -n $list ]]; then
+      echo "[shuffledns] massdns probing..."
+      shuffledns -silent -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
+      # additional resolving because shuffledns missing IP on output
+      # echo "[dnsx] dnsprobing..."
+      # echo "[dnsx] wildcard filtering:"
+      # dnsx -l $targetDir/shuffledns-list.txt -wd $1 -o $targetDir/dnsprobe_live.txt
+      echo "[dnsx] getting hostnames and its A records:"
+      # -t mean cuncurrency
+      dnsx -silent -t 350 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      # clear file from [ and ] symbols
+      tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
+      # split resolved hosts ans its IP (for masscan)
+      cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
+      cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
   elif [ "$wildcard" = "1" ]; then
       echo "[shuffledns] massdns probing with wildcard sieving..."
       shuffledns -silent -d $1 -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
@@ -187,7 +203,7 @@ checkhttprobe(){
 }
 
 aquatoneshot(){
-  cat $targetDir/3-all-subdomain-live-scheme.txt |  ~/Downloads/aquatone_macos_amd64_1.7.0/aquatone -ports large -out $targetDir/aquatone
+  cat $targetDir/3-all-subdomain-live-scheme.txt |  aquatone -ports large -out $targetDir/aquatone
   # enable report with screenshots
   chown storenth: $targetDir/aquatone/screenshots/*
 }
@@ -198,12 +214,8 @@ nucleitest(){
     # -c maximum templates processed in parallel
     nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
     sleep 1
-    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt \
-                    -t ../nuclei-templates/vulnerabilities/generic/ \
-                    -t ../nuclei-templates/vulnerabilities/other/ \
-                    -t ../nuclei-templates/vulnerabilities/wordpress/ \
-                    -t ../nuclei-templates/vulnerabilities/thinkphp/thinkphp-2-rce.yaml \
-                    -t ../nuclei-templates/cves/2016/ \
+    nuclei -silent -stats -l $targetDir/3-all-subdomain-live-scheme.txt \
+                    -t ../nuclei-templates/vulnerabilities/ \
                     -t ../nuclei-templates/cves/2017/ \
                     -t ../nuclei-templates/cves/2018/ \
                     -t ../nuclei-templates/cves/2019/ \
@@ -216,15 +228,12 @@ nucleitest(){
                     -exclude ../nuclei-templates/miscellaneous/missing-hsts.yaml \
                     -exclude ../nuclei-templates/miscellaneous/missing-csp.yaml \
                     -exclude ../nuclei-templates/miscellaneous/basic-cors-flash.yaml \
-                    -t ../nuclei-templates/takeovers/subdomain-takeover.yaml \
-                    -t ../nuclei-templates/exposures/configs/ \
-                    -t ../nuclei-templates/exposures/logs/ \
-                    -t ../nuclei-templates/exposures/files/server-private-keys.yaml \
+                    -t ../nuclei-templates/takeovers/ \
+                    -t ../nuclei-templates/exposures/ \
                     -t ../nuclei-templates/exposed-panels/ \
                     -t ../nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
                     -t ../nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
                     -t ../nuclei-templates/fuzzing/ \
-                    -exclude ../nuclei-templates/fuzzing/wp-plugin-scan.yaml \
                     -o $targetDir/nuclei/nuclei_output.txt
 
     if [ -s $targetDir/nuclei/nuclei_output.txt ]; then
@@ -293,10 +302,27 @@ hakrawlercrawling(){
 }
 
 # https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
-rcetest(){
+# https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68
+ssrftest(){
   if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
-    echo "[SSRF/RCE] SSRF probe..."
+    echo "[SSRF/RCE] SSRF probe..." manifest.json
+    # ?url=&file=
     ffuf -c -u HOST/\?url=$ATTACKER/DOMAIN/url\&file=$ATTACKER/DOMAIN/file \
+        -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
+        -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork -v
+
+    # manifest.json?url=
+    ffuf -c -u HOST/manifest.json\?url=$ATTACKER/DOMAIN/url \
+        -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
+        -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork -v
+
+    # index.php?url=
+    ffuf -c -u HOST/index.php\?url=$ATTACKER/DOMAIN/url \
+        -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
+        -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork -v
+
+    # ?returnUrl=
+    ffuf -c -u HOST/logout\?returnUrl=$ATTACKER/DOMAIN/url \
         -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
         -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork -v
   fi
@@ -329,7 +355,7 @@ sqlmaptest(){
 }
 
 smugglertest(){
-  echo "[smuggler.py] Try to find request smuggling vulnerabilities..."
+  echo "[smuggler.py] Try to find request smuggling vulns..."
   smuggler -u $targetDir/3-all-subdomain-live-scheme.txt
 
   # check for VULNURABLE keyword
@@ -437,7 +463,9 @@ ffufbrute(){
 
 recon(){
   enumeratesubdomains $1
-  checkwaybackurls $1
+  if [[ -n "$mad" ]]; then
+    checkwaybackurls $1
+  fi
   sortsubdomains $1
   permutatesubdomains $1
 
@@ -452,15 +480,15 @@ recon(){
   fi
 
   if [[ -n "$fuzz" ]]; then
-    rcetest $1
+    ssrftest $1
   fi
 
   sqlmaptest $1
-  # smugglertest $1
+  # smugglertest $1 # disabled because still manually work need
 
   masscantest $1
-  nmap_nse $1
-  hydratest $1
+  # nmap_nse $1
+  # hydratest $1
 
   custompathlist $1
   ffufbrute $1
@@ -471,6 +499,13 @@ recon(){
 
 
 main(){
+  # collect wildcards to retest later
+  if [[ -n $wildcard ]]; then
+    if ! grep -Fxq $1 $storageDir/wildcard.txt; then
+      echo $1 >> $storageDir/wildcard.txt
+    fi
+  fi
+
   # parse cidr input to create valid directory
   if [[ -n $cidr ]]; then
     CIDRFILEDIR=$(echo $1 | sed "s/\//_/")
@@ -479,6 +514,14 @@ main(){
       echo "This is a known target."
     else
       mkdir $storageDir/$CIDRFILEDIR
+    fi
+  elif [[ -n $list ]]; then
+    LISTFILEDIR=$(basename $1 | sed 's/[.]txt$//')
+    targetDir=$storageDir/$LISTFILEDIR/$foldername
+    if [ -d "$storageDir/$LISTFILEDIR" ]; then
+      echo "This is a known target."
+    else
+      mkdir $storageDir/$LISTFILEDIR
     fi
   else
     targetDir=$storageDir/$1/$foldername
@@ -578,6 +621,8 @@ checkargs(){
       case $1 in
           -s | --single )         single="1"
                                   ;;
+          -l | --list )           list="1"
+                                  ;;
           -i | --ip )             ip="1"
                                   ;;
           -c | --cidr )           cidr="1"
@@ -623,6 +668,7 @@ echo "Check params \$1: $1"
 echo "Check params \$ip: $ip"
 echo "Check params \$cidr: $cidr"
 echo "Check params \$single: $single"
+echo "Check params \$list: $list"
 echo "Check params \$brute: $brute"
 echo "Check params \$fuzz: $fuzz"
 echo "Check params \$mad: $mad"
