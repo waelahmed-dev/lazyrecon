@@ -121,4 +121,8 @@ cat /dev/urandom | nc hostname port
 5. wireshark for plain http while login (missing ssl)
 6. `hydra`, 21, 22, 25 ports
 7. XSS `xsscrapy.py`
-8. Run `./lazyrecon.sh` using ASN --> cidr 
+8. Run `./lazyrecon.sh` using ASN --> cidr
+
+# Notable articles
+1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
+2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html

