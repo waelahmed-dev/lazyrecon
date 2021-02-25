@@ -5,6 +5,9 @@ site:target.com filetype:php | jsp | json | xlsx | tar | sql | zip | pdf | log |
 site:target.com inurl:/login/ | inurl:admin | inurl:test | graphql
 site:target.com intitle:setup | admin | login | tomcat
 
+inurl:trello.com intext:"advcash.com"
+intitle:"phpLDAPadmin" inurl:cmd.php
+
 site:target.com intext:tomcat-users.xml
 site:target.com intext:"tomcat.manager.password"
 

