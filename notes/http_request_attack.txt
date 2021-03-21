@@ -8,6 +8,21 @@ response = nothing
 http://site.com/file.php~
 response = source
 
+http://site.com/file.php
+response = nothing
+http://site.com/file.php%2500.md
+response = source
+
+http://site.com/file.php
+response = nothing
+http://site.com/file.php%23.html
+response = source
+
+http://site.com/file.php
+response = nothing
+http://site.com/./file.php/.
+response = source
+
 GET /admin HTTP/1.1
 Host: http://site.com
 ...

@@ -3,20 +3,32 @@
  | | __ _ ____ _   _ _ __ ___  ___  ___  _ __
  | |/ _  |_  /| | | |  __/ _ \/ __|/ _ \|  _ \
  | | (_|  / / | | | | | |  __/ (__  (_) | | | 
- |_|\__ _|___/ \__  |_|  \___|\___|\___/|_| |_
+ |_|\__ _|___/ \__  |_|  \___|\___|\___/|_| |_v2
                |___/
 ```
 
+<p align="center">
+<a href="https://twitter.com/storenth"><img src="https://img.shields.io/twitter/follow/storenth.svg?logo=twitter"></a>
+<a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?logo=discord"></a>
+</p>
+
+Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains and perform SSRF/LFI/SQLi fuzzing. It has a simple modular architecture and is optimized for speed while work with wayback machine.
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
 sudo ./lazyrecon.sh target.com
 ```
-Force with options: `alt` (permutate subdomains), `brute` (directory bruteforce). `mad` mode uses wayback machine and merge subdomains and paths with corresponding wordlists to get the best out of it: 
-```bash
-sudo ./lazyrecon.sh target.com --mad --alt
-```
 
+| **Parameter** | **Description** | **Example** |
+| --------------|-----------------|-------------|
+|`--ip`      | Call with IP | `sudo ./lazyrecon.sh 192.168.0.1 --ip --single` |
+|`--single`  | Do not perform subdomain discovery | `sudo ./lazyrecon.sh target.com --single` |
+|`--wildcard`| Perform wildcard filtering for subdomains | `sudo ./lazyrecon.sh target.com --wildcard` |
+|`--mad`     | Executes with wayback machines stuff for target | `sudo ./lazyrecon.sh target.com --mad --wildcard` |
+|`--fuzz`    | Basic SSRF/LFI fuzzing | `sudo ./lazyrecon.sh target.com --fuzz` |
+|`--alt`     | Additionally permutate subdomains | `sudo ./lazyrecon.sh target.com --alt` |
+|`--brute`   | Basic directory bruteforce | `sudo ./lazyrecon.sh target.com --brute` |
+| | |
 # About
 
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
@@ -113,15 +125,16 @@ cat /dev/urandom | nc hostname port
 1. Run `./lazyrecon.sh`
 2. Google dorking
 3. Trello, Atlassian, Github, Bitbucket dorking
-4. RCE based on service version, deserialization, SQLi, File upload
-4. exploit-db.com for known target-specific CVE
-5. Brute dirsearch: fuzbo0oM-top10000 --> raft --> target specific
-6. continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-7. start new brute with POST method
-5. wireshark for plain http while login (missing ssl)
-6. `hydra`, 21, 22, 25 ports
-7. XSS `xsscrapy.py`
-8. Run `./lazyrecon.sh` using ASN --> cidr
+4. Check JS sources for default credentials, API endpoints
+5. Check `XHR` API requests, debug for variables
+6. RCE based on exploit-db.com for known target-specific CVE service version, deserialization, SQLi, File upload, LFI, SSRF
+7. Brute dirsearch: fuzbo0oM-top10000 --> raft --> target specific
+8. continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+9. start new brute with POST method
+10. wireshark for plain http while login (missing ssl)
+11. `hydra`, 21, 22, 25 ports
+12. XSS `xsscrapy.py`
+13. Run `./lazyrecon.sh` using ASN --> cidr
 
 # Notable articles
 1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
