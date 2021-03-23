@@ -40,7 +40,7 @@ printf '  %s _%s        %s    %s      %s     %s   %s     %s     %s \n' $RB_RED $
 printf '  %s| |%s __ _ %s____%s _   _ %s_ __ %s___%s  ___ %s ___%s  _ __%s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
 printf '  %s| |%s/ _  |%s_  /%s| | | %s|  __%s/ _ \%s/ __|%s/ _ \%s|  _ \ %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
 printf '  %s| |%s (_|  %s/ / %s| | | %s| | %s|  __/%s (__ %s (_) %s| | | %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
-printf '  %s|_|%s\__ _|%s___/%s \__  %s|_ %s  \___|%s\___|%s\___/%s|_| |_ %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
+printf '  %s|_|%s\__ _|%s___/%s \__  %s|_ %s  \___|%s\___|%s\___/%s|_| |_ %sv2\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
 printf '  %s   %s      %s    %s |___/%s    %s       %s     %s     %s       %s\n' $RB_RED $RB_ORANGE $RB_YELLOW $RB_GREEN $RB_RED $RB_BLUE $RB_INDIGO $RB_VIOLET $RB_RESET
 printf "\n"
 echo "${BLUE}nahamsec/lazyrecon v1.0 forked by storenth/lazyrecon v2.0"

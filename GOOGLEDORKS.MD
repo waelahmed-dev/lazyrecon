@@ -4,6 +4,7 @@ site:target.com filetype:csv OR filetype:bak OR filetype:dll OR filetype:xls OR 
 site:target.com filetype:php | jsp | json | xlsx | tar | sql | zip | pdf | log | csv | .old, .bak, .inc, .src
 site:target.com inurl:/login/ | inurl:admin | inurl:test | graphql
 site:target.com intitle:setup | admin | login | tomcat
+site:target.com ext:.vcf
 
 inurl:trello.com intext:"advcash.com"
 intitle:"phpLDAPadmin" inurl:cmd.php
