@@ -34,12 +34,13 @@ sudo ./lazyrecon.sh tesla.com
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
 
 - Create a dated folder with recon notes for target
-- Grab subdomains using `subfinder`, `assetfinder` and wayback machines `gau`, `waybackurls`
-- Subdomain discovery through alterations and permutations using `altdns`
+- Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
+- Subdomain discovery through alterations and permutations using `altdns` and `dnsgen`
 - Filtering out live subdomains from a list of hosts using `shuffledns`
+- Check 0-200,8000-10000 for http probes using `httpx`
+- Get visual part using `aquatone`
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
-- Check http probes using `httpx`
 - Scanning for known paths and CVEs using `nuclei`
 - Executes [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduce the sizes of archive
 - Check for request smuggling vulnerabilities using `smuggler`
@@ -54,49 +55,43 @@ The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/
 
 
 # Dependencies
-
-To start use this script, please clone and setup the next tools in the same level (near the lazyrecon directory). Next, you may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`
-
-```bash
-~/lazyrecon/
-~/subfinder/
-~/assetfinder/
-~/waybackurls/
-~/gau/
-~/altdns/
-~/shuffledns/
-~/masscan/
-~/massdns/
-~/dnsx/
-~/unfurl/
-~/httpx/
-~/nuclei/
-~/nuclei-templates/
-~/brutespray/
-~/hydra
-~/smuggler/
-~/ffuf/
-```
-Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
+Tested on `MacOS` and `Linux`
+- To start use this script, please clone and/or setup the dependencies. You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`.
+- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
+- Use option `nuclei -update-templates` to get templates into `$HOME/nuclei-templates/` to use properly, but for LFI use [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) forked till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
+- Update your local `~/.gf` with `./gfpatterns/`
+- Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
 2. [assetfinder](https://github.com/tomnomnom/assetfinder)
-3. [waybackurls](https://github.com/tomnomnom/waybackurls)
-4. [gau](https://github.com/lc/gau)
-5. [altdns](https://github.com/infosec-au/altdns)
-6. [unfurl](https://github.com/tomnomnom/unfurl)
-7. [shuffledns](https://github.com/projectdiscovery/shuffledns)
-8. [masscan](https://github.com/robertdavidgraham/masscan)
-9. [massdns](https://github.com/blechschmidt/massdns)
-10. [dnsx](https://github.com/projectdiscovery/dnsx)
-11. [brutespray](https://github.com/storenth/brutespray)
-12. [hydra](https://github.com/vanhauser-thc/thc-hydra)
-13. [httpx](https://github.com/projectdiscovery/httpx)
-14. [nuclei](https://github.com/projectdiscovery/nuclei)
-15. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
-16. [smuggler](https://github.com/storenth/requestsmuggler)
-17. [ffuf](https://github.com/ffuf/ffuf)
+3. [github-subdomains](https://github.com/gwen001/github-subdomains)
+4. [github-endpoints](https://github.com/gwen001/github-endpoints)
+5. [aquatone](https://github.com/michenriksen/aquatone)
+6. [waybackurls](https://github.com/tomnomnom/waybackurls)
+7. [gau](https://github.com/lc/gau)
+8. [altdns](https://github.com/infosec-au/altdns)
+9. [dnsgen](https://github.com/ProjectAnte/dnsgen/)
+10. [shuffledns](https://github.com/projectdiscovery/shuffledns)
+11. [masscan](https://github.com/robertdavidgraham/masscan)
+12. [massdns](https://github.com/blechschmidt/massdns)
+13. [dnsx](https://github.com/projectdiscovery/dnsx)
+14. [SecLists](https://github.com/danielmiessler/SecLists)
+15. [httpx](https://github.com/projectdiscovery/httpx)
+16. [nuclei](https://github.com/projectdiscovery/nuclei)
+17. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
+18. [smuggler](https://github.com/storenth/requestsmuggler)
+19. [ffuf](https://github.com/ffuf/ffuf)
+20. [hydra](https://github.com/vanhauser-thc/thc-hydra)
+21. [gf](https://github.com/tomnomnom/gf)
+22. [unfurl](https://github.com/tomnomnom/unfurl)
+23. [sqlmap](https://github.com/sqlmapproject/sqlmap)
+24. [gospider](https://github.com/jaeles-project/gospider)
+25. [hakrawler](https://github.com/hakluke/hakrawler)
+26. [ssrf-headers-tool](https://github.com/m4ll0k/Bug-Bounty-Toolz/blob/master/ssrf.py)
+27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
 
-If you faced with some issues, feel free to open PR or file the bug.
+
+
+If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
 # Notes
 
@@ -128,16 +123,17 @@ cat /dev/urandom | nc hostname port
 1. Run `./lazyrecon.sh`
 2. Google dorking
 3. Trello, Atlassian, Github, Bitbucket dorking
-4. Check JS sources for default credentials, API endpoints
-5. Check `XHR` API requests, debug for variables
+4. Check JS sources for credentials, API endpoints, debug for variables
+5. Check `XHR` API requests, fuzz parameters
 6. RCE based on exploit-db.com for known target-specific CVE service version, deserialization, SQLi, File upload, LFI, SSRF
 7. Brute dirsearch: fuzbo0oM-top10000 --> raft --> target specific
-8. continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-9. start new brute with POST method
-10. wireshark for plain http while login (missing ssl)
-11. `hydra`, 21, 22, 25 ports
-12. XSS `xsscrapy.py`
-13. Run `./lazyrecon.sh` using ASN --> cidr
+8. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+9. Start new brute with POST method
+10. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
+11. `wireshark`/`tcpdump` for plain http while login (missing ssl)
+12. `hydra`, 21, 22, 25 ports
+13. XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
+14. Run `./lazyrecon.sh` using ASN --> cidr
 
 # Notable articles
 1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17

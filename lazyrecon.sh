@@ -4,12 +4,24 @@
 
 # Config
 storageDir=$HOME/lazytargets # where all targets
+HOMEUSER=storenth # your non root user
+# Fuzzing using local server
+ATTACKERURL=http://BURPcollaborator:PORT
+ATTACKER=BURPcollaborator:PORT
+ATTACKERGREP=BURPcollaborator
+
+# Use sed properly
+SEDOPTION=
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SEDOPTION="-i ''"
+fi
+
 unwantedpaths='/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d'
 unwantedextensions="/swf$/d;/js$/d;/jsx$/d;/php$/d;/asp$/d;/txt$/d;/ini$/d;/log$/d;/pdf$/d;/jpg$/d;/gif$/d;/png$/d"
 
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
-dirsearchWordlist=/Users/storenth/Documents/hackerrank/SecLists/Fuzzing/fuzz-Bo0oM.txt # used in directory bruteforcing (--brute option)
+dirsearchWordlist=./wordlist/top1000.txt # used in directory bruteforcing (--brute option)
 dirsearchThreads=10 # to avoid blocking of waf
 
 miniResolvers=./resolvers/mini_resolvers.txt
@@ -20,10 +32,6 @@ usersList=./wordlist/top-users.txt
 # sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
 passwordsList=./wordlist/top-passwords.txt
 
-# Fuzzing using local server:
-ATTACKERURL=http://BURPcollaborator:PORT
-ATTACKER=BURPcollaborator:PORT
-ATTACKERGREP=BURPcollaborator
 
 # optional positional arguments
 ip= # test for specific single IP
@@ -56,7 +64,7 @@ enumeratesubdomains(){
     # remove all lines start with *-asterix and out-of-scope domains
     SCOPE=$1
     grep "[.]${SCOPE}$" $targetDir/assetfinder-list.txt | sort -u -o $targetDir/assetfinder-list.txt
-    sed -i '' '/^*/d' $targetDir/assetfinder-list.txt
+    sed $SEDOPTION '/^*/d' $targetDir/assetfinder-list.txt
 
     echo "github-subdomains.py..."
     github-subdomains -d $1 | sed "s/^\.//;/error/d" > $targetDir/github-subdomains-list.txt
@@ -66,7 +74,7 @@ enumeratesubdomains(){
 
     # sort enumerated subdomains
     sort -u $targetDir/subfinder-list.txt $targetDir/assetfinder-list.txt $targetDir/github-subdomains-list.txt -o $targetDir/enumerated-subdomains.txt
-    sed -i '' '/^[.]/d' $targetDir/enumerated-subdomains.txt
+    sed $SEDOPTION '/^[.]/d' $targetDir/enumerated-subdomains.txt
   fi
 }
 
@@ -109,12 +117,12 @@ permutatesubdomains(){
     mkdir $targetDir/alterated/
     echo "altdns..."
     altdns -i $targetDir/1-real-subdomains.txt -o $targetDir/alterated/altdns_out.txt -w $customSubdomainsWordList
-    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/altdns_out.txt
+    sed $SEDOPTION '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/altdns_out.txt
 
     echo "dnsgen..."
     dnsgen -f $targetDir/1-real-subdomains.txt -w $customSubdomainsWordList > $targetDir/alterated/dnsgen_out.txt
-    sed -i '' '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/dnsgen_out.txt
-    sed -i '' '/^[-]/d' $targetDir/alterated/dnsgen_out.txt
+    sed $SEDOPTION '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/dnsgen_out.txt
+    sed $SEDOPTION '/^[-]/d' $targetDir/alterated/dnsgen_out.txt
 
     # combine permutated domains and exclude out of scope domains
     SCOPE=$1
@@ -132,6 +140,7 @@ dnsprobing(){
   echo
   # check we test hostname or IP
   if [[ -n $ip ]]; then
+    echo
     echo "[dnsx] try to get PTR records"
     echo $1 > $targetDir/dnsprobe_ip.txt
     echo $1 | dnsx -silent -ptr -resp-only -o $targetDir/dnsprobe_subdomains.txt # also try to get subdomains
@@ -174,7 +183,7 @@ dnsprobing(){
     # pure massdns:
     massdns -q -r $miniResolvers -o S -w $targetDir/massdns_output.txt $targetDir/2-all-subdomains.txt
     # 
-    sed -i '' '/CNAME/d' $targetDir/massdns_output.txt
+    sed $SEDOPTION '/CNAME/d' $targetDir/massdns_output.txt
     cut -f1 -d ' ' $targetDir/massdns_output.txt | sed 's/.$//' | sort | uniq > $targetDir/dnsprobe_subdomains.txt
     cut -f3 -d ' ' $targetDir/massdns_output.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
   fi
@@ -197,7 +206,7 @@ checkhttprobe(){
 aquatoneshot(){
   cat $targetDir/3-all-subdomain-live-scheme.txt |  aquatone -ports large -out $targetDir/aquatone
   # enable report with screenshots
-  chown storenth: $targetDir/aquatone/screenshots/*
+  chown $HOMEUSER: $targetDir/aquatone/screenshots/*
 }
 
 nucleitest(){
@@ -205,33 +214,33 @@ nucleitest(){
     echo
     echo "[nuclei] CVE testing..."
     # -c maximum templates processed in parallel
-    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t ../nuclei-templates/technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
+    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
     sleep 1
     nuclei -silent -stats -l $targetDir/3-all-subdomain-live-scheme.txt \
-                    -t ../nuclei-templates/vulnerabilities/ \
-                    -t ../nuclei-templates/cves/2014/ \
-                    -t ../nuclei-templates/cves/2015/ \
-                    -t ../nuclei-templates/cves/2016/ \
-                    -t ../nuclei-templates/cves/2017/ \
-                    -t ../nuclei-templates/cves/2018/ \
-                    -t ../nuclei-templates/cves/2019/ \
-                    -t ../nuclei-templates/cves/2020/ \
-                    -t ../nuclei-templates/cves/2021/ \
-                    -t ../nuclei-templates/misconfiguration/ \
-                    -t ../nuclei-templates/network/ \
-                    -t ../nuclei-templates/headless/ \
-                    -t ../nuclei-templates/miscellaneous/ \
-                    -exclude ../nuclei-templates/miscellaneous/old-copyright.yaml \
-                    -exclude ../nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
-                    -exclude ../nuclei-templates/miscellaneous/missing-hsts.yaml \
-                    -exclude ../nuclei-templates/miscellaneous/missing-csp.yaml \
-                    -t ../nuclei-templates/takeovers/ \
-                    -t ../nuclei-templates/default-logins/ \
-                    -t ../nuclei-templates/exposures/ \
-                    -t ../nuclei-templates/exposed-panels/ \
-                    -t ../nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
-                    -t ../nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
-                    -t ../nuclei-templates/fuzzing/ \
+                    -t vulnerabilities/ \
+                    -t cves/2014/ \
+                    -t cves/2015/ \
+                    -t cves/2016/ \
+                    -t cves/2017/ \
+                    -t cves/2018/ \
+                    -t cves/2019/ \
+                    -t cves/2020/ \
+                    -t cves/2021/ \
+                    -t misconfiguration/ \
+                    -t network/ \
+                    -t headless/ \
+                    -t miscellaneous/ \
+                    -exclude miscellaneous/old-copyright.yaml \
+                    -exclude miscellaneous/missing-x-frame-options.yaml \
+                    -exclude miscellaneous/missing-hsts.yaml \
+                    -exclude miscellaneous/missing-csp.yaml \
+                    -t takeovers/ \
+                    -t default-logins/ \
+                    -t exposures/ \
+                    -t exposed-panels/ \
+                    -t exposed-tokens/generic/credentials-disclosure.yaml \
+                    -t exposed-tokens/generic/general-tokens.yaml \
+                    -t fuzzing/ \
                     -o $targetDir/nuclei/nuclei_output.txt
 
     if [ -s $targetDir/nuclei/nuclei_output.txt ]; then
@@ -287,11 +296,11 @@ hakrawlercrawling(){
     cat $targetDir/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler-paths-list.txt
 
     # sort -u $targetDir/hakrawler/hakrawler-paths-list.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
-    # chown storenth: $targetDir/hakrawler/hakrawler-paths-list.txt
+    # chown $HOMEUSER: $targetDir/hakrawler/hakrawler-paths-list.txt
 
     # sort -u $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt $targetDir/hakrawler/hakrawler_paths.txt $targetDir/hakrawler/hakrawler_paths_queries.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
     # remove .jpg .jpeg .webp .png .svg .gif from paths
-    # sed -i '' $unwantedpaths $targetDir/hakrawler/hakrawler-paths-list.txt
+    # sed $SEDOPTION $unwantedpaths $targetDir/hakrawler/hakrawler-paths-list.txt
   fi
 }
 
@@ -315,16 +324,16 @@ custompathlist(){
 
     sleep 1
 
-    chown storenth: $customFfufWordList
-    chown storenth: $queryList
+    chown $HOMEUSER: $customFfufWordList
+    chown $HOMEUSER: $queryList
 
-    # chown storenth: $customPathWordList
-    chown storenth: $customSsrfQueryList
-    chown storenth: $customLfiQueryList
+    # chown $HOMEUSER: $customPathWordList
+    chown $HOMEUSER: $customSsrfQueryList
+    chown $HOMEUSER: $customLfiQueryList
 
     # https://github.com/tomnomnom/gf/issues/55
-    sudo -u storenth helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList
-    sudo -u storenth helpers/gf-filter.sh lfi $queryList $customLfiQueryList
+    sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList
+    sudo -u $HOMEUSER helpers/gf-filter.sh lfi $queryList $customLfiQueryList
 
   fi
 }
@@ -397,7 +406,7 @@ ssrftest(){
       done < $customSsrfQueryList
 
       if [ -s $targetDir/ssrf-list.txt ]; then
-        chown storenth: $targetDir/ssrf-list.txt
+        chown $HOMEUSER: $targetDir/ssrf-list.txt
         # simple math to watch progress
         HOSTCOUNT=$(cat $targetDir/3-all-subdomain-live-scheme.txt | wc -l)
         ENDPOINTCOUNT=$(cat $targetDir/ssrf-list.txt | wc -l)
@@ -427,7 +436,7 @@ lfitest(){
 sqlmaptest(){
   # prepare list of the php urls from wayback, hakrawler and gospider
   echo "[sqlmap] prepare sqlist..."
-  sudo -u storenth helpers/gf-filter.sh sqli $queryList $customSqliQueryList
+  sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
 
   if [ -s $customSqliQueryList ]; then
     # perform the sqlmap
@@ -466,7 +475,7 @@ masscantest(){
   # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
   masscan -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
   sleep 1
-  sed -i '' '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+  sed $SEDOPTION '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
 }
 
 # NSE-approach
@@ -692,8 +701,8 @@ main(){
 
 usage(){
   PROGNAME=$(basename $0)
-  echo "Usage: ./lazyrecon.sh <target> [[-b] | [--brute]] [[-m] | [--mad]]"
-  echo "Example: $PROGNAME example.com --mad"
+  echo "Usage: sudo ./lazyrecon.sh <target> [[-b] | [--brute]] [[-m] | [--mad]]"
+  echo "Example: sudo $PROGNAME example.com --wildcard"
 }
 
 invokation(){
