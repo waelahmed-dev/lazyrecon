@@ -16,17 +16,17 @@ Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdom
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
-sudo ./lazyrecon.sh tesla.com
+sudo ./lazyrecon.sh tesla.com --wildcard
 ```
 
 | **Parameter** | **Description** | **Example** |
 | ---------------|-----------------|-------------|
+| --wildcard | Perform wildcard filtering for subdomains *.tesla.com | sudo ./lazyrecon.sh tesla.com --wildcard |
+| --single   | Do not perform subdomain discovery tesla.com | sudo ./lazyrecon.sh tesla.com --single |
 | --ip       | Call with IP | sudo ./lazyrecon.sh 192.168.0.1 --ip --single |
-| --single   | Do not perform subdomain discovery | sudo ./lazyrecon.sh tesla.com --single |
-| --wildcard | Perform wildcard filtering for subdomains | sudo ./lazyrecon.sh tesla.com --wildcard |
 | --mad      | Executes with wayback machines stuff for target | sudo ./lazyrecon.sh tesla.com --mad --wildcard |
-| --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --fuzz |
-| --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --alt |
+| --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --single --fuzz |
+| --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --wildcard --alt |
 | --brute    | Basic directory bruteforce | sudo ./lazyrecon.sh tesla.com --brute |
 | | |
 # About
@@ -72,22 +72,21 @@ Tested on `MacOS` and `Linux`
 9. [dnsgen](https://github.com/ProjectAnte/dnsgen/)
 10. [shuffledns](https://github.com/projectdiscovery/shuffledns)
 11. [masscan](https://github.com/robertdavidgraham/masscan)
-12. [massdns](https://github.com/blechschmidt/massdns)
-13. [dnsx](https://github.com/projectdiscovery/dnsx)
-14. [SecLists](https://github.com/danielmiessler/SecLists)
-15. [httpx](https://github.com/projectdiscovery/httpx)
-16. [nuclei](https://github.com/projectdiscovery/nuclei)
-17. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
-18. [smuggler](https://github.com/storenth/requestsmuggler)
-19. [ffuf](https://github.com/ffuf/ffuf)
-20. [hydra](https://github.com/vanhauser-thc/thc-hydra)
-21. [gf](https://github.com/tomnomnom/gf)
-22. [unfurl](https://github.com/tomnomnom/unfurl)
-23. [sqlmap](https://github.com/sqlmapproject/sqlmap)
-24. [gospider](https://github.com/jaeles-project/gospider)
-25. [hakrawler](https://github.com/hakluke/hakrawler)
-26. [ssrf-headers-tool](https://github.com/m4ll0k/Bug-Bounty-Toolz/blob/master/ssrf.py)
-27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
+12. [dnsx](https://github.com/projectdiscovery/dnsx)
+13. [SecLists](https://github.com/danielmiessler/SecLists)
+14. [httpx](https://github.com/projectdiscovery/httpx)
+15. [nuclei](https://github.com/projectdiscovery/nuclei)
+16. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
+17. [smuggler](https://github.com/storenth/requestsmuggler)
+18. [ffuf](https://github.com/ffuf/ffuf)
+19. [hydra](https://github.com/vanhauser-thc/thc-hydra)
+20. [gf](https://github.com/tomnomnom/gf)
+21. [unfurl](https://github.com/tomnomnom/unfurl)
+22. [sqlmap](https://github.com/sqlmapproject/sqlmap)
+23. [gospider](https://github.com/jaeles-project/gospider)
+24. [hakrawler](https://github.com/hakluke/hakrawler)
+25. [ssrf-headers-tool](https://github.com/m4ll0k/Bug-Bounty-Toolz/blob/master/ssrf.py)
+26. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
 
 
 
@@ -103,6 +102,7 @@ If you faced with some issues, feel free to join [Discord](https://discord.gg/fR
  (replaced with `httpx -fc 301,302` approach)
  - ~~`httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)~~
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
+ - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
  - WIP: you can track activity in Projects To Do board
 
 # Open Questions

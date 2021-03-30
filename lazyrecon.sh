@@ -163,7 +163,7 @@ dnsprobing(){
       # split resolved hosts ans its IP (for masscan)
       cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
-  elif [ "$wildcard" = "1" ]; then
+  else
       echo "[shuffledns] massdns probing with wildcard sieving..."
       shuffledns -silent -d $1 -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
@@ -178,14 +178,6 @@ dnsprobing(){
       # split resolved hosts ans its IP (for masscan)
       cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
-  else
-    echo "[massdns] dnsprobing..."
-    # pure massdns:
-    massdns -q -r $miniResolvers -o S -w $targetDir/massdns_output.txt $targetDir/2-all-subdomains.txt
-    # 
-    sed $SEDOPTION '/CNAME/d' $targetDir/massdns_output.txt
-    cut -f1 -d ' ' $targetDir/massdns_output.txt | sed 's/.$//' | sort | uniq > $targetDir/dnsprobe_subdomains.txt
-    cut -f3 -d ' ' $targetDir/massdns_output.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
   fi
 }
 
@@ -194,9 +186,9 @@ checkhttprobe(){
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
   if [[ -n $ip ]]; then
-    httpx -silent -ports 0-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 0-200,8000-10000 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
   fi
 
   # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
@@ -204,9 +196,11 @@ checkhttprobe(){
 }
 
 aquatoneshot(){
-  cat $targetDir/3-all-subdomain-live-scheme.txt |  aquatone -ports large -out $targetDir/aquatone
-  # enable report with screenshots
-  chown $HOMEUSER: $targetDir/aquatone/screenshots/*
+  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+    cat $targetDir/3-all-subdomain-live-scheme.txt |  aquatone -ports large -out $targetDir/aquatone
+    # enable report with screenshots
+    chown $HOMEUSER: $targetDir/aquatone/screenshots/*
+  fi
 }
 
 nucleitest(){
