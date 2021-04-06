@@ -89,6 +89,8 @@ checkwaybackurls(){
   github-endpoints -d $1 | sed "s/^\.//;/error/d" > $targetDir/wayback/github-endpoints_out.txt
 
   sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
+  # teardown: remove raw files
+  rm -rf $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt
 
   # remove all out-of-scope lines
   # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
@@ -185,7 +187,8 @@ checkhttprobe(){
   echo
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
-  if [[ -n $ip ]]; then
+  if [[ -n $ip || -n $cidr ]]; then
+    echo "[httpx] IP probe testing..."
     httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
   else
     httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 500 -o $targetDir/3-all-subdomain-live-scheme.txt
@@ -306,6 +309,7 @@ custompathlist(){
     echo
     echo "Prepare custom queryList"
     sort -u $targetDir/wayback/wayback_output.txt $targetDir/gospider/gospider_out.txt -o $queryList
+    rm -rf $targetDir/wayback/wayback_output.txt
 
     echo "Prepare custom customFfufWordList"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
@@ -467,7 +471,7 @@ masscantest(){
   # max-rate for accuracy
   # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
   # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
-  masscan -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
+  masscan -p0-65535 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
   sleep 1
   sed $SEDOPTION '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
 }
