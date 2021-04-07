@@ -37,7 +37,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
 - Subdomain discovery through alterations and permutations using `altdns` and `dnsgen`
 - Filtering out live subdomains from a list of hosts using `shuffledns`
-- Check 0-200,8000-10000 for http probes using `httpx`
+- Check 1-200,8000-10000 for http probes using `httpx`
 - Get visual part using `aquatone`
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
@@ -45,6 +45,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Executes [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduce the sizes of archive
 - Check for request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt) and [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
+- Integrates with Discord
 - [WIP][x] Generate a HTML report in case of a vulnerable domain found.
 
 The point is to get list of live IPs, attack available network protocols, check for common CVEs, perform directory bruteforce. Then use lists files to do manual analysis or create target-specific connect-back shellcode.
@@ -57,7 +58,8 @@ The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/
 # Dependencies
 Tested on `MacOS` and `Linux`
 - To start use this script, please clone and/or setup the dependencies. You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`.
-- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
+- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon-main.sh`.
+- Update `url` in `discord-hook.sh`
 - Use option `nuclei -update-templates` to get templates into `$HOME/nuclei-templates/` to use properly, but for LFI use [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) forked till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Update your local `~/.gf` with `./gfpatterns/`
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
