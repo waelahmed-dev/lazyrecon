@@ -13,22 +13,6 @@
 </p>
 
 Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains and perform SSRF/LFI/SQLi fuzzing. It has a simple modular architecture and is optimized for speed while work with wayback machine.
-# Usage
-Execute with `sudo` because of `masscan`:
-```bash
-sudo ./lazyrecon.sh tesla.com --wildcard
-```
-
-| **Parameter** | **Description** | **Example** |
-| ---------------|-----------------|-------------|
-| --wildcard | Perform wildcard filtering for subdomains *.tesla.com | sudo ./lazyrecon.sh tesla.com --wildcard |
-| --single   | Do not perform subdomain discovery tesla.com | sudo ./lazyrecon.sh tesla.com --single |
-| --ip       | Call with IP | sudo ./lazyrecon.sh 192.168.0.1 --ip --single |
-| --mad      | Executes with wayback machines stuff for target | sudo ./lazyrecon.sh tesla.com --mad --wildcard |
-| --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --single --fuzz |
-| --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --wildcard --alt |
-| --brute    | Basic directory bruteforce | sudo ./lazyrecon.sh tesla.com --brute |
-| | |
 # About
 
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
@@ -42,24 +26,29 @@ This script is intended to automate your reconnaissance process in an organized 
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
 - Scanning for known paths and CVEs using `nuclei`
-- Executes [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduce the sizes of archive
+- Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduces the sizes of archive
 - Check for request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt) and [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - Integrates with Discord
 - [WIP][x] Generate a HTML report in case of a vulnerable domain found.
 
-The point is to get list of live IPs, attack available network protocols, check for common CVEs, perform directory bruteforce. Then use lists files to do manual analysis or create target-specific connect-back shellcode.
+The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Features
 
 The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/lazyrecon) and [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) aimed to implement some of the best practice like [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
-
-
-# Dependencies
+1. Super fast execution
+2. CI/CD ready
+3. Multiprocessing while Wayback machine queries
+4. Teardown and program exit housekeeping
+# Installing
+- To start use this script, please clone and/or setup the dependencies.
+- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
+- Update `url` in `discord-hook.sh` if you plan to receive notifications
 Tested on `MacOS` and `Linux`
-- To start use this script, please clone and/or setup the dependencies. You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`.
-- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon-main.sh`.
-- Update `url` in `discord-hook.sh`
+- To start use this script, please clone and/or setup the dependencies.
+- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
+- Update `url` in `discord-hook.sh` if you plan to receive notifications
 - Use option `nuclei -update-templates` to get templates into `$HOME/nuclei-templates/` to use properly, but for LFI use [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) forked till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Update your local `~/.gf` with `./gfpatterns/`
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
@@ -87,13 +76,28 @@ Tested on `MacOS` and `Linux`
 22. [sqlmap](https://github.com/sqlmapproject/sqlmap)
 23. [gospider](https://github.com/jaeles-project/gospider)
 24. [hakrawler](https://github.com/hakluke/hakrawler)
-25. [ssrf-headers-tool](https://github.com/m4ll0k/Bug-Bounty-Toolz/blob/master/ssrf.py)
+25. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
 26. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
-
-
+> (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`)
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
+# Usage
+Execute with `sudo` because of `masscan`:
+```bash
+sudo ./lazyrecon.sh tesla.com --wildcard
+```
+
+| **Parameter** | **Description** | **Example** |
+| ---------------|-----------------|-------------|
+| --wildcard | Perform wildcard filtering for subdomains *.tesla.com | sudo ./lazyrecon.sh tesla.com --wildcard |
+| --single   | Do not perform subdomain discovery tesla.com | sudo ./lazyrecon.sh tesla.com --single |
+| --ip       | Call with IP | sudo ./lazyrecon.sh 192.168.0.1 --ip --single |
+| --mad      | Executes with wayback machines stuff for target | sudo ./lazyrecon.sh tesla.com --mad --wildcard |
+| --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --single --fuzz |
+| --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --wildcard --alt |
+| --brute    | Basic directory bruteforce | sudo ./lazyrecon.sh tesla.com --brute |
+| | |
 # Notes
 
  - Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
@@ -113,7 +117,7 @@ If you faced with some issues, feel free to join [Discord](https://discord.gg/fR
 ```bash
 ./lazyrecon.sh tesla.com 12345
 ```
-- Connect-back shellcode automation with simpest fuzzer implementation? Like:
+- Potential connect-back shellcode automation with simpest fuzzer implementation? Like:
 ```bash
 cat /dev/urandom | nc hostname port
 ```
