@@ -47,7 +47,6 @@ discord= # send notifications
 
 # definitions
 enumeratesubdomains(){
-  ZZZ
   if [ "$single" = "1" ]; then
     echo $1 > $targetDir/enumerated-subdomains.txt
   elif [ "$cidr" = "1" ]; then
@@ -59,36 +58,62 @@ enumeratesubdomains(){
 
     # Passive subdomain enumeration
     echo "subfinder..."
-    subfinder -d $1 -silent -o $targetDir/subfinder-list.txt
     echo $1 >> $targetDir/subfinder-list.txt # to be sure main domain added in case of one domain scope
+    subfinder -d $1 -silent -o $targetDir/subfinder-list.txt &
+    pid1=$!
+  
     echo "assetfinder..."
-    assetfinder --subs-only $1 > $targetDir/assetfinder-list.txt
-    # remove all lines start with *-asterix and out-of-scope domains
-    SCOPE=$1
-    grep "[.]${SCOPE}$" $targetDir/assetfinder-list.txt | sort -u -o $targetDir/assetfinder-list.txt
-    sed "${SEDOPTION[@]}" '/^*/d' $targetDir/assetfinder-list.txt
+    assetfinder --subs-only $1 > $targetDir/assetfinder-list.txt &
+    pid2=$!
 
     echo "github-subdomains.py..."
     github-subdomains -d $1 | sed "s/^\.//;/error/d" > $targetDir/github-subdomains-list.txt
 
+    wait $pid1 $pid2
+
     # echo "amass..."
     # amass enum --passive -log $targetDir/amass_errors.log -d $1 -o $targetDir/amass-list.txt
 
+    # remove all lines start with *-asterix and out-of-scope domains
+    SCOPE=$1
+    grep "[.]${SCOPE}$" $targetDir/assetfinder-list.txt | sort -u -o $targetDir/assetfinder-list.txt
+    sed "${SEDOPTION[@]}" '/^*/d' $targetDir/assetfinder-list.txt
     # sort enumerated subdomains
     sort -u $targetDir/subfinder-list.txt $targetDir/assetfinder-list.txt $targetDir/github-subdomains-list.txt -o $targetDir/enumerated-subdomains.txt
     sed "${SEDOPTION[@]}" '/^[.]/d' $targetDir/enumerated-subdomains.txt
   fi
 }
 
-checkwaybackurls(){
-  SCOPE=$1
+getwaybackurl(){
+  echo "waybackurls..."
+  cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
+  echo "waybackurls done"
+}
+getgau(){
   echo "gau..."
   # gau -subs mean include subdomains
   cat $targetDir/enumerated-subdomains.txt | gau -subs -o $targetDir/wayback/gau_output.txt
-  echo "waybackurls..."
-  cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
+  echo "gau done"
+}
+getgithubendpoints(){
   echo "github-endpoints.py..."
   github-endpoints -d $1 | sed "s/^\.//;/error/d" > $targetDir/wayback/github-endpoints_out.txt
+  echo "github-endpoints done"
+}
+
+checkwaybackurls(){
+  SCOPE=$1
+
+  getgau &
+  pid_1=$!
+
+  getwaybackurl &
+  pid_2=$!
+
+  getgithubendpoints &
+  pid_3=$!
+
+  wait $pid_1 $pid_2 $pid_3
 
   sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
   # teardown: remove raw files
@@ -134,6 +159,7 @@ permutatesubdomains(){
     grep -r -h "[.]${SCOPE}$" $targetDir/alterated | sort | uniq > $targetDir/alterated/permutated-list.txt
 
     sort -u $targetDir/1-real-subdomains.txt $targetDir/alterated/permutated-list.txt -o $targetDir/2-all-subdomains.txt
+    rm -rf $targetDir/alterated/*
   fi
 }
 
@@ -176,7 +202,7 @@ dnsprobing(){
       # dnsx -l $targetDir/shuffledns-list.txt -wd $1 -o $targetDir/dnsprobe_live.txt
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 150 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      dnsx -silent -t 50 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -191,9 +217,9 @@ checkhttprobe(){
   # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
   if [[ -n $ip || -n $cidr ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 1-200,7999-8888 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 1-200,8000-10000 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 1-200,7999-8888 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
   fi
 
   # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
@@ -550,7 +576,6 @@ ffufbrute(){
 }
 
 recon(){
-  PPP
   enumeratesubdomains $1
   if [[ -n "$mad" ]]; then
     checkwaybackurls $1
@@ -572,10 +597,10 @@ recon(){
 
   if [[ -n "$fuzz" ]]; then
     ssrftest $1
-    lfitest $1
   fi
 
   if [ "$mad" = "1" ]; then
+    lfitest $1
     sqlmaptest $1
   fi
   # smugglertest $1 # disabled because still manually work need
