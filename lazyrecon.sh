@@ -91,13 +91,18 @@ getwaybackurl(){
 }
 getgau(){
   echo "gau..."
+  SUBS=""
+  if [[ -n $wildcard ]]; then
+    SUBS="-subs"
+  fi
   # gau -subs mean include subdomains
-  cat $targetDir/enumerated-subdomains.txt | gau -subs -o $targetDir/wayback/gau_output.txt
+  cat $targetDir/enumerated-subdomains.txt | gau $SUBS -o $targetDir/wayback/gau_output.txt
   echo "gau done"
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 | sed "s/^\.//;/error/d" > $targetDir/wayback/github-endpoints_out.txt
+  echo $1
+  github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
   echo "github-endpoints done"
 }
 
@@ -110,10 +115,9 @@ checkwaybackurls(){
   getwaybackurl &
   pid_2=$!
 
-  getgithubendpoints &
-  pid_3=$!
+  getgithubendpoints $1
 
-  wait $pid_1 $pid_2 $pid_3
+  wait $pid_1 $pid_2
 
   sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
   # teardown: remove raw files

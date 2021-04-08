@@ -37,11 +37,10 @@ The point is to get a list of live IPs, attack available network protocols, chec
 # Features
 
 The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/lazyrecon) and [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) aimed to implement some of the best practice like [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
-1. Super fast execution
+1. Super fast Asynchronous Execution
 2. CI/CD ready
-3. Multiprocessing while Wayback machine queries
-4. Teardown and program exit housekeeping
-5. Discord integration
+3. Teardown and program exit housekeeping
+4. Discord integration
 # Installing
 Tested on `MacOS` and `Linux`
 - To start use this script, please clone and/or setup the dependencies.
