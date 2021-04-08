@@ -41,13 +41,12 @@ The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/
 2. CI/CD ready
 3. Multiprocessing while Wayback machine queries
 4. Teardown and program exit housekeeping
+5. Discord integration
 # Installing
-- To start use this script, please clone and/or setup the dependencies.
-- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
-- Update `url` in `discord-hook.sh` if you plan to receive notifications
 Tested on `MacOS` and `Linux`
 - To start use this script, please clone and/or setup the dependencies.
 - Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
+- Launch your local-listen server
 - Update `url` in `discord-hook.sh` if you plan to receive notifications
 - Use option `nuclei -update-templates` to get templates into `$HOME/nuclei-templates/` to use properly, but for LFI use [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) forked till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Update your local `~/.gf` with `./gfpatterns/`
@@ -97,6 +96,7 @@ sudo ./lazyrecon.sh tesla.com --wildcard
 | --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --single --fuzz |
 | --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --wildcard --alt |
 | --brute    | Basic directory bruteforce | sudo ./lazyrecon.sh tesla.com --brute |
+| --discord  | Send notifications to discord | sudo ./lazyrecon.sh tesla.com --discord |
 | | |
 # Notes
 
