@@ -86,7 +86,7 @@ enumeratesubdomains(){
 
 getwaybackurl(){
   echo "waybackurls..."
-  cat $targetDir/enumerated-subdomains.txt | waybackurls > $targetDir/wayback/waybackurls_output.txt
+  cat $targetDir/enumerated-subdomains.txt | waybackurls | sort | uniq | qsreplace -a > $targetDir/wayback/waybackurls_output.txt
   echo "waybackurls done"
 }
 getgau(){
@@ -96,13 +96,12 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  cat $targetDir/enumerated-subdomains.txt | gau $SUBS -o $targetDir/wayback/gau_output.txt
+  cat $targetDir/enumerated-subdomains.txt | gau $SUBS | sort | uniq | qsreplace -a > $targetDir/wayback/gau_output.txt
   echo "gau done"
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  echo $1
-  github-endpoints -d $1 > $targetDir/wayback/github-endpoints_out.txt
+  github-endpoints -d $1 | sort | uniq | qsreplace -a > $targetDir/wayback/github-endpoints_out.txt
   echo "github-endpoints done"
 }
 
@@ -121,7 +120,7 @@ checkwaybackurls(){
 
   sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
   # teardown: remove raw files
-  rm -rf $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt
+  # rm -rf $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt
 
   # remove all out-of-scope lines
   # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
@@ -131,7 +130,7 @@ checkwaybackurls(){
 
   # full paths+queries
   # remove archive and potential emails
-  cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/wayback/wayback-paths-list.txt
+  # cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/wayback/wayback-paths-list.txt
 
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
@@ -191,7 +190,7 @@ dnsprobing(){
       # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 150 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -206,7 +205,7 @@ dnsprobing(){
       # dnsx -l $targetDir/shuffledns-list.txt -wd $1 -o $targetDir/dnsprobe_live.txt
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 50 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -221,9 +220,9 @@ checkhttprobe(){
   # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
   if [[ -n $ip || -n $cidr ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 1-200,7999-8888 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 1-200,7999-8888 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
   fi
 
   # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
@@ -290,21 +289,22 @@ gospidertest(){
     SCOPE=$1
     echo
     echo "[gospider] Web crawling..."
-    gospider -q -r -S $targetDir/3-all-subdomain-live-scheme.txt --timeout 4 -o $targetDir/gospider -c 40 -t 40 > /dev/null
+    gospider -q -r -S $targetDir/3-all-subdomain-live-scheme.txt --timeout 7 -o $targetDir/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
-    for X in $targetDir/gospider/*
-      do
-        cat "$X" | grep $1 >> $targetDir/gospider/gospider_raw_out.txt
-      done
+    cat $targetDir/gospider/* > $targetDir/gospider_raw_out.txt # make sure out not in same dir avoid infinit loop
+    # for X in $targetDir/gospider/*
+    #   do
+    #     cat "$X" | grep $1 >> $targetDir/gospider/gospider_raw_out.txt
+    #   done
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $targetDir/gospider/gospider_raw_out.txt | cut -f3 -d ' ' | sort | uniq > $targetDir/gospider/gospider_out.txt
-    grep '\[url\]' $targetDir/gospider/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $targetDir/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $targetDir/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $targetDir/gospider/gospider_out.txt
+    grep '\[url\]' $targetDir/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $targetDir/gospider/gospider_out.txt
     # rm -rf $targetDir/gospider/gospider_out.txt
 
     # full paths+queries
-    cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/gospider/gospider-paths-list.txt
+    # cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/gospider/gospider-paths-list.txt
   fi
 }
 
@@ -341,29 +341,30 @@ custompathlist(){
     echo
     echo "Prepare custom queryList"
     sort -u $targetDir/wayback/wayback_output.txt $targetDir/gospider/gospider_out.txt -o $queryList
-    rm -rf $targetDir/wayback/wayback_output.txt
+    # rm -rf $targetDir/wayback/wayback_output.txt
 
-    echo "Prepare custom customFfufWordList"
+    # echo "Prepare custom customFfufWordList"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
     # sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
-    sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufWordList
+    # sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufWordList
 
-
-    GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
+    # GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
     # grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $queryList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customPathWordList
 
-    sleep 1
-
-    chown $HOMEUSER: $customFfufWordList
+    # chown $HOMEUSER: $customFfufWordList
     chown $HOMEUSER: $queryList
 
-    # chown $HOMEUSER: $customPathWordList
     chown $HOMEUSER: $customSsrfQueryList
     chown $HOMEUSER: $customLfiQueryList
+    chown $HOMEUSER: $customSqliQueryList
 
     # https://github.com/tomnomnom/gf/issues/55
-    sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList
-    sudo -u $HOMEUSER helpers/gf-filter.sh lfi $queryList $customLfiQueryList
+    sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList &
+    pid_01=$!
+    sudo -u $HOMEUSER helpers/gf-filter.sh lfi $queryList $customLfiQueryList &
+    pid_02=$!
+    sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
+    wait $pid_01 $pid_02
 
   fi
 }
@@ -424,7 +425,7 @@ ssrftest(){
     #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
-    if [ "$mad" = "1" ]; then
+    if [[ -n "$mad" && -s "$customSsrfQueryList" ]]; then
       # similar to paramspider but all wayback without limits
       echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf..."
       ITERATOR=0
@@ -444,7 +445,7 @@ ssrftest(){
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
           echo "[SSRF-3] fuzz gf ssrf endpoints "
-          ffuf -s -r -c -t 100 -u HOST/PATH \
+          ffuf -s -r -c -t 50 -u HOST/PATH \
               -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
               -w $targetDir/ssrf-list.txt:PATH > /dev/null
       fi
@@ -455,32 +456,20 @@ ssrftest(){
 # https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
 # https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
 lfitest(){
-  # blind LFI
-  # if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
-  #   ITERATOR=0
-  #   while read domain; do
-  #     ITERATOR=$((ITERATOR+1))
-  #     echo ${domain}${ATTACKER} >> $targetDir/ssrf-list.txt
-  #   done < $targetDir/3-all-subdomain-live-scheme.txt
-  # fi
-
-  if [[ -n "$mad" && -s $customLfiQueryList ]]; then
+  if [[ -n "$mad" && -s "$customLfiQueryList" ]]; then
     echo
     echo "[LFI] nuclei testing..."
-    nuclei -stats -debug -v -l $customLfiQueryList \
+    nuclei -stats -l $customLfiQueryList \
                     -t ../nuclei-templates/vulnerabilities/other/storenth-lfi.yaml \
                     -o $targetDir/nuclei/lfi_output.txt
   fi
 }
 sqlmaptest(){
-  # prepare list of the php urls from wayback, hakrawler and gospider
-  echo "[sqlmap] prepare sqlist..."
-  sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
-
-  if [ -s $customSqliQueryList ]; then
+  if [ -s "$customSqliQueryList" ]; then
     # perform the sqlmap
     echo "[sqlmap] SQLi testing..."
-    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --dbs --users --risk=3 --level=5 --ignore-code=404 --ignore-timeouts  --output-dir=$targetDir/sqlmap/
+    # turn on more tests by swithing: --risk=3 --level=5
+    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --ignore-timeouts  --output-dir=$targetDir/sqlmap/
   fi
 }
 
@@ -622,19 +611,19 @@ recon(){
 
 main(){
   # collect wildcard and single targets to retest later
-  if [[ -n $wildcard ]]; then
+  if [[ -n "$wildcard" ]]; then
     if ! grep -Fxq $1 $storageDir/wildcard.txt; then
       echo $1 >> $storageDir/wildcard.txt
     fi
   fi
-  if [[ -n $single ]]; then
+  if [[ -n "$single" ]]; then
     if ! grep -Fxq $1 $storageDir/single.txt; then
       echo $1 >> $storageDir/single.txt
     fi
   fi
 
   # parse cidr input to create valid directory
-  if [[ -n $cidr ]]; then
+  if [[ -n "$cidr" ]]; then
     CIDRFILEDIR=$(echo $1 | sed "s/\//_/")
     targetDir=$storageDir/$CIDRFILEDIR/$foldername
     if [ -d "$storageDir/$CIDRFILEDIR" ]; then
@@ -642,7 +631,7 @@ main(){
     else
       mkdir $storageDir/$CIDRFILEDIR
     fi
-  elif [[ -n $list ]]; then
+  elif [[ -n "$list" ]]; then
     LISTFILEDIR=$(basename $1 | sed 's/[.]txt$//')
     targetDir=$storageDir/$LISTFILEDIR/$foldername
     if [ -d "$storageDir/$LISTFILEDIR" ]; then
@@ -664,10 +653,7 @@ main(){
   echo "$@" >> ./_call_log.txt
 
   # used for ffuf bruteforce
-  if [ "$mad" = "1" -o "$brute" = "1" ]; then
-    touch $targetDir/custom_ffuf_wordlist.txt
-    customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
-    # cp $dirsearchWordlist $customFfufWordList
+  if [ "$mad" = "1" ]; then
 
     # merged wayback, gospider, nuclei list
     touch $targetDir/query_list.txt
@@ -683,8 +669,8 @@ main(){
     touch $targetDir/custom_sqli_list.txt
     customSqliQueryList=$targetDir/custom_sqli_list.txt
 
-    touch $targetDir/custom_path_list.txt
-    customPathWordList=$targetDir/custom_path_list.txt
+    # touch $targetDir/custom_path_list.txt
+    # customPathWordList=$targetDir/custom_path_list.txt
   fi
   # used to save target specific list for alterations (shuffledns, altdns)
   if [ "$alt" = "1" ]; then
@@ -697,6 +683,12 @@ main(){
     # ffuf dir uses to store brute output
     mkdir $targetDir/ffuf/
   fi
+  if [ "$brute" = "1" -a "$mad" = "1" ]; then
+    touch $targetDir/custom_ffuf_wordlist.txt
+    customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
+    # cp $dirsearchWordlist $customFfufWordList
+  fi
+
   # aquatone output
   mkdir $targetDir/aquatone
   # nuclei output
@@ -708,7 +700,7 @@ main(){
   if [ "$mad" = "1" ]; then
     # gospider output
     mkdir $targetDir/gospider/
-    touch $targetDir/gospider/gospider-paths-list.txt
+    # touch $targetDir/gospider/gospider-paths-list.txt
     # hakrawler output
     # mkdir $targetDir/hakrawler/
     # touch $targetDir/hakrawler/hakrawler-paths-list.txt
@@ -716,7 +708,7 @@ main(){
     mkdir $targetDir/sqlmap/
     # gau/waybackurls output
     mkdir $targetDir/wayback/
-    touch $targetDir/wayback/wayback-paths-list.txt
+    # touch $targetDir/wayback/wayback-paths-list.txt
   fi
   # brutespray output
   # mkdir $targetDir/brutespray/
@@ -849,12 +841,13 @@ error_exit()
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
-    ./discord-hook.sh "[error] line $(caller): $stats"
+    ./discord-hook.sh "[error] line $(caller): ${stats}: "
   fi
   exit 1
 }
 
 trap error_exit ERR
+
 # invoke
 main "$@" 2> _err.log
 
