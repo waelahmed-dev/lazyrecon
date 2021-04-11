@@ -12,7 +12,13 @@
 <a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?logo=discord"></a>
 </p>
 
-Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains and perform SSRF/LFI/SQLi fuzzing. It has a simple modular architecture and is optimized for speed while work with wayback machine.
+Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
+
+# CI/CD flow
+<h3 align="center">
+  <img src="readme_img/ci-cd-flow.png" alt="lazyrecon-flow" width="700px"></a>
+</h3>
+
 # About
 
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
@@ -21,33 +27,30 @@ This script is intended to automate your reconnaissance process in an organized 
 - Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
 - Subdomain discovery through alterations and permutations using `altdns` and `dnsgen`
 - Filtering out live subdomains from a list of hosts using `shuffledns`
-- Check 1-200,8000-10000 for http probes using `httpx`
+- Check 1-200,8000-10000 for http(s) probes using `httpx`
 - Get visual part using `aquatone`
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
 - Scanning for known paths and CVEs using `nuclei`
 - Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduces the sizes of archive
-- Check for request smuggling vulnerabilities using `smuggler`
-- Perform `ffuf` using custom WordList based on the next SecLists [All.txt](https://gist.githubusercontent.com/jhaddix/86a06c5dc309d08580a018c66354a056/raw/96f4e51d96b2203f19f6381c8c545b278eaa0837/all.txt) and [fuzz-Bo0oM.txt](https://github.com/danielmiessler/SecLists/blob/master/Fuzzing/fuzz-Bo0oM.txt) and [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
-- Integrates with Discord
-- [WIP][x] Generate a HTML report in case of a vulnerable domain found.
+- Check for potential request smuggling vulnerabilities using `smuggler`
+- Perform `ffuf` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
+- Send pass/fail reports to Discord
+- [WIP][x] Generate HTML report in case of a potentially vulnerable domain found.
 
 The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Features
-
-The project forked from original v1.0 [Jason Haddix](https://github.com/jhaddix/lazyrecon) and [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) aimed to implement some of the best practice like [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
-1. Super fast Asynchronous Execution
+1. Super fast asynchronous execution
 2. CI/CD ready
 3. Teardown and program exit housekeeping
-4. Discord integration
+4. Domain name, list of domains, IP, CIDR target notation
+5. Discord integration
 # Installing
 Tested on `MacOS` and `Linux`
-- To start use this script, please clone and/or setup the dependencies.
-- Config your own `HOMEUSER` and `ATTACKERURL` at the very top of the `lazyrecon.sh`.
-- Launch your local-listen server
-- Update `url` in `discord-hook.sh` if you plan to receive notifications
-- Use option `nuclei -update-templates` to get templates into `$HOME/nuclei-templates/` to use properly, but for LFI use [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) forked till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
+- Config your environment variables: `HOMEUSER` and `ATTACKERURL`, see full list at ./lazyconfig
+- Launch your listen server for connect-back TCP connections
+- Use option `nuclei -ut -ud '$PWD/'` to use it properly, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Update your local `~/.gf` with `./gfpatterns/`
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
@@ -86,17 +89,20 @@ Execute with `sudo` because of `masscan`:
 sudo ./lazyrecon.sh tesla.com --wildcard
 ```
 
-| **Parameter** | **Description** | **Example** |
-| ---------------|-----------------|-------------|
-| --wildcard | Perform wildcard filtering for subdomains *.tesla.com | sudo ./lazyrecon.sh tesla.com --wildcard |
-| --single   | Do not perform subdomain discovery tesla.com | sudo ./lazyrecon.sh tesla.com --single |
-| --ip       | Call with IP | sudo ./lazyrecon.sh 192.168.0.1 --ip --single |
-| --mad      | Executes with wayback machines stuff for target | sudo ./lazyrecon.sh tesla.com --mad --wildcard |
-| --fuzz     | Basic SSRF/LFI fuzzing | sudo ./lazyrecon.sh tesla.com --single --fuzz |
-| --alt      | Additionally permutate subdomains | sudo ./lazyrecon.sh tesla.com --wildcard --alt |
-| --brute    | Basic directory bruteforce | sudo ./lazyrecon.sh tesla.com --brute |
-| --discord  | Send notifications to discord | sudo ./lazyrecon.sh tesla.com --discord |
-| | |
+| **Parameter**  | **Description**                                       | **Example**                                     |
+| ---------------|-------------------------------------------------------|-------------------------------------------------|
+| --wildcard     | Subdomains reconnaissance '*.tesla.com' (default)     | sudo ./lazyrecon.sh tesla.com --wildcard        |
+| --single       | One target instance 'tesla.com'                       | sudo ./lazyrecon.sh tesla.com --single          |
+| --ip           | Single IP of the target machine                       | sudo ./lazyrecon.sh 192.168.0.1 --single --ip   |
+| --list         | List of subdomains to process for (time sensitive)    | sudo ./lazyrecon.sh "./testa.txt" --list        |
+| --cidr         | Perform network recon, CIDR notation                  | sudo ./lazyrecon.sh "192.168.0.0/16" --cidr     |
+| --mad          | Wayback machine's stuff                               | sudo ./lazyrecon.sh tesla.com --mad             |
+| --fuzz         | SSRF/LFI fuzzing                                      | sudo ./lazyrecon.sh tesla.com --mad --fuzz      |
+| --alt          | Additionally permutate subdomains (*.tesla.com only)  | sudo ./lazyrecon.sh tesla.com --wildcard --alt  |
+| --brute        | Basic directory bruteforce (time sensitive)           | sudo ./lazyrecon.sh tesla.com --single --brute  |
+| --discord      | Send notifications to discord                         | sudo ./lazyrecon.sh tesla.com --single --discord|
+
+
 # Notes
 
  - Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
@@ -110,36 +116,26 @@ sudo ./lazyrecon.sh tesla.com --wildcard
  - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
  - WIP: you can track activity in Projects To Do board
 
-# Open Questions
-
-- Investigate ANS like `amass intel -org 'MAILRU'` and pass it to `amass enum -d mail.ru -asn 12345` gives us more subdomains? (Or get list of ASN using `echo 'MAILRU' | metabigor net --org -v` or just manually get it through http://bgp.he.net). If yes positional arguments will be invoked just like:
-```bash
-./lazyrecon.sh tesla.com 12345
-```
-- Potential connect-back shellcode automation with simpest fuzzer implementation? Like:
-```bash
-cat /dev/urandom | nc hostname port
-```
-
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
 
 # Methodology
 1. Run `./lazyrecon.sh`
-2. Google dorking
-3. Trello, Atlassian, Github, Bitbucket dorking
-4. Check JS sources for credentials, API endpoints, debug for variables
-5. Check `XHR` API requests, fuzz parameters
-6. RCE based on exploit-db.com for known target-specific CVE service version, deserialization, SQLi, File upload, LFI, SSRF
-7. Brute dirsearch: fuzbo0oM-top10000 --> raft --> target specific
-8. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-9. Start new brute with POST method
-10. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
-11. `wireshark`/`tcpdump` for plain http while login (missing ssl)
-12. `hydra`, 21, 22, 25 ports
+2. Explore file upload vulnerabilities
+3. Google dorking
+4. Trello, Atlassian, Github, Bitbucket dorking
+5. Check JS sources for credentials, API endpoints, debug for variables
+6. Check `XHR` API requests, fuzz parameters
+7. Check exploit-db.com for known target-specific CVE
+8. Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
+9. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+10. Start new brute with POST method
+11. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
+12. `hydra`, 21, 22, 25, etc ports
 13. XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
-14. Run `./lazyrecon.sh` using ASN --> cidr
 
+# Origin
+This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) and aimed to implement some of the best practices like [Mechanizing the Methodology](https://www.youtube.com/watch?v=L_qoz2_Qyhk), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
 # Notable articles
 1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
 2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
