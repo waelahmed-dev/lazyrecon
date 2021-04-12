@@ -65,7 +65,7 @@ export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webho
 2. Call `./install.sh`
 3. Execute `sudo ./lazyrecon.sh "example.com"`
 ### Hard way
-- Config your environment variables and dependencies using (INSTALL.MD)[https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD]
+Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD)
 
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.

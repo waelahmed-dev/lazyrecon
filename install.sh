@@ -36,6 +36,9 @@ custom_origin_dependencies() {
     git clone https://github.com/blechschmidt/massdns.git
     cd massdns; make; ln -s $PWD/bin/massdns /usr/local/bin/massdns; cd -
 
+    git clone https://github.com/robertdavidgraham/masscan.git
+    cd masscan; make; ln -s $PWD/bin/masscan /usr/local/bin/masscan; cd -
+
     git clone https://github.com/storenth/github-search.git
     ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
     ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
