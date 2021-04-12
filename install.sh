@@ -7,6 +7,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 fi
 
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
+
 # CI/CD dependencies
 # to use github API you need 
 third_party_go_dependencies(){
@@ -16,12 +20,9 @@ third_party_go_dependencies(){
     gotools["shuffledns"]="GO111MODULE=on go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
     gotools["simplehttpserver"]="GO111MODULE=on go get -v github.com/projectdiscovery/simplehttpserver"
     gotools["nuclei"]="GO111MODULE=on go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
-    nuclei -ut -ud '$PWD/'
-
     gotools["mapcidr"]="GO111MODULE=on go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
     gotools["httpx"]="GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx"
     gotools["dnsx"]="GO111MODULE=on go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
-
     gotools["assetfinder"]="go get -v github.com/tomnomnom/assetfinder"
     gotools["waybackurls"]="go get github.com/tomnomnom/waybackurls"
     gotools["qsreplace"]="go get -v github.com/tomnomnom/qsreplace"
@@ -34,6 +35,7 @@ third_party_go_dependencies(){
     for gotool in "${!gotools[@]}"; do
         eval type $gotool || { eval ${gotools[$gotool]}; }
     done
+    nuclei -ut -ud '$PWD/'
 }
 
 custom_origin_dependencies() {
