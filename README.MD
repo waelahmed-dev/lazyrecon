@@ -50,8 +50,8 @@ The point is to get a list of live IPs, attack available network protocols, chec
 # Installing
 Tested on `MacOS` and `Linux`
 ### CI/CD way
-Suppose your pipeline always uses a new instance (stateless agent).
-1. Export the required environment variables `. ./lazyconfig`:
+You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
+1. Fill in the required environment variables `. ./lazyconfig`:
 ```bash
 export storageDir=$HOME/lazytargets # where output saved
 export HOMEUSER=$USER # your non root user
@@ -78,16 +78,16 @@ Execute with `sudo` because of `masscan`:
 
 | **Parameter**  | **Description**                                       | **Example**                                     |
 | ---------------|-------------------------------------------------------|-------------------------------------------------|
-| --wildcard     | Subdomains reconnaissance '*.tesla.com' (default)     | sudo ./lazyrecon.sh tesla.com --wildcard        |
-| --single       | One target instance 'tesla.com'                       | sudo ./lazyrecon.sh tesla.com --single          |
-| --ip           | Single IP of the target machine                       | sudo ./lazyrecon.sh 192.168.0.1 --single --ip   |
-| --list         | List of subdomains to process for (time sensitive)    | sudo ./lazyrecon.sh "./testa.txt" --list        |
-| --cidr         | Perform network recon, CIDR notation                  | sudo ./lazyrecon.sh "192.168.0.0/16" --cidr     |
-| --mad          | Wayback machine's stuff                               | sudo ./lazyrecon.sh tesla.com --mad             |
-| --fuzz         | SSRF/LFI fuzzing                                      | sudo ./lazyrecon.sh tesla.com --mad --fuzz      |
-| --alt          | Additionally permutate subdomains (*.tesla.com only)  | sudo ./lazyrecon.sh tesla.com --wildcard --alt  |
-| --brute        | Basic directory bruteforce (time sensitive)           | sudo ./lazyrecon.sh tesla.com --single --brute  |
-| --discord      | Send notifications to discord                         | sudo ./lazyrecon.sh tesla.com --single --discord|
+| --wildcard     | Subdomains reconnaissance '*.tesla.com' (default)     | ./lazyrecon.sh tesla.com --wildcard             |
+| --single       | One target instance 'tesla.com'                       | ./lazyrecon.sh tesla.com --single               |
+| --ip           | Single IP of the target machine                       | ./lazyrecon.sh 192.168.0.1 --single --ip        |
+| --list         | List of subdomains to process for (time sensitive)    | ./lazyrecon.sh "./testa.txt" --list             |
+| --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
+| --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
+| --fuzz         | SSRF/LFI fuzzing                                      | ./lazyrecon.sh tesla.com --mad --fuzz           |
+| --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
+| --brute        | Basic directory bruteforce (time sensitive)           | ./lazyrecon.sh tesla.com --single --brute       |
+| --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --single --discord     |
 
 
 # Notes

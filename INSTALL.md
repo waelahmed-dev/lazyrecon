@@ -4,14 +4,17 @@
 ```bash
 python >= 3.7.3
 go >= 1.14
+nmap >= 7.9
 ```
 
 ## Dependencies
 Tested on `MacOS` and `Linux`
-- To start use this script, please clone and/or setup the dependencies.
+- To start using lazyrecon script, please clone and setup the dependencies bellow
+- Make sure environment variables are filled in `./lazyconfig`
 - Update your local `~/.gf` with `./gfpatterns/`
 - Use option `nuclei -ut -ud '$PWD/'` to use it properly, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
+- Take care about appropriate tokens and API keys
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
 2. [simplehttpserver](https://github.com/projectdiscovery/simplehttpserver)
 3. [assetfinder](https://github.com/tomnomnom/assetfinder)
@@ -39,4 +42,4 @@ Tested on `MacOS` and `Linux`
 25. [hakrawler](https://github.com/hakluke/hakrawler)
 26. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
 27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
-> (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`)
+> (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
