@@ -30,6 +30,10 @@ third_party_go_dependencies(){
     gotools["gospider"]="go get -u github.com/jaeles-project/gospider"
     gotools["gau"]="GO111MODULE=on go get -u -v github.com/lc/gau"
     gotools["ffuf"]="go get -u github.com/ffuf/ffuf"
+
+    for gotool in "${!gotools[@]}"; do
+        eval type $gotool || { eval ${gotools[$gotool]}; }
+    done
 }
 
 custom_origin_dependencies() {
@@ -66,8 +70,8 @@ notification(){
 
 main() {
     # Entry point
-    custom_origin_dependencies # massdns needs before shuffledns
     third_party_go_dependencies
+    custom_origin_dependencies
 
     notification
 }

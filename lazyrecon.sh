@@ -3,7 +3,7 @@ set -o errtrace
 # Invoke with sudo because of masscan/nmap
 
 # Config
-. $HOME/lazyconfig
+. ./lazyconfig
 
 # Use sed properly
 SEDOPTION=(-i)
