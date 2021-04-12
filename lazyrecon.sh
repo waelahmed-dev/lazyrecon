@@ -3,21 +3,13 @@ set -o errtrace
 # Invoke with sudo because of masscan/nmap
 
 # Config
-storageDir=$HOME/lazytargets # where all targets
-HOMEUSER=storenth # your non root user
-# Fuzzing using local server
-ATTACKERURL=http://BURPcollaborator:PORT
-ATTACKER=BURPcollaborator:PORT
-ATTACKERGREP=BURPcollaborator
+. $HOME/lazyconfig
 
 # Use sed properly
 SEDOPTION=(-i)
 if [[ "$OSTYPE" == "darwin"* ]]; then
   SEDOPTION=(-i '')
 fi
-
-unwantedpaths='/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d'
-unwantedextensions="/swf$/d;/js$/d;/jsx$/d;/php$/d;/asp$/d;/txt$/d;/ini$/d;/log$/d;/pdf$/d;/jpg$/d;/gif$/d;/png$/d"
 
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
 
@@ -376,7 +368,7 @@ ssrftest(){
   if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[SSRF-1] Headers..."
-    ssrf-headers-tool $targetDir/3-all-subdomain-live-scheme.txt $ATTACKER
+    ssrf-headers-tool $targetDir/3-all-subdomain-live-scheme.txt $ATTACKER > /dev/null
 
     echo
     echo "[SSRF-2] Blind probe..."
@@ -460,7 +452,7 @@ lfitest(){
     echo
     echo "[LFI] nuclei testing..."
     nuclei -stats -l $customLfiQueryList \
-                    -t ../nuclei-templates/vulnerabilities/other/storenth-lfi.yaml \
+                    -t vulnerabilities/other/storenth-lfi.yaml \
                     -o $targetDir/nuclei/lfi_output.txt
   fi
 }
@@ -648,9 +640,14 @@ main(){
     fi
   fi
   mkdir $targetDir
+
+  # Listen server
+  simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $targetDir/_listen_server.log &
+  SERVER_PID=$!
+
   # collect call parameters
   echo "$@" >> $targetDir/_call_params.txt
-  echo "$@" >> ./_call_log.txt
+  echo "$@" >> ./_call.log
 
   # used for ffuf bruteforce
   if [ "$mad" = "1" ]; then
@@ -733,13 +730,13 @@ main(){
 
     recon $1
     # master_report $1
-  exit 0
 }
 
 clean_up() {
   # Perform program exit housekeeping
   echo "housekeeping rm -rf $targetDir"
   rm -rf $targetDir
+  kill_listen_server
   exit 1
 }
 
@@ -835,14 +832,21 @@ echo "Check params \$wildcard: $wildcard"
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 
-error_exit()
+# kill listen server
+kill_listen_server(){
+  if [[ -n "$SERVER_PID" ]]; then
+    kill -9 $SERVER_PID
+  fi
+}
+
 # handle script issues
-{
+error_exit(){
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
     ./discord-hook.sh "[error] line $(caller): ${stats}: "
   fi
+  kill_listen_server
   exit 1
 }
 
@@ -850,6 +854,7 @@ trap error_exit ERR
 
 # invoke
 main "$@" 2> _err.log
+kill_listen_server
 
 if [[ -n "$discord" ]]; then
   ./discord-hook.sh "[info] $1 done"

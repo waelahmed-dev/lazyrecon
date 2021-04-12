@@ -14,7 +14,14 @@
 
 Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
 
-# CI/CD flow
+# Features
+- Super fast asynchronous execution
+- CI/CD ready
+- Background listen server 
+- Domain name, list of domains, IP, CIDR input notations support
+- Teardown and program exit housekeeping
+- Discord integration
+## Workflow
 <h3 align="center">
   <img src="readme_img/ci-cd-flow.png" alt="lazyrecon-flow" width="700px"></a>
 </h3>
@@ -32,7 +39,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
 - Scanning for known paths and CVEs using `nuclei`
-- Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data like [ParamSpider](https://github.com/devanshbatham/ParamSpider) but no reduces the sizes of archive
+- Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
 - Check for potential request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - Send pass/fail reports to Discord
@@ -40,53 +47,33 @@ This script is intended to automate your reconnaissance process in an organized 
 
 The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
-# Features
-1. Super fast asynchronous execution
-2. CI/CD ready
-3. Teardown and program exit housekeeping
-4. Domain name, list of domains, IP, CIDR target notation
-5. Discord integration
 # Installing
 Tested on `MacOS` and `Linux`
-- Config your environment variables: `HOMEUSER` and `ATTACKERURL`, see full list at ./lazyconfig
-- Launch your listen server for connect-back TCP connections
-- Use option `nuclei -ut -ud '$PWD/'` to use it properly, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
-- Update your local `~/.gf` with `./gfpatterns/`
-- Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
-1. [subfinder](https://github.com/projectdiscovery/subfinder)
-2. [assetfinder](https://github.com/tomnomnom/assetfinder)
-3. [github-subdomains](https://github.com/gwen001/github-subdomains)
-4. [github-endpoints](https://github.com/gwen001/github-endpoints)
-5. [aquatone](https://github.com/michenriksen/aquatone)
-6. [waybackurls](https://github.com/tomnomnom/waybackurls)
-7. [gau](https://github.com/lc/gau)
-8. [altdns](https://github.com/infosec-au/altdns)
-9. [dnsgen](https://github.com/ProjectAnte/dnsgen/)
-10. [shuffledns](https://github.com/projectdiscovery/shuffledns)
-11. [masscan](https://github.com/robertdavidgraham/masscan)
-12. [dnsx](https://github.com/projectdiscovery/dnsx)
-13. [SecLists](https://github.com/danielmiessler/SecLists)
-14. [httpx](https://github.com/projectdiscovery/httpx)
-15. [nuclei](https://github.com/projectdiscovery/nuclei)
-16. [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
-17. [smuggler](https://github.com/storenth/requestsmuggler)
-18. [ffuf](https://github.com/ffuf/ffuf)
-19. [hydra](https://github.com/vanhauser-thc/thc-hydra)
-20. [gf](https://github.com/tomnomnom/gf)
-21. [unfurl](https://github.com/tomnomnom/unfurl)
-22. [sqlmap](https://github.com/sqlmapproject/sqlmap)
-23. [gospider](https://github.com/jaeles-project/gospider)
-24. [hakrawler](https://github.com/hakluke/hakrawler)
-25. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
-26. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
-> (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/smuggler/smuggler.py /usr/local/bin/smuggler`, or just export it to the PATH `export PATH=~/masscan/masscan:$PATH`)
+### CI/CD way
+Suppose your pipeline always uses a new instance (stateless agent).
+1. Export the required environment variables `. ./lazyconfig`:
+```bash
+export storageDir=$HOME/lazytargets # where output saved
+export HOMEUSER=$USER # your non root user
+export LISTENSERVER= # your listen server that handle incoming TCP connection
+export LISTENPORT=
+export ATTACKER=${LISTENSERVER}:${LISTENPORT}
+export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
+export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
+export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+```
+2. Call `./install.sh`
+3. Execute `sudo ./lazyrecon.sh "example.com"`
+### Hard way
+- Config your environment variables and dependencies using (INSTALL.MD)[https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD]
+
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
-sudo ./lazyrecon.sh tesla.com --wildcard
+▶ sudo ./lazyrecon.sh tesla.com --wildcard
 ```
 
 | **Parameter**  | **Description**                                       | **Example**                                     |
@@ -105,7 +92,6 @@ sudo ./lazyrecon.sh tesla.com --wildcard
 
 # Notes
 
- - Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
  - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
  - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040)
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
@@ -120,18 +106,19 @@ sudo ./lazyrecon.sh tesla.com --wildcard
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
 
 # Methodology
+0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
 1. Run `./lazyrecon.sh`
-2. Explore file upload vulnerabilities
-3. Google dorking
-4. Trello, Atlassian, Github, Bitbucket dorking
-5. Check JS sources for credentials, API endpoints, debug for variables
-6. Check `XHR` API requests, fuzz parameters
-7. Check exploit-db.com for known target-specific CVE
-8. Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
-9. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-10. Start new brute with POST method
-11. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
-12. `hydra`, 21, 22, 25, etc ports
+2. Check output reports of aquatone, nuclei, nmap, hydra, server_log, ffuf
+3. Explore file upload vulnerabilities
+4. Google dorking
+5. Trello, Atlassian, Github, Bitbucket dorking
+6. Check JS sources for credentials, API endpoints, debug for variables
+7. Check `XHR` API requests, fuzz parameters
+8. Check exploit-db.com for known target-specific CVE
+9. Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
+10. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+11. Start new brute with POST/cookies
+12. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
 13. XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
 
 # Origin

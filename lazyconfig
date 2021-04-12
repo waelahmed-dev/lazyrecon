@@ -1,0 +1,8 @@
+export storageDir=$HOME/lazytargets # where all output will save
+export HOMEUSER=$USER # non root user need
+export LISTENSERVER=
+export LISTENPORT=
+export ATTACKER=${LISTENSERVER}:${LISTENPORT}
+export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
+export GITHUBTOKEN=
+export DISCORDWEBHOOKURL=https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
