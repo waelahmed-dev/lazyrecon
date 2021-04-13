@@ -51,7 +51,7 @@ The point is to get a list of live IPs, attack available network protocols, chec
 Tested on `MacOS` and `Linux`
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
-1. Fill in the required environment variables `. ./lazyconfig`:
+1. Fill in the required environment variables `./lazyconfig`:
 ```bash
 export storageDir=$HOME/lazytargets # where output saved
 export HOMEUSER=$USER # your non root user
@@ -87,7 +87,7 @@ Execute with `sudo` because of `masscan`:
 | --fuzz         | SSRF/LFI fuzzing                                      | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
 | --brute        | Basic directory bruteforce (time sensitive)           | ./lazyrecon.sh tesla.com --single --brute       |
-| --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --single --discord     |
+| --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --discord     |
 
 
 # Notes
