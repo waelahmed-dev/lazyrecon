@@ -1,10 +1,15 @@
-#!/bin/bash -e
+#!/bin/bash -xe
 
 # Script works in current directory
+# for MAC users nmap needs to be pre-installed
 
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
+else
+    if ! type nmap; then
+        apt install nmap
+    fi
 fi
 
 export GOPATH=$HOME/go
@@ -33,40 +38,40 @@ third_party_go_dependencies(){
     gotools["ffuf"]="go get -u github.com/ffuf/ffuf"
 
     for gotool in "${!gotools[@]}"; do
-        eval type $gotool || { eval ${gotools[$gotool]}; }
+        eval type $gotool || { eval $gotools[$gotool]; }
     done
     nuclei -ut -ud "${PWD}/nuclei-templates"
 }
 
 custom_origin_dependencies() {
-    type hydra || { git clone https://github.com/vanhauser-thc/thc-hydra.git && cd thc-hydra && ./configure && make && make install && cd - }
+    type hydra || { git clone https://github.com/vanhauser-thc/thc-hydra.git && cd thc-hydra && ./configure && make && make install && cd -; }
 
-    type massdns || { git clone https://github.com/blechschmidt/massdns.git && cd massdns && make && ln -s $PWD/bin/massdns /usr/local/bin/massdns && cd - }
+    type massdns || { git clone https://github.com/blechschmidt/massdns.git && cd massdns && make && ln -s $PWD/bin/massdns /usr/local/bin/massdns && cd -; }
 
-    type masscan || { git clone https://github.com/robertdavidgraham/masscan.git && cd masscan; make && ln -s $PWD/bin/masscan /usr/local/bin/masscan && cd - }
+    type masscan || { git clone https://github.com/robertdavidgraham/masscan.git && cd masscan; make && ln -s $PWD/bin/masscan /usr/local/bin/masscan && cd -; }
 
     type github-endpoints || { git clone https://github.com/storenth/github-search.git && \
                                ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints && \
-                               ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains }
+                               ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains; }
 
     type ssrf-headers-tool || { git clone https://github.com/storenth/Bug-Bounty-Toolz.git && \
-                                ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool }
+                                ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool; }
 
     wget https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other/
+    mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
 
     if ! type aquatone; then
         if [[ -n "$MACOS" ]]; then
             wget https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_macos_amd64_1.7.0.zip
-            unzip $PWD/aquatone_macos_amd64_1.7.0.zip -d aquatone_relese
+            unzip -n $PWD/aquatone_macos_amd64_1.7.0.zip -d aquatone_relese
         else
             wget https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip
-            unzip $PWD/aquatone_linux_amd64_1.7.0.zip -d aquatone_relese
+            unzip -n $PWD/aquatone_linux_amd64_1.7.0.zip -d aquatone_relese
         fi
         ln -s aquatone_relese/aquatone /usr/local/bin/aquatone
     fi
 
-    find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';' 
+    find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }
 
 notification(){

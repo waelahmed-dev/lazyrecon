@@ -1,10 +1,11 @@
 # Installing
+Tested on `MacOS` and `Linux`
 
 ## Prerequirements
 ```bash
-python >= 3.7.3
+python >= 3.7
+pip3 >= 19.0
 go >= 1.14
-nmap >= 7.9
 ```
 
 ## Dependencies
@@ -42,4 +43,6 @@ Tested on `MacOS` and `Linux`
 25. [hakrawler](https://github.com/hakluke/hakrawler)
 26. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
 27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
+28. [nmap](https://nmap.org/download.html)
+
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
