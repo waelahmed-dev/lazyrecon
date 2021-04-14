@@ -608,15 +608,20 @@ recon(){
 
 
 main(){
-  # collect wildcard and single targets to retest later
+  # collect wildcard and single targets statistic to retest later (optional)
   if [[ -n "$wildcard" ]]; then
-    if [[ -s $STORAGEDIR/wildcard.txt ]] && [[ ! grep -Fxq $1 $STORAGEDIR/wildcard.txt ]]; then
-      echo $1 >> $STORAGEDIR/wildcard.txt
+    if [ -s $STORAGEDIR/wildcard.txt ]; then
+      if ! grep -Fxq $1 $STORAGEDIR/wildcard.txt; then
+        echo $1 >> $STORAGEDIR/wildcard.txt
+      fi
     fi
   fi
+
   if [[ -n "$single" ]]; then
-    if [[ -s $STORAGEDIR/single.txt ]] && [[ ! grep -Fxq $1 $STORAGEDIR/single.txt ]]; then
-      echo $1 >> $STORAGEDIR/single.txt
+    if [ -s $STORAGEDIR/single.txt ]; then
+      if ! grep -Fxq $1 $STORAGEDIR/single.txt; then
+        echo $1 >> $STORAGEDIR/single.txt
+      fi
     fi
   fi
 

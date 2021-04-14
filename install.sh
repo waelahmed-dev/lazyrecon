@@ -7,7 +7,7 @@ MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 else
-    if ! type nmap; then
+    if ! type nmap || ! type go; then
         apt install -y nmap golang
     fi
 fi
