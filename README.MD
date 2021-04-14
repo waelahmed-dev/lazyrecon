@@ -71,7 +71,7 @@ export GO111MODULE=on
 3. Call `sudo -E ./install.sh`
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 ### Hard way
-Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD)
+Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
 
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
