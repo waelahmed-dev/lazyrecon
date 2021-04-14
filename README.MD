@@ -48,13 +48,14 @@ This script is intended to automate your reconnaissance process in an organized 
 The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Installing
-Tested on `MacOS` and `Linux`
+- `Linux` tested
+- For MacOS users `nmap` needs to be pre-installed
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
-1. Fill in the required environment variables `./lazyconfig`:
+1. Fill these required environment variables in `./lazyconfig`:
 ```bash
-export storageDir=$HOME/lazytargets # where output saved
-export HOMEUSER=$USER # your non root user
+export STORAGEDIR= # where output saved, e.g.: /home/kali/lazytargets
+export HOMEUSER= # your normal, non root user: e.g.: kali
 export LISTENSERVER= # your listen server that handle incoming TCP connection
 export LISTENPORT=
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
@@ -62,8 +63,8 @@ export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
 ```
-2. Call `./install.sh`
-3. Execute `sudo ./lazyrecon.sh "example.com"`
+2. Call `sudo ./install.sh`
+3. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD)
 

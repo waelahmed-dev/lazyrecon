@@ -1,4 +1,4 @@
-#!/bin/bash -xe
+#!/bin/bash -x
 
 # Script works in current directory
 # for MAC users nmap needs to be pre-installed
@@ -8,7 +8,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 else
     if ! type nmap; then
-        apt install nmap
+        apt install -y nmap golang
     fi
 fi
 
@@ -29,7 +29,7 @@ third_party_go_dependencies(){
     gotools["httpx"]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"
     gotools["dnsx"]="go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
     gotools["assetfinder"]="go get -v github.com/tomnomnom/assetfinder"
-    gotools["waybackurls"]="go get github.com/tomnomnom/waybackurls"
+    gotools["waybackurls"]="go get -v github.com/tomnomnom/waybackurls"
     gotools["qsreplace"]="go get -v github.com/tomnomnom/qsreplace"
     gotools["unfurl"]="go get -v github.com/tomnomnom/unfurl"
     gotools["gf"]="go get -v github.com/tomnomnom/gf"
@@ -57,18 +57,18 @@ custom_origin_dependencies() {
     type ssrf-headers-tool || { git clone https://github.com/storenth/Bug-Bounty-Toolz.git && \
                                 ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool; }
 
-    wget https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
+    wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
     mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
 
     if ! type aquatone; then
         if [[ -n "$MACOS" ]]; then
-            wget https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_macos_amd64_1.7.0.zip
+            wget -nc https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_macos_amd64_1.7.0.zip
             unzip -n $PWD/aquatone_macos_amd64_1.7.0.zip -d aquatone_relese
         else
-            wget https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip
+            wget -nc https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip
             unzip -n $PWD/aquatone_linux_amd64_1.7.0.zip -d aquatone_relese
         fi
-        ln -s aquatone_relese/aquatone /usr/local/bin/aquatone
+        ln -s $PWD/aquatone_relese/aquatone /usr/local/bin/aquatone
     fi
 
     find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'

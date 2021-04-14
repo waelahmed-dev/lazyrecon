@@ -4,6 +4,10 @@ set -o errtrace
 
 # Config
 . ./lazyconfig
+echo "Check HOMEUSER: $HOMEUSER"
+echo "Check STORAGEDIR: $STORAGEDIR"
+echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
+echo
 
 # Use sed properly
 SEDOPTION=(-i)
@@ -59,7 +63,7 @@ enumeratesubdomains(){
     pid2=$!
 
     echo "github-subdomains.py..."
-    github-subdomains -d $1 | sed "s/^\.//;/error/d" > $targetDir/github-subdomains-list.txt
+    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" > $targetDir/github-subdomains-list.txt
 
     wait $pid1 $pid2
 
@@ -93,7 +97,7 @@ getgau(){
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 | sort | uniq | qsreplace -a > $targetDir/wayback/github-endpoints_out.txt
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | qsreplace -a > $targetDir/wayback/github-endpoints_out.txt
   echo "github-endpoints done"
 }
 
@@ -604,39 +608,39 @@ recon(){
 main(){
   # collect wildcard and single targets to retest later
   if [[ -n "$wildcard" ]]; then
-    if ! grep -Fxq $1 $storageDir/wildcard.txt; then
-      echo $1 >> $storageDir/wildcard.txt
+    if ! grep -Fxq $1 $STORAGEDIR/wildcard.txt; then
+      echo $1 >> $STORAGEDIR/wildcard.txt
     fi
   fi
   if [[ -n "$single" ]]; then
-    if ! grep -Fxq $1 $storageDir/single.txt; then
-      echo $1 >> $storageDir/single.txt
+    if ! grep -Fxq $1 $STORAGEDIR/single.txt; then
+      echo $1 >> $STORAGEDIR/single.txt
     fi
   fi
 
   # parse cidr input to create valid directory
   if [[ -n "$cidr" ]]; then
     CIDRFILEDIR=$(echo $1 | sed "s/\//_/")
-    targetDir=$storageDir/$CIDRFILEDIR/$foldername
-    if [ -d "$storageDir/$CIDRFILEDIR" ]; then
+    targetDir=$STORAGEDIR/$CIDRFILEDIR/$foldername
+    if [ -d "$STORAGEDIR/$CIDRFILEDIR" ]; then
       echo "This is a known target."
     else
-      mkdir $storageDir/$CIDRFILEDIR
+      mkdir $STORAGEDIR/$CIDRFILEDIR
     fi
   elif [[ -n "$list" ]]; then
     LISTFILEDIR=$(basename $1 | sed 's/[.]txt$//')
-    targetDir=$storageDir/$LISTFILEDIR/$foldername
-    if [ -d "$storageDir/$LISTFILEDIR" ]; then
+    targetDir=$STORAGEDIR/$LISTFILEDIR/$foldername
+    if [ -d "$STORAGEDIR/$LISTFILEDIR" ]; then
       echo "This is a known target."
     else
-      mkdir $storageDir/$LISTFILEDIR
+      mkdir $STORAGEDIR/$LISTFILEDIR
     fi
   else
-    targetDir=$storageDir/$1/$foldername
-    if [ -d "$storageDir/$1" ]; then
+    targetDir=$STORAGEDIR/$1/$foldername
+    if [ -d "$STORAGEDIR/$1" ]; then
       echo "This is a known target."
     else
-      mkdir $storageDir/$1
+      mkdir $STORAGEDIR/$1
     fi
   fi
   mkdir $targetDir

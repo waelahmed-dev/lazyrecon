@@ -1,5 +1,5 @@
-export storageDir=$HOME/lazytargets # where all output will save
-export HOMEUSER=$USER # non root user need
+export HOMEUSER= # privilleged but not root user need
+export STORAGEDIR= # where all output will save
 export LISTENSERVER=
 export LISTENPORT=
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
