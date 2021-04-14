@@ -13,7 +13,7 @@ else
 fi
 
 export GOPATH=$HOME/go
-export GOROOT=/usr/local/go
+# export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 export GO111MODULE=on
 
@@ -38,24 +38,48 @@ third_party_go_dependencies(){
     gotools["ffuf"]="go get -u github.com/ffuf/ffuf"
 
     for gotool in "${!gotools[@]}"; do
-        eval type $gotool || { eval $gotools[$gotool]; }
+        type $gotool || ${gotools[$gotool]}
     done
     nuclei -ut -ud "${PWD}/nuclei-templates"
 }
 
 custom_origin_dependencies() {
-    type hydra || { git clone https://github.com/vanhauser-thc/thc-hydra.git && cd thc-hydra && ./configure && make && make install && cd -; }
+    if ! type hydra; then
+        git clone https://github.com/vanhauser-thc/thc-hydra.git
+        if cd thc-hydra; then
+            ./configure
+            make && make install
+            cd -
+        fi
+    fi
 
-    type massdns || { git clone https://github.com/blechschmidt/massdns.git && cd massdns && make && ln -s $PWD/bin/massdns /usr/local/bin/massdns && cd -; }
+    if ! type massdns; then
+        git clone https://github.com/blechschmidt/massdns.git
+        if cd massdns; then
+            make
+            ln -s $PWD/bin/massdns /usr/local/bin/massdns
+            cd -
+        fi
+    fi
 
-    type masscan || { git clone https://github.com/robertdavidgraham/masscan.git && cd masscan; make && ln -s $PWD/bin/masscan /usr/local/bin/masscan && cd -; }
+    if ! type masscan; then
+        git clone https://github.com/robertdavidgraham/masscan.git
+        if cd masscan; then
+            make
+            ln -s $PWD/bin/masscan /usr/local/bin/masscan
+            cd -
+        fi
+    fi
 
-    type github-endpoints || { git clone https://github.com/storenth/github-search.git && \
-                               ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints && \
-                               ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains; }
+    if ! type github-endpoints; then
+        git clone https://github.com/storenth/github-search.git
+        ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
+        ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
+    fi
 
-    type ssrf-headers-tool || { git clone https://github.com/storenth/Bug-Bounty-Toolz.git && \
-                                ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool; }
+    if ! type ssrf-headers-tool; then
+        git clone https://github.com/storenth/Bug-Bounty-Toolz.git
+        ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
     mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
