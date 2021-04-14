@@ -49,22 +49,27 @@ The point is to get a list of live IPs, attack available network protocols, chec
 
 # Installing
 - `Linux` tested
-- For MacOS users `nmap` needs to be pre-installed
+- `Mac` users must have `nmap` installed first
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
-1. Fill these required environment variables in `./lazyconfig`:
+1. Fill in these required environment variables inside: `./lazyconfig`:
 ```bash
-export STORAGEDIR= # where output saved, e.g.: /home/kali/lazytargets
 export HOMEUSER= # your normal, non root user: e.g.: kali
+export HOMEDIR= # user's home dir e.g.: /home/kali
+export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 export LISTENSERVER= # your listen server that handle incoming TCP connection
 export LISTENPORT=
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
 export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+export GOPATH=$HOMEDIR/go
+export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
+export GO111MODULE=on
 ```
-2. Call `sudo ./install.sh`
-3. Execute `sudo ./lazyrecon.sh "hackerone.com"`
+2. Enable new environment `. .lazyconfig`
+3. Call `sudo -E ./install.sh`
+4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/master/INSTALL.MD)
 

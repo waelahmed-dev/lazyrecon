@@ -33,7 +33,7 @@ third_party_go_dependencies(){
     gotools["waybackurls"]="go get -v github.com/tomnomnom/waybackurls"
     gotools["qsreplace"]="go get -v github.com/tomnomnom/qsreplace"
     gotools["unfurl"]="go get -v github.com/tomnomnom/unfurl"
-    gotools["gf"]="go get -v github.com/tomnomnom/gf"
+    gotools["gf"]="go get -u github.com/tomnomnom/gf"
     gotools["gospider"]="go get -u github.com/jaeles-project/gospider"
     gotools["gau"]="go get -u -v github.com/lc/gau"
     gotools["ffuf"]="go get -u github.com/ffuf/ffuf"
@@ -41,7 +41,11 @@ third_party_go_dependencies(){
     for gotool in "${!gotools[@]}"; do
         type $gotool || ${gotools[$gotool]}
     done
-    nuclei -ut -ud "${PWD}/nuclei-templates"
+
+    nuclei -update-templates
+
+    mkdir -p $HOMEDIR/.gf
+    cp -r ./gfpatterns/* $HOMEDIR/.gf
 }
 
 custom_origin_dependencies() {
@@ -84,7 +88,7 @@ custom_origin_dependencies() {
     fi
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv -uf $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
+    mv -uf $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
 
     if ! type aquatone; then
         if [[ -n "$MACOS" ]]; then

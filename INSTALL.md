@@ -12,8 +12,8 @@ go >= 1.14
 Tested on `MacOS` and `Linux`
 - To start using lazyrecon script, please clone and setup the dependencies bellow
 - Make sure environment variables are filled in `./lazyconfig`
-- Update your local `~/.gf` with `./gfpatterns/`
-- Use option `nuclei -ut -ud '$PWD/'` to use it properly, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
+- Update your local `~/.gf` with `./gfpatterns/*`
+- Use option `nuclei -update-templates` to use it properly, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 - Take care about appropriate tokens and API keys
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
@@ -44,5 +44,6 @@ Tested on `MacOS` and `Linux`
 26. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
 27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
 28. [nmap](https://nmap.org/download.html)
+29. [chromium](https://github.com/scheib/chromium-latest-linux.git)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
