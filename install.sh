@@ -80,6 +80,7 @@ custom_origin_dependencies() {
     if ! type ssrf-headers-tool; then
         git clone https://github.com/storenth/Bug-Bounty-Toolz.git
         ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
+    fi
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
     mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
