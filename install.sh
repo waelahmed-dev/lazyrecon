@@ -12,7 +12,7 @@ else
     fi
 fi
 
-export GOPATH=$HOME/go
+export GOPATH=$HOMEDIR/go
 # export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 export GO111MODULE=on
@@ -83,7 +83,7 @@ custom_origin_dependencies() {
     fi
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
+    mv -uf $PWD/storenth-lfi.yaml $PWD/nuclei-templates/vulnerabilities/other
 
     if ! type aquatone; then
         if [[ -n "$MACOS" ]]; then
