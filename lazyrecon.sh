@@ -4,6 +4,8 @@ set -o errtrace
 
 # Config
 . ./lazyconfig
+
+[ -d $STORAGEDIR ] || mkdir -p $STORAGEDIR
 echo "Check HOMEUSER: $HOMEUSER"
 echo "Check STORAGEDIR: $STORAGEDIR"
 echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
@@ -57,7 +59,7 @@ enumeratesubdomains(){
     echo $1 >> $targetDir/subfinder-list.txt # to be sure main domain added in case of one domain scope
     subfinder -d $1 -silent -o $targetDir/subfinder-list.txt &
     pid1=$!
-  
+
     echo "assetfinder..."
     assetfinder --subs-only $1 > $targetDir/assetfinder-list.txt &
     pid2=$!
@@ -608,12 +610,12 @@ recon(){
 main(){
   # collect wildcard and single targets to retest later
   if [[ -n "$wildcard" ]]; then
-    if ! grep -Fxq $1 $STORAGEDIR/wildcard.txt; then
+    if [[ -s $STORAGEDIR/wildcard.txt ]] && [[ ! grep -Fxq $1 $STORAGEDIR/wildcard.txt ]]; then
       echo $1 >> $STORAGEDIR/wildcard.txt
     fi
   fi
   if [[ -n "$single" ]]; then
-    if ! grep -Fxq $1 $STORAGEDIR/single.txt; then
+    if [[ -s $STORAGEDIR/single.txt ]] && [[ ! grep -Fxq $1 $STORAGEDIR/single.txt ]]; then
       echo $1 >> $STORAGEDIR/single.txt
     fi
   fi
@@ -625,7 +627,7 @@ main(){
     if [ -d "$STORAGEDIR/$CIDRFILEDIR" ]; then
       echo "This is a known target."
     else
-      mkdir $STORAGEDIR/$CIDRFILEDIR
+      mkdir -p $STORAGEDIR/$CIDRFILEDIR
     fi
   elif [[ -n "$list" ]]; then
     LISTFILEDIR=$(basename $1 | sed 's/[.]txt$//')
@@ -633,17 +635,17 @@ main(){
     if [ -d "$STORAGEDIR/$LISTFILEDIR" ]; then
       echo "This is a known target."
     else
-      mkdir $STORAGEDIR/$LISTFILEDIR
+      mkdir -p $STORAGEDIR/$LISTFILEDIR
     fi
   else
     targetDir=$STORAGEDIR/$1/$foldername
     if [ -d "$STORAGEDIR/$1" ]; then
       echo "This is a known target."
     else
-      mkdir $STORAGEDIR/$1
+      mkdir -p $STORAGEDIR/$1
     fi
   fi
-  mkdir $targetDir
+  mkdir -p $targetDir
 
   # Listen server
   simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $targetDir/_listen_server.log &
