@@ -7,8 +7,9 @@ MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 else
-    if ! type nmap || ! type go; then
-        apt install -y nmap golang
+    if ! type nmap || ! type go || ! type chromium; then
+        apt update -y
+        apt install -y nmap golang chromium
     fi
 fi
 
@@ -99,6 +100,15 @@ custom_origin_dependencies() {
     find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }
 
+# need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
+chromium_dependencies(){
+    git clone https://github.com/scheib/chromium-latest-linux.github
+    if cd chromium-latest-linux; then
+        ./update.sh
+        cd -
+    fi
+}
+
 notification(){
     echo
     echo "Dependencies insalled in $PWD"
@@ -108,6 +118,7 @@ main() {
     # Entry point
     third_party_go_dependencies
     custom_origin_dependencies
+    # chromium_dependencies
 
     notification
 }
