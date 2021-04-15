@@ -1,6 +1,6 @@
-export HOMEUSER= # privilleged but non root user need e.g.: kali
-export HOMEDIR= # user home dir e.g.: /home/kali
-export STORAGEDIR=${HOMEDIR}/lazytargets # where output saved, e.g.: /home/kali/lazytargets
+export HOMEUSER=
+export HOMEDIR=
+export STORAGEDIR=
 
 export LISTENSERVER=
 export LISTENPORT=
@@ -8,7 +8,7 @@ export ATTACKER=${LISTENSERVER}:${LISTENPORT}
 export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
 
 export GITHUBTOKEN=
-export DISCORDWEBHOOKURL=https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+export DISCORDWEBHOOKURL=
 
 export GOPATH=$HOMEDIR/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
