@@ -1,6 +1,9 @@
 out/
 demo*
-*.*/
+_*
+*.log
+*bak
+*copy
 *com/
 *ru/
 *net/
