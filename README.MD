@@ -70,7 +70,7 @@ export GOPATH=$HOMEDIR/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 export GO111MODULE=on
 ```
-2. Enable new environment `. .lazyconfig`
+2. Enable new environment `. ./lazyconfig`
 3. Call `sudo -E ./install.sh`
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 ### Hard way
