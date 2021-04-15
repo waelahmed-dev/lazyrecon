@@ -38,5 +38,5 @@ jobs:
           export HOMEUSER=$USER
           export HOMEDIR=$HOME
           export STORAGEDIR=$HOME/lazytargets
-          sudo -E ./install
+          sudo -E ./install.sh
 
