@@ -692,11 +692,11 @@ main(){
     # ffuf dir uses to store brute output
     mkdir $targetDir/ffuf/
   fi
-  if [ "$brute" = "1" -a "$mad" = "1" ]; then
+  # if [ "$brute" = "1" -a "$mad" = "1" ]; then
     # touch $targetDir/custom_ffuf_wordlist.txt
     # customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
     # cp $dirsearchWordlist $customFfufWordList
-  fi
+  # fi
 
   # aquatone output
   mkdir $targetDir/aquatone
