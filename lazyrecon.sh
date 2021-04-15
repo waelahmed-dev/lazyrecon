@@ -7,6 +7,7 @@ set -o errtrace
 
 [ -d $STORAGEDIR ] || mkdir -p $STORAGEDIR
 echo "Check HOMEUSER: $HOMEUSER"
+echo "Check HOMEUSER: $HOMEDIR"
 echo "Check STORAGEDIR: $STORAGEDIR"
 echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
 echo
@@ -240,33 +241,33 @@ nucleitest(){
     echo
     echo "[nuclei] CVE testing..."
     # -c maximum templates processed in parallel
-    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
+    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
     sleep 1
     nuclei -silent -stats -l $targetDir/3-all-subdomain-live-scheme.txt \
-                    -t vulnerabilities/ \
-                    -t cves/2014/ \
-                    -t cves/2015/ \
-                    -t cves/2016/ \
-                    -t cves/2017/ \
-                    -t cves/2018/ \
-                    -t cves/2019/ \
-                    -t cves/2020/ \
-                    -t cves/2021/ \
-                    -t misconfiguration/ \
-                    -t network/ \
-                    -t headless/ \
-                    -t miscellaneous/ \
-                    -exclude miscellaneous/old-copyright.yaml \
-                    -exclude miscellaneous/missing-x-frame-options.yaml \
-                    -exclude miscellaneous/missing-hsts.yaml \
-                    -exclude miscellaneous/missing-csp.yaml \
-                    -t takeovers/ \
-                    -t default-logins/ \
-                    -t exposures/ \
-                    -t exposed-panels/ \
-                    -t exposed-tokens/generic/credentials-disclosure.yaml \
-                    -t exposed-tokens/generic/general-tokens.yaml \
-                    -t fuzzing/ \
+                    -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2014/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2015/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2016/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2017/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2018/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2019/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2020/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2021/ \
+                    -t $HOMEDIR/nuclei-templates/misconfiguration/ \
+                    -t $HOMEDIR/nuclei-templates/network/ \
+                    -t $HOMEDIR/nuclei-templates/headless/ \
+                    -t $HOMEDIR/nuclei-templates/miscellaneous/ \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
+                    -t $HOMEDIR/nuclei-templates/takeovers/ \
+                    -t $HOMEDIR/nuclei-templates/default-logins/ \
+                    -t $HOMEDIR/nuclei-templates/exposures/ \
+                    -t $HOMEDIR/nuclei-templates/exposed-panels/ \
+                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
+                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
+                    -t $HOMEDIR/nuclei-templates/fuzzing/ \
                     -o $targetDir/nuclei/nuclei_output.txt
 
     if [ -s $targetDir/nuclei/nuclei_output.txt ]; then

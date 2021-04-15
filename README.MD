@@ -52,6 +52,7 @@ The point is to get a list of live IPs, attack available network protocols, chec
 - `Mac` users must have `nmap` installed first
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
+It may look tricky cause masscan/nmap/naabu root user required.
 1. Fill in these required environment variables inside: `./lazyconfig`:
 ```bash
 export HOMEUSER= # your normal, non root user: e.g.: kali
