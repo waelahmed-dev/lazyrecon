@@ -5,7 +5,7 @@ set -o errtrace
 # Config
 . ./lazyconfig
 
-[ -d $STORAGEDIR ] || mkdir -p $STORAGEDIR
+[ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
 echo "Check HOMEUSER: $HOMEUSER"
 echo "Check HOMEUSER: $HOMEDIR"
 echo "Check STORAGEDIR: $STORAGEDIR"
@@ -432,7 +432,7 @@ ssrftest(){
         ITERATOR=$((ITERATOR+1))
         echo "processing $ITERATOR line"
         echo "[line] $line"
-        echo ${line}${ATTACKER} >> $targetDir/ssrf-list.txt
+        echo "${line}${ATTACKER}" >> $targetDir/ssrf-list.txt
       done < $customSsrfQueryList
 
       if [ -s $targetDir/ssrf-list.txt ]; then
@@ -513,7 +513,7 @@ nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
   # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
-  echo "$[nmap] scanning..."
+  echo "[nmap] scanning..."
   while read line; do
     IP=$(echo $line | awk '{ print $4 }')
     PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
@@ -693,8 +693,8 @@ main(){
     mkdir $targetDir/ffuf/
   fi
   if [ "$brute" = "1" -a "$mad" = "1" ]; then
-    touch $targetDir/custom_ffuf_wordlist.txt
-    customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
+    # touch $targetDir/custom_ffuf_wordlist.txt
+    # customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
     # cp $dirsearchWordlist $customFfufWordList
   fi
 
