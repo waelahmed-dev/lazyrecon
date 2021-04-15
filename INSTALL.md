@@ -14,6 +14,7 @@ go >= 1.14
 - Update your local `~/.gf` with `./gfpatterns/*`
 - Use option `nuclei -update-templates` to use it properly under `$HOMEDIR`, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
+- Check for your router configuration to handle incoming TCP connection on the port you specify
 - Take care about appropriate tokens and API keys
 - Don't forget that the script act as a root user
 1. [subfinder](https://github.com/projectdiscovery/subfinder)

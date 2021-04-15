@@ -58,8 +58,10 @@ It may look tricky cause masscan/nmap/naabu root user required.
 export HOMEUSER= # your normal, non root user: e.g.: kali
 export HOMEDIR= # user's home dir e.g.: /home/kali
 export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
-export LISTENSERVER= # your listen server that handle incoming TCP connection
-export LISTENPORT=
+# Check for your router configuration to handle incoming TCP connection on the port you specify
+# Local listen server starts automatically as 0.0.0.0:$LISTENPORT, do not need to deploy by hands
+export LISTENSERVER= # public IP of your router that handle incoming TCP connection
+export LISTENPORT= # check router's port forwarding
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
 export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
