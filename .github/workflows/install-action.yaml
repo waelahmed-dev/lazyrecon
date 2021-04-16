@@ -44,7 +44,7 @@ jobs:
           python-version: 3.9
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python3 -m pip3 install --upgrade pip3
       env:
         HOMEDIR: ${{ GITHUB_WORKSPACE }}
         STORAGEDIR: ${{ GITHUB_WORKSPACE }}/lazytargets
