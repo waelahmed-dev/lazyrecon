@@ -111,7 +111,27 @@ Execute with `sudo` because of `masscan`:
 | --quiet        | Enable quiet mode                                     | ./lazyrecon.sh tesla.com --quiet                |
 
 
-# Notes
+# Methodology
+0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
+1. Run `./lazyrecon.sh`
+2. Check output reports of aquatone, nuclei, nmap, hydra, server_log, ffuf
+3. Explore file upload vulnerabilities
+4. Perform Google, Trello, Atlassian, Github, Bitbucket dorking
+5. Check JS sources for credentials, API endpoints
+6. Investigate `XHR` requests, fuzz parameters and variables
+7. Check exploit-db.com for target-specific CVE
+8. GET/POST Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
+9. Continue bruteforcing using custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+10. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
+11. Look for XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
+
+# Origin
+This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) and aimed to implement some of the best practices like [Mechanizing the Methodology](https://www.youtube.com/watch?v=L_qoz2_Qyhk), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
+# Notable articles
+1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
+2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
+
+### Notes
 
  - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
  - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040)
@@ -125,25 +145,3 @@ Execute with `sudo` because of `masscan`:
 
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
-
-# Methodology
-0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
-1. Run `./lazyrecon.sh`
-2. Check output reports of aquatone, nuclei, nmap, hydra, server_log, ffuf
-3. Explore file upload vulnerabilities
-4. Google dorking
-5. Trello, Atlassian, Github, Bitbucket dorking
-6. Check JS sources for credentials, API endpoints, debug for variables
-7. Check `XHR` API requests, fuzz parameters
-8. Check exploit-db.com for known target-specific CVE
-9. Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
-10. Continue brute with custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-11. Start new brute with POST/cookies
-12. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
-13. XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
-
-# Origin
-This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) and aimed to implement some of the best practices like [Mechanizing the Methodology](https://www.youtube.com/watch?v=L_qoz2_Qyhk), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
-# Notable articles
-1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
-2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
