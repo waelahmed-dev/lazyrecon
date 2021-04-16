@@ -25,14 +25,15 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: [macos-latest, ubuntu-latest]
-    env:
+    # env:
       # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
       # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - name: Check out repository
+        uses: actions/checkout@v2
       - name: Setup golang
         uses: actions/setup-go@v2
         with:
