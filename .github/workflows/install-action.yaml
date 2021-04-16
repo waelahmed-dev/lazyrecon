@@ -34,17 +34,18 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out repository
         uses: actions/checkout@v2
-        env:
-          HOMEDIR: ${{ HOME }}
-          STORAGEDIR: ${{ HOME }}/lazytarget
-          # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
-          # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
 
       - name: Setup golang
         uses: actions/setup-go@v2
         with:
           go-version: 1.14
 
+      - name: Run a multi-line script
+        run: |
+          export HOMEDIR=$HOME
+          export STORAGEDIR=$HOME/lazytarget
+          # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
+          # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: env
