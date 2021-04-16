@@ -33,7 +33,7 @@ jobs:
     steps:
       env:
         HOMEDIR: ${{ GITHUB_WORKSPACE }}
-        STORAGEDIR: ${{ GITHUB_WORKSPACE }}/lazytargets
+        STORAGEDIR: ${{ GITHUB_WORKSPACE }}
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Check out repository
