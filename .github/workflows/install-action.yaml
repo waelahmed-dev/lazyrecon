@@ -12,12 +12,6 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  env:
-    GO111MODULE: on
-    LISTENSERVER: 127.0.0.1
-    LISTENPORT: 4444
-    # GITHUBTOKEN:
-    # DISCORDWEBHOOKURL:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -25,9 +19,12 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: [macos-latest, ubuntu-latest]
-    # env:
-      # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
-      # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
+    env:
+      GO111MODULE: on
+      LISTENSERVER: 127.0.0.1
+      LISTENPORT: 4444
+      # GITHUBTOKEN:
+      # DISCORDWEBHOOKURL:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -37,6 +34,8 @@ jobs:
         env:
           HOMEDIR: ${{ GITHUB_WORKSPACE }}
           STORAGEDIR: ${{ GITHUB_WORKSPACE }}
+          # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
+          # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
 
       - name: Setup golang
         uses: actions/setup-go@v2
