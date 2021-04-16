@@ -9,6 +9,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
     if ! type nmap || ! type go || ! type chromium; then
         apt update -y
+        apt upgrade -y
         apt install -y nmap golang chromium
     fi
 fi
