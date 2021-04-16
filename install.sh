@@ -7,9 +7,9 @@ MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 else
-    if ! type nmap || ! type go || ! type chromium; then
+    if ! type nmap; then
         apt update -y
-        apt install -y nmap golang chromium
+        apt install -y nmap
     fi
 fi
 
@@ -106,9 +106,16 @@ custom_origin_dependencies() {
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
 chromium_dependencies(){
-    git clone https://github.com/scheib/chromium-latest-linux.github
+    git clone https://github.com/scheib/chromium-latest-linux.git
+    
     if cd chromium-latest-linux; then
-        ./update.sh
+        if [[ -n "$MACOS" ]]; then
+            echo "Under development on https://github.com/storenth/chromium-latest-linux"
+            exit 1
+        else
+            ./update.sh
+        fi
+        ln -s $PWD/latest/chrome /usr/local/bin/chromium
         cd -
     fi
 }
@@ -122,7 +129,7 @@ main() {
     # Entry point
     third_party_go_dependencies
     custom_origin_dependencies
-    # chromium_dependencies
+    chromium_dependencies
 
     notification
 }
