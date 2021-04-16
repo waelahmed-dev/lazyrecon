@@ -6,6 +6,7 @@ set -o errtrace
 . ./lazyconfig
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
+
 echo "Check HOMEUSER: $HOMEUSER"
 echo "Check HOMEUSER: $HOMEDIR"
 echo "Check STORAGEDIR: $STORAGEDIR"
@@ -43,6 +44,7 @@ fuzz= # enable parameter fuzzing (local server need to be alive)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
+quiet= # quiet mode
 
 # definitions
 enumeratesubdomains(){
@@ -801,6 +803,8 @@ checkargs(){
                                   ;;
           -b | --brute )          brute="1"
                                   ;;
+          -q | --quiet )          quiet="1"
+                                  ;;
           # * )                     invokation $1
           #                         exit 1
       esac
@@ -825,21 +829,23 @@ if [ $# -gt 1 ]; then
   checkargs "$@"
 fi
 
-# positional parameters test
-echo "Check params: $@"
-echo "Check # of params: $#"
-echo "Check params \$1: $1"
-echo "Check params \$ip: $ip"
-echo "Check params \$cidr: $cidr"
-echo "Check params \$single: $single"
-echo "Check params \$list: $list"
-echo "Check params \$brute: $brute"
-echo "Check params \$fuzz: $fuzz"
-echo "Check params \$mad: $mad"
-echo "Check params \$alt: $alt"
-echo "Check params \$wildcard: $wildcard"
+if [[ -n "$q" ]]; then
+  ./logo.sh
+  # positional parameters test
+  echo "Check params: $@"
+  echo "Check # of params: $#"
+  echo "Check params \$1: $1"
+  echo "Check params \$ip: $ip"
+  echo "Check params \$cidr: $cidr"
+  echo "Check params \$single: $single"
+  echo "Check params \$list: $list"
+  echo "Check params \$brute: $brute"
+  echo "Check params \$fuzz: $fuzz"
+  echo "Check params \$mad: $mad"
+  echo "Check params \$alt: $alt"
+  echo "Check params \$wildcard: $wildcard"
+fi
 
-./logo.sh
 
 # to avoid cleanup or `sort -u` operation
 foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
