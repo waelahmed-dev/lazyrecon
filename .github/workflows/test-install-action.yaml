@@ -1,6 +1,6 @@
 # This is a setup workflow to help test ./install.sh on linux
 
-name: CI-install
+name: test-install-action
 
 # Controls when the action will run. 
 on:
@@ -9,6 +9,8 @@ on:
     branches: [ $default-branch ]
   pull_request:
     branches: [ $default-branch ]
+# schedule:
+# - cron: '0 0 * * 0'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:

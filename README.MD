@@ -73,6 +73,17 @@ export GO111MODULE=on
 2. Enable new environment `. ./lazyconfig`
 3. Call `sudo -E ./install.sh`
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
+
+### Github Actions way
+Customize `.github/workflows/test-install-action.yaml` using `./lazyrecon.sh` and [notify](https://github.com/projectdiscovery/notify):
+```yaml
+- name: Execute on target
+  run: |
+    export HOMEDIR=$HOME
+    export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
+    sudo -E ./install.sh
+    sudo ./lazyrecon.sh "bugcrowd.com" --quiet | notify -discord -discord-webhook-url $DISCORDWEBHOOKURL
+```
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
 
@@ -96,7 +107,8 @@ Execute with `sudo` because of `masscan`:
 | --fuzz         | SSRF/LFI fuzzing                                      | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
 | --brute        | Basic directory bruteforce (time sensitive)           | ./lazyrecon.sh tesla.com --single --brute       |
-| --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --discord     |
+| --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --discord              |
+| --quiet        | Enable quiet mode                                     | ./lazyrecon.sh tesla.com --quiet                |
 
 
 # Notes
