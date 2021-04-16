@@ -12,31 +12,52 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+  env:
+    GO111MODULE: on
+    LISTENSERVER: 127.0.0.1
+    LISTENPORT: 4444
+    # GITHUBTOKEN:
+    # DISCORDWEBHOOKURL:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: [macos-latest, ubuntu-latest]
+    env:
+      # ATTACKER: ${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
+      # ATTACKERURL: http://${{ env.LISTENSERVER }}:${{ env.LISTENPORT }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - name: Setup golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+      env:
+        HOMEDIR: ${{ GITHUB_WORKSPACE }}
+        STORAGEDIR: ${{ GITHUB_WORKSPACE }}/lazytargets
 
       # Runs a single command using the runners shell
       - name: Run a one-line script
-        run: |
-          echo $USER
-          echo $HOME
-          env
+        run: env
 
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         run: |
-          export HOMEUSER=$USER
-          export HOMEDIR=$HOME
-          export STORAGEDIR=$HOME/lazytargets
-          sudo -E ./install.sh
+          echo $HOMEDIR
+          echo $STORAGEDIR
+          echo $LISTENSERVER
+          echo $LISTENPORT
+          # sudo -E ./install.sh
 
