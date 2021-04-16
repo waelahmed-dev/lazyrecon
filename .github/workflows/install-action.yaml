@@ -53,8 +53,11 @@ jobs:
           echo $STORAGEDIR
           echo $LISTENSERVER
           echo $LISTENPORT
+          pwd
           ls -alt
           ls -alt $HOMEDIR
-          ls -alt $STORAGEDIR
-          # sudo -E ./install.sh
+          ./install.sh
+          pwd
+          ls -alt
+          ls -alt $HOMEDIR
 
