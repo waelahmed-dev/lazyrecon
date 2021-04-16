@@ -106,17 +106,19 @@ custom_origin_dependencies() {
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
 chromium_dependencies(){
-    git clone https://github.com/scheib/chromium-latest-linux.git
-    
-    if cd chromium-latest-linux; then
-        if [[ -n "$MACOS" ]]; then
-            echo "Under development on https://github.com/storenth/chromium-latest-linux"
-            exit 1
-        else
-            ./update.sh
+    if ! type chromium; then
+        git clone https://github.com/storenth/chromium-latest-linux.git
+        if cd chromium-latest-linux; then
+            if [[ -n "$MACOS" ]]; then
+                # mac development https://github.com/storenth/chromium-latest-linux
+                ./install-update-mac.sh
+                ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
+            else
+                ./update.sh
+                ln -s $PWD/latest/chrome /usr/local/bin/chromium
+            fi
+            cd -
         fi
-        ln -s $PWD/latest/chrome /usr/local/bin/chromium
-        cd -
     fi
 }
 

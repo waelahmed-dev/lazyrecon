@@ -45,6 +45,6 @@ go >= 1.14
 26. [ssrf-headers-tool](https://github.com/storenth/Bug-Bounty-Toolz/blob/master/ssrf.py)
 27. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
 28. [nmap](https://nmap.org/download.html)
-29. [chromium](https://github.com/scheib/chromium-latest-linux.git)
+29. [chromium](https://github.com/storenth/chromium-latest-linux.git)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
