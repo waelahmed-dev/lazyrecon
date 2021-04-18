@@ -626,10 +626,17 @@ recon(){
 
   echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
   wait $PID_SCREEN $PID_NUCLEI
-  # echo "Generating HTML-report here..."
-  echo "Lazy done."
+  jobs -l
+  echo "Recon done!"
 }
 
+report(){
+  echo "Generating HTML-report here..."
+  ./report.sh $1 $targetDir > $targetDir/report.html
+  chromium --headless --disable-gpu --print-to-pdf=${targetDir}/report.pdf file://${targetDir}/report.html
+  chown $HOMEUSER: $targetDir/report.pdf
+  echo "Report done!"
+}
 
 main(){
   # collect wildcard and single targets statistic to retest later (optional)
@@ -755,14 +762,11 @@ main(){
   # gau/waybackurls list of subdomains
   touch $targetDir/wayback-subdomains-list.txt
 
-  # mkdir $targetDir/reports/
-  # echo "Reports goes to: ./${1}/${foldername}"
-
   # clean up when script receives a signal
   trap clean_up SIGHUP SIGINT SIGTERM SIGSTOP SIGKILL
 
     recon $1
-    # master_report $1
+    report $1
 }
 
 clean_up() {
@@ -895,6 +899,9 @@ kill_listen_server
 
 if [[ -n "$discord" ]]; then
   ./discord-hook.sh "[info] $1 done"
+  if [[ -s $targetDir/report.html ]]; then
+    ./helpers/discord-file-hook.sh $targetDir/report.pdf
+  fi
 fi
 
 exit 0

@@ -17,10 +17,11 @@ Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdom
 # Features
 - Super fast asynchronous execution
 - CI/CD ready
+- HTML/pdf reports
+- Discord integration
 - Background listen server 
 - Domain name, list of domains, IP, CIDR input notations support
 - Teardown and program exit housekeeping
-- Discord integration
 ## Workflow
 <h3 align="center">
   <img src="readme_img/ci-cd-flow.png" alt="lazyrecon-flow" width="700px"></a>
@@ -42,8 +43,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
 - Check for potential request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
-- Send pass/fail reports to Discord
-- [WIP][x] Generate HTML report in case of a potentially vulnerable domain found.
+- Generate reports and send it to Discord
 
 The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
@@ -70,19 +70,19 @@ export GOPATH=$HOMEDIR/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 export GO111MODULE=on
 ```
-2. Enable new environment `. ./lazyconfig`
+2. Enable new environment `source ./lazyconfig`
 3. Call `sudo -E ./install.sh`
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 
 ### Github Actions way
-Customize `.github/workflows/test-install-action.yaml` using `./lazyrecon.sh` and [notify](https://github.com/projectdiscovery/notify):
+Customize `.github/workflows/test-install-action.yaml` using `./lazyrecon.sh --discord`:
 ```yaml
 - name: Execute on target
   run: |
     export HOMEDIR=$HOME
     export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
     sudo -E ./install.sh
-    sudo ./lazyrecon.sh "bugcrowd.com" --quiet | notify -discord -discord-webhook-url $DISCORDWEBHOOKURL
+    sudo ./lazyrecon.sh "bugcrowd.com" --quiet --discord
 ```
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
@@ -132,7 +132,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
 2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
 
 ### Notes
-
+ - `aquatone` replaced by [headless chromium async script](https://github.com/storenth/lazyrecon/compare/0a9c4c586ee4...24c35f9cadd0) based on performance
  - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
  - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040)
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
