@@ -230,11 +230,27 @@ checkhttprobe(){
   cat $targetDir/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $targetDir/3-all-subdomain-live.txt
 }
 
-aquatoneshot(){
+screenshots(){
   if [ -s $targetDir/3-all-subdomain-live-scheme.txt ]; then
-    cat $targetDir/3-all-subdomain-live-scheme.txt |  aquatone -ports large -out $targetDir/aquatone
-    # enable report with screenshots
-    chown $HOMEUSER: $targetDir/aquatone/screenshots/*
+    mkdir $targetDir/screenshots
+      # to handle background PID
+        declare -a pid_array
+        ITERATOR=0
+        while read line; do
+          ./helpers/getscreenshot.sh "$line" &
+          pid_array[ITERATOR]=$!
+          ITERATOR=$((ITERATOR+1))
+        done < $targetDir/3-all-subdomain-live-scheme.txt
+
+        jobs -l
+        for pid in "${!pid_array[@]}"; do
+            echo "waiting ${pid}..."
+            wait ${pid_array[$pid]}
+            echo "_${pid_array[$pid]} done_"
+        done
+
+        mv ./*.png $targetDir/screenshots/
+        chown $HOMEUSER: $targetDir/screenshots/*
   fi
 }
 
@@ -579,8 +595,11 @@ recon(){
 
   dnsprobing $1
   checkhttprobe $1
-  aquatoneshot $1
-  nucleitest $1
+
+  screenshots $1 &
+  PID_SCREEN=$!
+  nucleitest $1 &
+  PID_NUCLEI=$!
 
   if [ "$mad" = "1" ]; then
     gospidertest $1
@@ -605,6 +624,8 @@ recon(){
 
   ffufbrute $1
 
+  echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
+  wait $PID_SCREEN $PID_NUCLEI
   # echo "Generating HTML-report here..."
   echo "Lazy done."
 }
@@ -700,8 +721,6 @@ main(){
     # cp $dirsearchWordlist $customFfufWordList
   # fi
 
-  # aquatone output
-  mkdir $targetDir/aquatone
   # nuclei output
   mkdir $targetDir/nuclei/
   # nmap output
@@ -829,7 +848,7 @@ if [ $# -gt 1 ]; then
   checkargs "$@"
 fi
 
-if [[ -n "$q" ]]; then
+if [[ -n "$quiet" ]]; then
   ./logo.sh
   # positional parameters test
   echo "Check params: $@"
