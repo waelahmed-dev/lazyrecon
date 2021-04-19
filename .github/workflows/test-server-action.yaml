@@ -66,6 +66,8 @@ jobs:
           python3 -m http.server 43713 &> $GITHUB_WORKSPACE/_listen_server.log &
           SERVER_PID=$!
           sleep 10
+          netstat -vtl
           kill -9 $SERVER_PID
+          ls -alt $GITHUB_WORKSPACE/_listen_server.log
           cat $GITHUB_WORKSPACE/_listen_server.log
         shell: bash
