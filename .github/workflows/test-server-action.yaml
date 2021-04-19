@@ -1,0 +1,68 @@
+# This is a setup workflow to help test ./install.sh on linux
+
+name: test-install-action
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the $default-branch branch
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+# schedule:
+# - cron: '0 0 * * 0'
+
+  # Allows you to run this workflow manually from the Actions tab
+  # workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    env:
+      GO111MODULE: on
+      LISTENPORT: 4444
+      # GITHUBTOKEN:
+      # DISCORDWEBHOOKURL:
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Setup golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+
+      # Runs a single command using the runners shell
+      - name: Check env
+        run: env
+
+      # Runs a set of commands using the runners shell
+      - name: Test for listen server
+        run: |
+          export HOMEDIR=$HOME
+          export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
+          export LISTENSERVER=$(curl -s https://api.ipify.org)
+          echo $HOMEDIR
+          echo $STORAGEDIR
+          echo "LISTENSERVER=$LISTENSERVER"
+          echo "LISTENPORT=$LISTENPORT"
+          echo "DISCORDWEBHOOKURL=$DISCORDWEBHOOKURL"
+          echo "DISCORDWEBHOOKURL2=${{ secrets.DISCORD_WEBHOOK_URL }}$"
+          pwd
+          ls -alt
+          ls -alt $GITHUB_WORKSPACE
+          go get -v github.com/projectdiscovery/simplehttpserver
+          type simplehttpserver
+          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
+          type nc
+          nc -zv $LISTENSERVER $LISTENPORT
+          cat $GITHUB_WORKSPACE/_listen_server.log
