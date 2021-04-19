@@ -90,17 +90,6 @@ custom_origin_dependencies() {
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
     mv -uf $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
 
-    if ! type aquatone; then
-        if [[ -n "$MACOS" ]]; then
-            wget -nc https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_macos_amd64_1.7.0.zip
-            unzip -n $PWD/aquatone_macos_amd64_1.7.0.zip -d aquatone_relese
-        else
-            wget -nc https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip
-            unzip -n $PWD/aquatone_linux_amd64_1.7.0.zip -d aquatone_relese
-        fi
-        ln -s $PWD/aquatone_relese/aquatone /usr/local/bin/aquatone
-    fi
-
     find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }
 
