@@ -32,4 +32,4 @@ _call_log.txt
 attacker.txt
 ffuf_idomain.html
 discord-test.sh
-report.sh
+helpers/old-report.sh

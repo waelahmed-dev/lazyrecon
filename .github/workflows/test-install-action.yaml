@@ -55,6 +55,7 @@ jobs:
           echo $STORAGEDIR
           echo $LISTENSERVER
           echo $LISTENPORT
+          echo "GITHUB_SERVER_URL=$GITHUB_SERVER_URL"
           pwd
           ls -alt
           ls -alt $HOMEDIR
