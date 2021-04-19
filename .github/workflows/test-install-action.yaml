@@ -50,6 +50,7 @@ jobs:
         env:
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          set +x
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
           export LISTENSERVER=$(curl -s https://api.ipify.org)
@@ -60,9 +61,9 @@ jobs:
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
-          sudo -E ./install.sh
+          sudo -E ./install.sh &> /dev/null
           env
           simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
-          nc -h
+          type nc
           nc -zv $LISTENSERVER $LISTENPORT
           $GITHUB_WORKSPACE/helpers/discord-file-hook.sh $GITHUB_WORKSPACE/_listen_server.log
