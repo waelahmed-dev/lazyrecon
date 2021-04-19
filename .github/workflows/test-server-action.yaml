@@ -41,12 +41,12 @@ jobs:
           go-version: 1.14
 
       # Runs a single command using the runners shell
-      - name: Install dependencies
-        if: steps.cache-go.outputs.cache-hit != 'true'
-        env:
-          GO111MODULE: on
-        run: go get -v github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver
-        shell: bash
+      # - name: Install dependencies
+      #   if: steps.cache-go.outputs.cache-hit != 'true'
+      #   env:
+      #     GO111MODULE: on
+      #   run: go get -v github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver
+      #   shell: bash
 
       # Runs a set of commands using the runners shell
       - name: Test for listen server
@@ -63,7 +63,6 @@ jobs:
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
-          type simplehttpserver
-          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
+          python3 -m http.server 43713 &> $GITHUB_WORKSPACE/_listen_server.log
           cat $GITHUB_WORKSPACE/_listen_server.log
         shell: bash
