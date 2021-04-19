@@ -45,7 +45,7 @@ jobs:
         if: steps.cache-go.outputs.cache-hit != 'true'
         env:
           GO111MODULE: on
-        run: go get -v github.com/projectdiscovery/simplehttpserver
+        run: go get -v github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver
         shell: bash
 
       # Runs a set of commands using the runners shell
