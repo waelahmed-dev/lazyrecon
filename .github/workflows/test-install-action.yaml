@@ -59,9 +59,10 @@ jobs:
           echo "LISTENPORT=$LISTENPORT"
           pwd
           ls -alt
-          ls -alt $HOMEDIR
+          ls -alt $GITHUB_WORKSPACE
           sudo -E ./install.sh
           env
-          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $STORAGEDIR/_listen_server.log
+          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
+          nc -h
           nc -zv $LISTENSERVER $LISTENPORT
-          $GITHUB_WORKSPACE/helpers/discord-file-hook.sh $STORAGEDIR/_listen_server.log
+          $GITHUB_WORKSPACE/helpers/discord-file-hook.sh $GITHUB_WORKSPACE/_listen_server.log
