@@ -47,7 +47,8 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
-        env: DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        env:
+          DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
