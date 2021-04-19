@@ -49,7 +49,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
         run: |
-          set +x
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
           export LISTENSERVER=$(curl -s https://api.ipify.org)
@@ -57,6 +56,8 @@ jobs:
           echo $STORAGEDIR
           echo "LISTENSERVER=$LISTENSERVER"
           echo "LISTENPORT=$LISTENPORT"
+          echo "DISCORDWEBHOOKURL=$DISCORDWEBHOOKURL"
+          echo "DISCORDWEBHOOKURL2=${{ secrets.DISCORD_WEBHOOK_URL }}$"
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
