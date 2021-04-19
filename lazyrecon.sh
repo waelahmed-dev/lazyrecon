@@ -26,10 +26,10 @@ dirsearchThreads=10 # to avoid blocking of waf
 
 miniResolvers=./resolvers/mini_resolvers.txt
 
-# used in hydra attack: too much words required up to 6 hours, use preferred list if possible
-# sort -u ../SecLists/Usernames/top-usernames-shortlist.txt ../SecLists/Usernames/cirt-default-usernames.txt ../SecLists/Usernames/mssql-usernames-nansh0u-guardicore.txt ./wordlist/users.txt -o wordlist/users.txt
+# used in hydra attack
+# use preferred list if possible
+# too much words required up to 6 hours
 usersList=./wordlist/top-users.txt
-# sort -u ../SecLists/Passwords/clarkson-university-82.txt ../SecLists/Passwords/cirt-default-passwords.txt ../SecLists/Passwords/darkweb2017-top100.txt ../SecLists/Passwords/probable-v2-top207.txt ./wordlist/passwords.txt -o wordlist/passwords.txt
 passwordsList=./wordlist/top-passwords.txt
 
 
@@ -201,9 +201,6 @@ dnsprobing(){
       echo "[shuffledns] massdns probing with wildcard sieving..."
       shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
-      # echo "[dnsx] dnsprobing..."
-      # echo "[dnsx] wildcard filtering:"
-      # dnsx -l $TARGETDIR/shuffledns-list.txt -wd $1 -o $TARGETDIR/dnsprobe_live.txt
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
       dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
@@ -260,33 +257,32 @@ nucleitest(){
     echo "[nuclei] CVE testing..."
     # -c maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
-    sleep 1
-    nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
-                    -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2014/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2015/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2016/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2017/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2018/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2019/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2020/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2021/ \
-                    -t $HOMEDIR/nuclei-templates/misconfiguration/ \
-                    -t $HOMEDIR/nuclei-templates/network/ \
-                    -t $HOMEDIR/nuclei-templates/headless/ \
-                    -t $HOMEDIR/nuclei-templates/miscellaneous/ \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
-                    -t $HOMEDIR/nuclei-templates/takeovers/ \
-                    -t $HOMEDIR/nuclei-templates/default-logins/ \
-                    -t $HOMEDIR/nuclei-templates/exposures/ \
-                    -t $HOMEDIR/nuclei-templates/exposed-panels/ \
-                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
-                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
-                    -t $HOMEDIR/nuclei-templates/fuzzing/ \
-                    -o $TARGETDIR/nuclei/nuclei_output.txt
+    # nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+    #                 -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2014/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2015/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2016/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2017/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2018/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2019/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2020/ \
+    #                 -t $HOMEDIR/nuclei-templates/cves/2021/ \
+    #                 -t $HOMEDIR/nuclei-templates/misconfiguration/ \
+    #                 -t $HOMEDIR/nuclei-templates/network/ \
+    #                 -t $HOMEDIR/nuclei-templates/headless/ \
+    #                 -t $HOMEDIR/nuclei-templates/miscellaneous/ \
+    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
+    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
+    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
+    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
+    #                 -t $HOMEDIR/nuclei-templates/takeovers/ \
+    #                 -t $HOMEDIR/nuclei-templates/default-logins/ \
+    #                 -t $HOMEDIR/nuclei-templates/exposures/ \
+    #                 -t $HOMEDIR/nuclei-templates/exposed-panels/ \
+    #                 -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
+    #                 -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
+    #                 -t $HOMEDIR/nuclei-templates/fuzzing/ \
+    #                 -o $TARGETDIR/nuclei/nuclei_output.txt
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
       cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
@@ -309,16 +305,11 @@ gospidertest(){
     gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
-    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt # make sure out not in same dir avoid infinit loop
-    # for X in $TARGETDIR/gospider/*
-    #   do
-    #     cat "$X" | grep $1 >> $TARGETDIR/gospider/gospider_raw_out.txt
-    #   done
+    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
 
     # prepare paths list
     grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
     grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
-    # rm -rf $TARGETDIR/gospider/gospider_out.txt
 
     # full paths+queries
     # cat $TARGETDIR/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/gospider/gospider-paths-list.txt
