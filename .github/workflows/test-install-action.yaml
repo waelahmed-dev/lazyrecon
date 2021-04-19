@@ -26,7 +26,6 @@ jobs:
         os: [macos-latest, ubuntu-latest]
     env:
       GO111MODULE: on
-      LISTENSERVER: 127.0.0.1
       LISTENPORT: 4444
       # GITHUBTOKEN:
       # DISCORDWEBHOOKURL:
@@ -51,11 +50,11 @@ jobs:
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
+          export $LISTENSERVER=$(curl -s https://api.ipify.org)
           echo $HOMEDIR
           echo $STORAGEDIR
-          echo $LISTENSERVER
-          echo $LISTENPORT
-          echo "GITHUB_SERVER_URL=$GITHUB_SERVER_URL"
+          echo "LISTENSERVER=$LISTENSERVER"
+          echo "LISTENPORT=$LISTENPORT"
           pwd
           ls -alt
           ls -alt $HOMEDIR

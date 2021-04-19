@@ -9,6 +9,7 @@ TARGETDIR=$2
 CURRENT_TIME=$(date +"%x %r %Z")
 TIME_STAMP="Generated $CURRENT_TIME, by $USER"
 INVOKATION=$(cat ${TARGETDIR}/_call_params.txt)
+PUBLICIP=$(curl -s https://api.ipify.org)
 
 # Images
 images() {
@@ -55,7 +56,8 @@ echo "<!DOCTYPE html>
 </HEAD>
 <BODY>
 <p>Invoked by <a href=https://github.com/storenth/lazyrecon>lazyrecon v2.0</a> with next parameters: $INVOKATION</p>
-<P>$TIME_STAMP</P>
+<p>$TIME_STAMP</p>
+<p>Public IP=$PUBLICIP</p>
 <H1>Security report for $1</H1>
 "
 
