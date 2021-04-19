@@ -65,7 +65,5 @@ jobs:
           ls -alt $GITHUB_WORKSPACE
           type simplehttpserver
           simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
-          type nc
-          nc -zv $LISTENSERVER $LISTENPORT
           cat $GITHUB_WORKSPACE/_listen_server.log
         shell: bash
