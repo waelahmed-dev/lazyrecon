@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
     env:
-      LISTENPORT: 4444
+      LISTENPORT: 43713
       # GITHUBTOKEN:
       # DISCORDWEBHOOKURL:
 
@@ -63,10 +63,13 @@ jobs:
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
-          python3 -m http.server 43713 &> $GITHUB_WORKSPACE/_listen_server.log &
+          python3 -m http.server $LISTENPORT &> $GITHUB_WORKSPACE/_listen_server.log &
           SERVER_PID=$!
-          sleep 10
+          sleep 15
           netstat -vtl
+          type nc
+          nc -zv $LISTENSERVER $LISTENPORT
+          sleep 5
           kill -9 $SERVER_PID
           ls -alt $GITHUB_WORKSPACE/_listen_server.log
           cat $GITHUB_WORKSPACE/_listen_server.log
