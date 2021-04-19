@@ -257,32 +257,33 @@ nucleitest(){
     echo "[nuclei] CVE testing..."
     # -c maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
-    # nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
-    #                 -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2014/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2015/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2016/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2017/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2018/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2019/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2020/ \
-    #                 -t $HOMEDIR/nuclei-templates/cves/2021/ \
-    #                 -t $HOMEDIR/nuclei-templates/misconfiguration/ \
-    #                 -t $HOMEDIR/nuclei-templates/network/ \
-    #                 -t $HOMEDIR/nuclei-templates/headless/ \
-    #                 -t $HOMEDIR/nuclei-templates/miscellaneous/ \
-    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
-    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
-    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
-    #                 -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
-    #                 -t $HOMEDIR/nuclei-templates/takeovers/ \
-    #                 -t $HOMEDIR/nuclei-templates/default-logins/ \
-    #                 -t $HOMEDIR/nuclei-templates/exposures/ \
-    #                 -t $HOMEDIR/nuclei-templates/exposed-panels/ \
-    #                 -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
-    #                 -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
-    #                 -t $HOMEDIR/nuclei-templates/fuzzing/ \
-    #                 -o $TARGETDIR/nuclei/nuclei_output.txt
+    sleep 1
+    nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+                    -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2014/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2015/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2016/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2017/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2018/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2019/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2020/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2021/ \
+                    -t $HOMEDIR/nuclei-templates/misconfiguration/ \
+                    -t $HOMEDIR/nuclei-templates/network/ \
+                    -t $HOMEDIR/nuclei-templates/headless/ \
+                    -t $HOMEDIR/nuclei-templates/miscellaneous/ \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
+                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
+                    -t $HOMEDIR/nuclei-templates/takeovers/ \
+                    -t $HOMEDIR/nuclei-templates/default-logins/ \
+                    -t $HOMEDIR/nuclei-templates/exposures/ \
+                    -t $HOMEDIR/nuclei-templates/exposed-panels/ \
+                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
+                    -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
+                    -t $HOMEDIR/nuclei-templates/fuzzing/ \
+                    -o $TARGETDIR/nuclei/nuclei_output.txt
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
       cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
