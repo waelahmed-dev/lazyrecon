@@ -25,7 +25,6 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
     env:
-      GO111MODULE: on
       LISTENPORT: 4444
       # GITHUBTOKEN:
       # DISCORDWEBHOOKURL:
@@ -42,8 +41,12 @@ jobs:
           go-version: 1.14
 
       # Runs a single command using the runners shell
-      - name: Check env
-        run: env
+      - name: Install dependencies
+        if: steps.cache-go.outputs.cache-hit != 'true'
+        env:
+          GO111MODULE: on
+        run: go get -v github.com/projectdiscovery/simplehttpserver
+        shell: bash
 
       # Runs a set of commands using the runners shell
       - name: Test for listen server
@@ -60,9 +63,9 @@ jobs:
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
-          go get -v github.com/projectdiscovery/simplehttpserver
           type simplehttpserver
           simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
           type nc
           nc -zv $LISTENSERVER $LISTENPORT
           cat $GITHUB_WORKSPACE/_listen_server.log
+        shell: bash
