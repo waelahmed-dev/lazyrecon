@@ -19,7 +19,7 @@ Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdom
 - CI/CD ready
 - HTML/pdf reports
 - Discord integration
-- Background listen server 
+- Background listen server
 - Domain name, list of domains, IP, CIDR input notations support
 - Teardown and program exit housekeeping
 ## Workflow
@@ -59,7 +59,7 @@ export HOMEUSER= # your normal, non root user: e.g.: kali
 export HOMEDIR= # user's home dir e.g.: /home/kali
 export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 # Check for your router configuration to handle incoming TCP connection on the port you specify
-# Local listen server starts automatically as 0.0.0.0:$LISTENPORT, do not need to deploy by hands
+# Local listen server starts automatically as 0.0.0.0:$LISTENPORT using --server parameter
 export LISTENSERVER= # public IP of your router that handle incoming TCP connection
 export LISTENPORT= # check router's port forwarding
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
@@ -75,7 +75,7 @@ export GO111MODULE=on
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 
 ### Github Actions way
-Customize `.github/workflows/test-install-action.yaml` using `./lazyrecon.sh --discord`:
+Customize `.github/workflows/test-install-action.yaml` using `--discord` to receive report:
 ```yaml
 - name: Execute on target
   run: |
@@ -84,6 +84,7 @@ Customize `.github/workflows/test-install-action.yaml` using `./lazyrecon.sh --d
     sudo -E ./install.sh
     sudo ./lazyrecon.sh "bugcrowd.com" --quiet --discord
 ```
+[WIP] Limitations: no port forwarding on github for now so you need to host one.
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
 
@@ -103,6 +104,7 @@ Execute with `sudo` because of `masscan`:
 | --ip           | Single IP of the target machine                       | ./lazyrecon.sh 192.168.0.1 --single --ip        |
 | --list         | List of subdomains to process for (time sensitive)    | ./lazyrecon.sh "./testa.txt" --list             |
 | --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
+| --server       | Deploy local server to handle incoming connection     | ./lazyrecon.sh tesla.com --server               |
 | --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
 | --fuzz         | SSRF/LFI fuzzing                                      | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |

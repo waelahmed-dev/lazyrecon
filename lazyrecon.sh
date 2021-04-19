@@ -44,6 +44,7 @@ fuzz= # enable parameter fuzzing (local server need to be alive)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
+server= # launch local server at 0.0.0.0:$LISTENPORT (port forwarding to $LISTENSERVER required)
 quiet= # quiet mode
 
 # definitions
@@ -675,9 +676,11 @@ main(){
   fi
   mkdir -p $TARGETDIR
 
-  # Listen server
-  simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $TARGETDIR/_listen_server.log &
-  SERVER_PID=$!
+  if [[ -n "$server "]]; then
+    # Listen server
+    simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT -v &> $TARGETDIR/_listen_server.log &
+    SERVER_PID=$!
+  fi
 
   # collect call parameters
   echo "$@" >> $TARGETDIR/_call_params.txt
@@ -819,6 +822,8 @@ checkargs(){
           -b | --brute )          brute="1"
                                   ;;
           -q | --quiet )          quiet="1"
+                                  ;;
+          --server )              server="1"
                                   ;;
           # * )                     invokation $1
           #                         exit 1
