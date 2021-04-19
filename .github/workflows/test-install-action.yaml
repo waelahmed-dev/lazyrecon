@@ -47,10 +47,11 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
+        env: DISCORDWEBHOOKURL: ${{ secrets.DISCORDWEBHOOKURL }}
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
-          export $LISTENSERVER=$(curl -s https://api.ipify.org)
+          export LISTENSERVER=$(curl -s https://api.ipify.org)
           echo $HOMEDIR
           echo $STORAGEDIR
           echo "LISTENSERVER=$LISTENSERVER"
@@ -59,3 +60,7 @@ jobs:
           ls -alt
           ls -alt $HOMEDIR
           sudo -E ./install.sh
+          env
+          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $STORAGEDIR/_listen_server.log
+          nc -zv $LISTENSERVER $LISTENPORT
+          $GITHUB_WORKSPACE/helpers/discord-file-hook.sh $STORAGEDIR/_listen_server.log
