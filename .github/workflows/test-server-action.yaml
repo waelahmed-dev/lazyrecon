@@ -63,6 +63,9 @@ jobs:
           pwd
           ls -alt
           ls -alt $GITHUB_WORKSPACE
-          python3 -m http.server 43713 &> $GITHUB_WORKSPACE/_listen_server.log
+          python3 -m http.server 43713 &> $GITHUB_WORKSPACE/_listen_server.log &
+          SERVER_PID=$!
+          sleep 10
+          kill -9 $SERVER_PID
           cat $GITHUB_WORKSPACE/_listen_server.log
         shell: bash
