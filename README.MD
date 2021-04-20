@@ -61,7 +61,8 @@ export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 # Check for your router configuration to handle incoming TCP connection on the port you specify
 # Local listen server starts automatically as 0.0.0.0:$LISTENPORT using --server parameter
 export LISTENSERVER= # public IP of your router that handle incoming TCP connection
-export LISTENPORT= # check router's port forwarding
+export LISTENPORT= # listen port of your local server
+export SERVICEPORT= # check router's port forwarding or equal to $LISTENPORT
 export ATTACKER=${LISTENSERVER}:${LISTENPORT}
 export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
