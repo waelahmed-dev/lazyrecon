@@ -7,12 +7,6 @@ set -o errtrace
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
 
-echo "Check HOMEUSER: $HOMEUSER"
-echo "Check HOMEUSER: $HOMEDIR"
-echo "Check STORAGEDIR: $STORAGEDIR"
-echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
-echo
-
 # Use sed properly
 SEDOPTION=(-i)
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -843,8 +837,14 @@ if [ $# -gt 1 ]; then
   checkargs "$@"
 fi
 
-if [[ -n "$quiet" ]]; then
+if [ "$quiet" == "" ]; then
   ./logo.sh
+  # env test
+  echo "Check HOMEUSER: $HOMEUSER"
+  echo "Check HOMEUSER: $HOMEDIR"
+  echo "Check STORAGEDIR: $STORAGEDIR"
+  echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
+  echo
   # positional parameters test
   echo "Check params: $@"
   echo "Check # of params: $#"
