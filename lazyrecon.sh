@@ -236,16 +236,10 @@ screenshots(){
         ITERATOR=0
         while read line; do
           ./helpers/getscreenshot.sh "$line"
-          pid_array[ITERATOR]=$!
           ITERATOR=$((ITERATOR+1))
         done < $TARGETDIR/3-all-subdomain-live-scheme.txt
 
         jobs -l
-        for pid in "${!pid_array[@]}"; do
-            echo "waiting ${pid}..."
-            wait ${pid_array[$pid]}
-            echo "_${pid_array[$pid]} done_"
-        done
 
         mv ./*.png $TARGETDIR/screenshots/
         chown $HOMEUSER: $TARGETDIR/screenshots/*
@@ -678,7 +672,7 @@ main(){
 
   if [[ -n "$server" ]]; then
     # Listen server
-    simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT -v &> $TARGETDIR/_listen_server.log &
+    simplehttpserver -silent -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
   fi
 
