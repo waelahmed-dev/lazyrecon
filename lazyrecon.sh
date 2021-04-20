@@ -676,7 +676,7 @@ main(){
   fi
   mkdir -p $TARGETDIR
 
-  if [[ -n "$server "]]; then
+  if [[ -n "$server" ]]; then
     # Listen server
     simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT -v &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
