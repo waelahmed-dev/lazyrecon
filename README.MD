@@ -84,7 +84,7 @@ Customize `.github/workflows/test-install-action.yaml` using `--discord` to rece
     sudo -E ./install.sh
     sudo ./lazyrecon.sh "bugcrowd.com" --quiet --discord
 ```
-[WIP] Limitations: no port forwarding on github for now so you need to host one.
+[WIP] Limitations: no port forwarding on github so you need to host listen server for now.
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
 
