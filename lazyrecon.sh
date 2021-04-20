@@ -235,7 +235,7 @@ screenshots(){
         declare -a pid_array
         ITERATOR=0
         while read line; do
-          ./helpers/getscreenshot.sh "$line" &
+          ./helpers/getscreenshot.sh "$line"
           pid_array[ITERATOR]=$!
           ITERATOR=$((ITERATOR+1))
         done < $TARGETDIR/3-all-subdomain-live-scheme.txt
