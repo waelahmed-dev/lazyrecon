@@ -5,6 +5,11 @@ set -o errtrace
 # Config
 . ./lazyconfig
 
+# background PID's control
+PID_GAU=
+PID_WAYBACK=
+
+
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
 
 # Use sed properly
@@ -105,14 +110,14 @@ checkwaybackurls(){
   SCOPE=$1
 
   getgau &
-  pid_1=$!
+  PID_GAU=$!
 
   getwaybackurl &
-  pid_2=$!
+  PID_WAYBACK=$!
 
   getgithubendpoints $1
 
-  wait $pid_1 $pid_2
+  wait $PID_GAU $PID_WAYBACK
 
   sort -u $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
   # teardown: remove raw files
@@ -666,6 +671,7 @@ main(){
 
   if [[ -n "$server" ]]; then
     # Listen server
+    echo "Starting listen server 0.0.0.0:${LISTENPORT}..."
     simplehttpserver -silent -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
   fi
@@ -676,7 +682,6 @@ main(){
 
   # used for ffuf bruteforce
   if [ "$mad" = "1" ]; then
-
     # merged wayback, gospider, nuclei list
     touch $TARGETDIR/query_list.txt
     queryList=$TARGETDIR/query_list.txt
@@ -757,6 +762,7 @@ clean_up() {
   echo "housekeeping rm -rf $TARGETDIR"
   rm -rf $TARGETDIR
   kill_listen_server
+  kill_background_pid
   exit 1
 }
 
@@ -841,9 +847,9 @@ if [ "$quiet" == "" ]; then
   ./logo.sh
   # env test
   echo "Check HOMEUSER: $HOMEUSER"
-  echo "Check HOMEUSER: $HOMEDIR"
+  echo "Check HOMEDIR: $HOMEDIR"
   echo "Check STORAGEDIR: $STORAGEDIR"
-  echo "Check LISTENSERVER: http://${LISTENSERVER}:${LISTENPORT}"
+  echo "Check LISTENSERVER: http://${LISTENSERVER}:${SERVICEPORT}"
   echo
   # positional parameters test
   echo "Check params: $@"
@@ -858,6 +864,9 @@ if [ "$quiet" == "" ]; then
   echo "Check params \$mad: $mad"
   echo "Check params \$alt: $alt"
   echo "Check params \$wildcard: $wildcard"
+  echo "Check params \$server: $server"
+  echo "Check params \$discord: $discord"
+  echo
 fi
 
 
@@ -870,6 +879,14 @@ kill_listen_server(){
     kill -9 $SERVER_PID
   fi
 }
+# kill background jobs
+kill_background_pid(){
+  if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
+    jobs -l
+    echo "$PID_GAU and $PID_WAYBACK"
+    kill -9 $SERVER_PID $PID_WAYBACK
+  fi
+}
 
 # handle script issues
 error_exit(){
@@ -879,6 +896,7 @@ error_exit(){
     ./discord-hook.sh "[error] line $(caller): ${stats}: "
   fi
   kill_listen_server
+  kill_background_pid
   exit 1
 }
 
