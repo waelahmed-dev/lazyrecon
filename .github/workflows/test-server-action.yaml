@@ -1,4 +1,4 @@
-# This is a setup workflow to help test ./install.sh on linux
+# This is a demo setup workflow to test ./lazyrecon.sh on Mac and linux
 
 name: test-server-action
 

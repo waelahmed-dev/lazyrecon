@@ -1,4 +1,4 @@
-# This is a setup workflow to help test ./install.sh on linux
+# This is a setup workflow to help test ./install.sh on Mac and linux
 
 name: test-install-action
 
@@ -26,7 +26,6 @@ jobs:
         os: [macos-latest, ubuntu-latest]
     env:
       GO111MODULE: on
-      LISTENPORT: 4444
       # GITHUBTOKEN:
       # DISCORDWEBHOOKURL:
 
@@ -47,24 +46,12 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
-        with:
-          DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
-          export LISTENSERVER=$(curl -s https://api.ipify.org)
           echo $HOMEDIR
           echo $STORAGEDIR
-          echo "LISTENSERVER=$LISTENSERVER"
-          echo "LISTENPORT=$LISTENPORT"
-          echo "DISCORDWEBHOOKURL=$DISCORDWEBHOOKURL"
-          echo "DISCORDWEBHOOKURL2=${{ secrets.DISCORD_WEBHOOK_URL }}$"
           pwd
           ls -alt
-          ls -alt $GITHUB_WORKSPACE
           sudo -E ./install.sh &> /dev/null
           env
-          simplehttpserver -listen 0.0.0.0:$LISTENPORT -v &> $GITHUB_WORKSPACE/_listen_server.log
-          type nc
-          nc -zv $LISTENSERVER $LISTENPORT
-          $GITHUB_WORKSPACE/helpers/discord-file-hook.sh $GITHUB_WORKSPACE/_listen_server.log
