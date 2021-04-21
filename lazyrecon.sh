@@ -8,6 +8,7 @@ set -o errtrace
 # background PID's control
 PID_GAU=
 PID_WAYBACK=
+SERVER_PID=
 
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
@@ -759,10 +760,12 @@ main(){
 
 clean_up() {
   # Perform program exit housekeeping
-  echo "housekeeping rm -rf $TARGETDIR"
-  rm -rf $TARGETDIR
+  jobs -l
+  echo "kill_listen_server"
   kill_listen_server
   kill_background_pid
+  echo "housekeeping rm -rf $TARGETDIR"
+  rm -rf $TARGETDIR
   exit 1
 }
 
@@ -883,8 +886,8 @@ kill_listen_server(){
 kill_background_pid(){
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
     jobs -l
-    echo "$PID_GAU and $PID_WAYBACK"
-    kill -9 $SERVER_PID $PID_WAYBACK
+    echo "kill $PID_GAU and $PID_WAYBACK"
+    kill -9 $PID_GAU $PID_WAYBACK
   fi
 }
 
