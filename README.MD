@@ -36,16 +36,16 @@ This script is intended to automate your reconnaissance process in an organized 
 - Subdomain discovery through alterations and permutations using `altdns` and `dnsgen`
 - Filtering out live subdomains from a list of hosts using `shuffledns`
 - Check 1-200,8000-10000 for http(s) probes using `httpx`
-- Get visual part using `aquatone`
+- Get visual part using `headless chromium`
 - Perform `masscan` on live servers
 - Automatically brute-forces services with default credentials using `hydra`
 - Scanning for known paths and CVEs using `nuclei`
 - Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
 - Check for potential request smuggling vulnerabilities using `smuggler`
 - Perform `ffuf` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
-- Generate reports and send it to Discord
+- Generate report and send it to Discord
 
-The point is to get a list of live IPs, attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
+The point is to get a list of live IPs (in form of socket addresses), attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Installing
 - `Linux` tested
@@ -63,8 +63,8 @@ export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 export LISTENSERVER= # public IP of your router that handle incoming TCP connection
 export LISTENPORT= # listen port of your local server
 export SERVICEPORT= # check router's port forwarding or equal to $LISTENPORT
-export ATTACKER=${LISTENSERVER}:${LISTENPORT}
-export ATTACKERURL=http://${LISTENSERVER}:${LISTENPORT}
+export ATTACKER=${LISTENSERVER}:${SERVICEPORT}
+export ATTACKERURL=http://${LISTENSERVER}:${SERVICEPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
 export GOPATH=$HOMEDIR/go
@@ -107,7 +107,7 @@ Execute with `sudo` because of `masscan`:
 | --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
 | --server       | Deploy local server to handle incoming connection     | ./lazyrecon.sh tesla.com --server               |
 | --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
-| --fuzz         | SSRF/LFI fuzzing                                      | ./lazyrecon.sh tesla.com --mad --fuzz           |
+| --fuzz         | SSRF/LFI/SQLi fuzzing                                 | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
 | --brute        | Basic directory bruteforce (time sensitive)           | ./lazyrecon.sh tesla.com --single --brute       |
 | --discord      | Send notifications to discord                         | ./lazyrecon.sh tesla.com --discord              |
@@ -117,7 +117,7 @@ Execute with `sudo` because of `masscan`:
 # Methodology
 0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
 1. Run `./lazyrecon.sh`
-2. Check output reports of aquatone, nuclei, nmap, hydra, server_log, ffuf
+2. Check output reports of chromium, nuclei, nmap, hydra, server_log, ffuf
 3. Explore file upload vulnerabilities
 4. Perform Google, Trello, Atlassian, Github, Bitbucket dorking
 5. Check JS sources for credentials, API endpoints
@@ -144,6 +144,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
  - ~~`httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)~~
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
  - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
+ - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
  - WIP: you can track activity in Projects To Do board
 
 
