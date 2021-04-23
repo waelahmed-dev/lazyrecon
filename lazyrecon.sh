@@ -257,8 +257,6 @@ screenshots(){
                 done
             fi
     done < $TARGETDIR/3-all-subdomain-live-scheme.txt 
-        done < $TARGETDIR/3-all-subdomain-live-scheme.txt
-    done < $TARGETDIR/3-all-subdomain-live-scheme.txt 
     # remaining targets
     echo
     echo "[screenshot] remaining targets: ${#PID_CHROMIUM[@]}"
