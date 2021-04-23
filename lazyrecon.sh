@@ -1,5 +1,5 @@
 #!/bin/bash
-set -o errtrace
+set -eE
 # Invoke with sudo because of masscan/nmap
 
 # Config
@@ -252,7 +252,7 @@ screenshots(){
                 for PID_TMP in "${!PID_CHROMIUM[@]}"; do
                     echo "#PID_CHROMIUM=${#PID_CHROMIUM[@]}"
                     echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-                    kill -9 "${PID_CHROMIUM[$PID_TMP]}"
+                    kill -9 "${PID_CHROMIUM[$PID_TMP]}" || true
                     unset PID_CHROMIUM[$PID_TMP]
                 done
             fi
@@ -263,7 +263,7 @@ screenshots(){
     sleep 6
     for PID_TMP in "${!PID_CHROMIUM[@]}"; do
         echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-        kill -9 ${PID_CHROMIUM[$PID_TMP]}
+        kill -9 ${PID_CHROMIUM[$PID_TMP]} || true
         unset PID_CHROMIUM[$PID_TMP]
     done
     jobs -l
@@ -696,9 +696,9 @@ main(){
 
   if [[ -n "$server" ]]; then
     # Listen server
-    echo "Starting listen server 0.0.0.0:${LISTENPORT}..."
     simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
+    echo "Listen server is up 0.0.0.0:${LISTENPORT} with PID=$SERVER_PID"
   fi
 
   # collect call parameters
@@ -776,7 +776,7 @@ main(){
   touch $TARGETDIR/wayback-subdomains-list.txt
 
   # clean up when script receives a signal
-  trap clean_up SIGHUP SIGINT SIGTERM SIGSTOP SIGKILL
+  trap clean_up SIGINT
 
     recon $1
     report $1
@@ -784,12 +784,13 @@ main(){
 
 clean_up() {
   # Perform program exit housekeeping
-  echo "kill_listen_server"
-  kill_listen_server
-  kill_background_pid
+  echo
+  echo "clean_up..."
   echo "housekeeping rm -rf $TARGETDIR"
   rm -rf $TARGETDIR
-  exit 1
+  kill_listen_server
+  kill 0
+  exit 0
 }
 
 usage(){
@@ -902,7 +903,7 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 # kill listen server
 kill_listen_server(){
   if [[ -n "$SERVER_PID" ]]; then
-    kill -2 $SERVER_PID
+    kill -2 $SERVER_PID || true
   fi
 }
 
@@ -917,21 +918,20 @@ kill_background_pid(){
   echo "killing chromium jobs..."
     for PID_TMP in "${!PID_CHROMIUM[@]}"; do
         echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-        kill -9 "${PID_CHROMIUM[$PID_TMP]}"
+        kill -9 "${PID_CHROMIUM[$PID_TMP]}" || true
     done
   fi
 
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
     echo "kill $PID_GAU and $PID_WAYBACK"
-    kill -9 $PID_GAU $PID_WAYBACK
+    kill -9 $PID_GAU $PID_WAYBACK || true
   fi
 
   if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
     echo "kill $PID_SCREEN and $PID_NUCLEI"
-    kill -9 $PID_SCREEN $PID_NUCLEI
+    kill -9 $PID_SCREEN $PID_NUCLEI || true
   fi
 
-  sleep 5
   echo "subshell after:"
   jobs -l
 }
@@ -950,11 +950,23 @@ error_exit(){
   exit 1
 }
 
+# handle teardown
+debug_exit(){
+  echo
+  echo "[DEBUG]: debug_exit()"
+  stats=$(tail -n 1 _err.log)
+  echo $stats
+}
+
 trap error_exit ERR
+trap debug_exit EXIT
 
 # invoke
 main "$@" 2> _err.log
 kill_listen_server
+kill 0
+echo "check for background and subshell"
+jobs -l
 
 if [[ -n "$discord" ]]; then
   ./discord-hook.sh "[info] $1 done"
