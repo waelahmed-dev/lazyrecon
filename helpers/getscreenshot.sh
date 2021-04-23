@@ -7,4 +7,4 @@
 
 # SCOPE=$(echo $2 | awk -F '//' '{print $NF}')
 SCOPE=$(echo $2 | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
-chromium --headless --disable-gpu --window-size=1280,720 --screenshot="${1}/${SCOPE}.png" $2
+chromium --headless --disable-gpu --no-sandbox --window-size=1280,720 --screenshot="${1}/${SCOPE}.png" $2
