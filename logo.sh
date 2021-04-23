@@ -48,4 +48,4 @@ echo "${BLUE}nahamsec/lazyrecon v1.0 forked by storenth/lazyrecon v2.0"
 echo "${BLUE}${BOLD}To keep up on the latest news and updates, follow me on Twitter: https://twitter.com/storenth"
 printf "${BLUE}${BOLD}%s${RESET}\n" "I am looking for your support: https://github.com/storenth/lazyrecon"
 printf "\n"
-exit 1
+exit 0
