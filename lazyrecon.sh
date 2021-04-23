@@ -9,7 +9,10 @@ set -o errtrace
 PID_GAU=
 PID_WAYBACK=
 SERVER_PID=
-
+PID_SCREEN=
+PID_NUCLEI=
+# to handle background PID of screenshot
+declare -a PID_CHROMIUM
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
 
@@ -187,12 +190,12 @@ dnsprobing(){
     echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n $list ]]; then
-      echo "[shuffledns] massdns probing..."
-      shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
-      # additional resolving because shuffledns missing IP on output
+      # echo "[shuffledns] massdns probing..."
+      # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
+      # # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/2-all-subdomains.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -216,33 +219,56 @@ dnsprobing(){
 checkhttprobe(){
   echo
   echo "[httpx] Starting httpx probe testing..."
-  # resolve IP and hosts with http|https for nuclei, aquatone, gospider, ssrf and ffuf-bruteforce
+  # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n $ip || -n $cidr ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $TARGETDIR/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 80,443,4444,8000,8001,8008,8080,8443,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live.txt
 }
 
+# async ability for execute chromium
+# 10 threads
+# kill used as workaround:
+# https://bugs.chromium.org/p/chromium/issues/detail?id=1097565&can=2&q=component%3AInternals%3EHeadless
 screenshots(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     mkdir $TARGETDIR/screenshots
-      # to handle background PID
-        declare -a pid_array
-        ITERATOR=0
-        while read line; do
-          ./helpers/getscreenshot.sh "$line"
-          ITERATOR=$((ITERATOR+1))
+    ITERATOR=0
+    while read line; do
+        echo
+        echo "[screenshot] new target..."
+        echo $line
+            ./helpers/getscreenshot.sh "$TARGETDIR/screenshots" "$line" &
+            PID_CHROMIUM[$ITERATOR]=$!
+            echo "PID_CHROMIUM=${PID_CHROMIUM[@]}"
+            ITERATOR=$((ITERATOR+1))
+            if [ $((ITERATOR % 10)) -eq 0 ]; then
+              sleep 6
+                for PID_TMP in "${!PID_CHROMIUM[@]}"; do
+                    echo "#PID_CHROMIUM=${#PID_CHROMIUM[@]}"
+                    echo "kill ${PID_CHROMIUM[$PID_TMP]}"
+                    kill -9 "${PID_CHROMIUM[$PID_TMP]}"
+                    unset PID_CHROMIUM[$PID_TMP]
+                done
+            fi
+    done < $TARGETDIR/3-all-subdomain-live-scheme.txt 
         done < $TARGETDIR/3-all-subdomain-live-scheme.txt
-
-        jobs -l
-
-        mv ./*.png $TARGETDIR/screenshots/
-        chown $HOMEUSER: $TARGETDIR/screenshots/*
+    done < $TARGETDIR/3-all-subdomain-live-scheme.txt 
+    # remaining targets
+    echo
+    echo "[screenshot] remaining targets: ${#PID_CHROMIUM[@]}"
+    sleep 6
+    for PID_TMP in "${!PID_CHROMIUM[@]}"; do
+        echo "kill ${PID_CHROMIUM[$PID_TMP]}"
+        kill -9 ${PID_CHROMIUM[$PID_TMP]}
+        unset PID_CHROMIUM[$PID_TMP]
+    done
+    jobs -l
   fi
 }
 
@@ -574,7 +600,7 @@ ffufbrute(){
 
 recon(){
   enumeratesubdomains $1
-  if [[ -n "$mad" ]]; then
+  if [[ -n "$mad" && ( -n "$single" || -n "$wildcard" ) ]]; then
     checkwaybackurls $1
   fi
   sortsubdomains $1
@@ -583,9 +609,9 @@ recon(){
   dnsprobing $1
   checkhttprobe $1
 
-  screenshots $1 &
+  (screenshots $1) &
   PID_SCREEN=$!
-  nucleitest $1 &
+  (nucleitest $1) &
   PID_NUCLEI=$!
 
   if [ "$mad" = "1" ]; then
@@ -673,7 +699,7 @@ main(){
   if [[ -n "$server" ]]; then
     # Listen server
     echo "Starting listen server 0.0.0.0:${LISTENPORT}..."
-    simplehttpserver -silent -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
+    simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
   fi
 
@@ -760,7 +786,6 @@ main(){
 
 clean_up() {
   # Perform program exit housekeeping
-  jobs -l
   echo "kill_listen_server"
   kill_listen_server
   kill_background_pid
@@ -879,20 +904,44 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 # kill listen server
 kill_listen_server(){
   if [[ -n "$SERVER_PID" ]]; then
-    kill -9 $SERVER_PID
+    kill -2 $SERVER_PID
   fi
 }
-# kill background jobs
+
+# kill background and subshell
 kill_background_pid(){
+  echo "subshell before:"
+  jobs -l
+
+  kill 0
+
+  if [ "${#PID_CHROMIUM[@]}" -gt 0 ]; then
+  echo "killing chromium jobs..."
+    for PID_TMP in "${!PID_CHROMIUM[@]}"; do
+        echo "kill ${PID_CHROMIUM[$PID_TMP]}"
+        kill -9 "${PID_CHROMIUM[$PID_TMP]}"
+    done
+  fi
+
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
-    jobs -l
     echo "kill $PID_GAU and $PID_WAYBACK"
     kill -9 $PID_GAU $PID_WAYBACK
   fi
+
+  if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
+    echo "kill $PID_SCREEN and $PID_NUCLEI"
+    kill -9 $PID_SCREEN $PID_NUCLEI
+  fi
+
+  sleep 5
+  echo "subshell after:"
+  jobs -l
 }
 
 # handle script issues
 error_exit(){
+  echo
+  echo "[ERROR]: error_exit()"
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
