@@ -44,6 +44,7 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
       unset PID_CHROMIUM[$PID_TMP]
   done
 
-  echo "[screenshot][debug] jobs: -pl:"
+  echo "[screenshot][debug] jobs -l:"
   jobs -l
+
 fi
