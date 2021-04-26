@@ -1,5 +1,6 @@
 #!/bin/bash
 set -eE
+set -m
 # Invoke with sudo because of masscan/nmap
 
 # Config
@@ -11,8 +12,7 @@ PID_WAYBACK=
 SERVER_PID=
 PID_SCREEN=
 PID_NUCLEI=
-# to handle background PID of screenshot
-declare -a PID_CHROMIUM
+
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
 
@@ -232,52 +232,22 @@ checkhttprobe(){
 }
 
 # async ability for execute chromium
-# 10 threads
-# kill used as workaround:
-# https://bugs.chromium.org/p/chromium/issues/detail?id=1097565&can=2&q=component%3AInternals%3EHeadless
 screenshots(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     mkdir $TARGETDIR/screenshots
-    ITERATOR=0
-    while read line; do
-        echo
-        echo "[screenshot] new target..."
-        echo $line
-            ./helpers/getscreenshot.sh "$TARGETDIR/screenshots" "$line" &
-            PID_CHROMIUM[$ITERATOR]=$!
-            echo "PID_CHROMIUM=${PID_CHROMIUM[@]}"
-            ITERATOR=$((ITERATOR+1))
-            if [ $((ITERATOR % 10)) -eq 0 ]; then
-              sleep 6
-                for PID_TMP in "${!PID_CHROMIUM[@]}"; do
-                    echo "#PID_CHROMIUM=${#PID_CHROMIUM[@]}"
-                    echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-                    kill -9 "${PID_CHROMIUM[$PID_TMP]}" || true
-                    unset PID_CHROMIUM[$PID_TMP]
-                done
-            fi
-    done < $TARGETDIR/3-all-subdomain-live-scheme.txt 
-    # remaining targets
-    echo
-    echo "[screenshot] remaining targets: ${#PID_CHROMIUM[@]}"
-    sleep 6
-    for PID_TMP in "${!PID_CHROMIUM[@]}"; do
-        echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-        kill -9 ${PID_CHROMIUM[$PID_TMP]} || true
-        unset PID_CHROMIUM[$PID_TMP]
-    done
-    jobs -l
+    ./helpers/asyncscreen.sh "$TARGETDIR"
   fi
 }
 
 nucleitest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[nuclei] CVE testing..."
+    echo "[nuclei] technologies testing..."
     # -c maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
-    sleep 1
-    nuclei -silent -stats -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+    echo "[nuclei] CVE testing..."
+    nuclei -v -disk-export $TARGETDIR/nuclei/nucleilog -o $TARGETDIR/nuclei/nuclei_output.txt \
+                    -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
                     -t $HOMEDIR/nuclei-templates/cves/2015/ \
@@ -289,7 +259,6 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/cves/2021/ \
                     -t $HOMEDIR/nuclei-templates/misconfiguration/ \
                     -t $HOMEDIR/nuclei-templates/network/ \
-                    -t $HOMEDIR/nuclei-templates/headless/ \
                     -t $HOMEDIR/nuclei-templates/miscellaneous/ \
                     -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
                     -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
@@ -301,8 +270,7 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/exposed-panels/ \
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
-                    -t $HOMEDIR/nuclei-templates/fuzzing/ \
-                    -o $TARGETDIR/nuclei/nuclei_output.txt
+                    -t $HOMEDIR/nuclei-templates/fuzzing/
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
       cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
@@ -607,9 +575,9 @@ recon(){
   dnsprobing $1
   checkhttprobe $1
 
-  (screenshots $1) &
+  screenshots $1 &
   PID_SCREEN=$!
-  (nucleitest $1) &
+  nucleitest $1 &
   PID_NUCLEI=$!
 
   if [ "$mad" = "1" ]; then
@@ -637,7 +605,6 @@ recon(){
 
   echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
   wait $PID_SCREEN $PID_NUCLEI
-  jobs -l
   echo "Recon done!"
 }
 
@@ -789,7 +756,7 @@ clean_up() {
   echo "housekeeping rm -rf $TARGETDIR"
   rm -rf $TARGETDIR
   kill_listen_server
-  kill 0
+  kill_background_pid
   exit 0
 }
 
@@ -903,7 +870,7 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 # kill listen server
 kill_listen_server(){
   if [[ -n "$SERVER_PID" ]]; then
-    kill -2 $SERVER_PID || true
+    kill -2 $SERVER_PID &> /dev/null || true
   fi
 }
 
@@ -912,24 +879,16 @@ kill_background_pid(){
   echo "subshell before:"
   jobs -l
 
-  kill 0
-
-  if [ "${#PID_CHROMIUM[@]}" -gt 0 ]; then
-  echo "killing chromium jobs..."
-    for PID_TMP in "${!PID_CHROMIUM[@]}"; do
-        echo "kill ${PID_CHROMIUM[$PID_TMP]}"
-        kill -9 "${PID_CHROMIUM[$PID_TMP]}" || true
-    done
-  fi
-
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
     echo "kill $PID_GAU and $PID_WAYBACK"
-    kill -9 $PID_GAU $PID_WAYBACK || true
+    kill -- -${PID_GAU} &> /dev/null || true
+    kill -- -${PID_WAYBACK} &> /dev/null || true
   fi
 
   if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
     echo "kill $PID_SCREEN and $PID_NUCLEI"
-    kill -9 $PID_SCREEN $PID_NUCLEI || true
+    kill -- -${PID_SCREEN} &> /dev/null || true
+    kill -- -${PID_NUCLEI} &> /dev/null || true
   fi
 
   echo "subshell after:"
@@ -964,7 +923,7 @@ trap debug_exit EXIT
 # invoke
 main "$@" 2> _err.log
 kill_listen_server
-kill 0
+
 echo "check for background and subshell"
 jobs -l
 
