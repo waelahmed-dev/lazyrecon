@@ -20,30 +20,27 @@ images() {
         echo "<p><a href=$URL>${URL}</a></p>"
         echo "<img src=${line} width=400px height=auto alt=${URL}>"
         # get nuclei's output
+        if [ -s ${TARGETDIR}/nuclei/nuclei_output_technology.txt ]; then
         technote="$(grep $URL ${TARGETDIR}/nuclei/nuclei_output_technology.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1 $3}')"
-        for tech in $technote; do
-            echo "<p style='color: #404040; font-size: 10px;'>${tech}</p>"
-        done
-        techissue="$(grep $URL ${TARGETDIR}/nuclei/nuclei_output.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1 $3}')"
-        for issue in $techissue; do
-            echo "<p style='color: #AD3F60; font-size: 10px;'>${issue}</p>"
-        done
+            for tech in $technote; do
+                echo "<p style='color: #404040; font-size: 10px;'>${tech}</p>"
+            done
+        fi
+        if [ -s ${TARGETDIR}/nuclei/nuclei_output.txt ]; then
+            techissue="$(grep $URL ${TARGETDIR}/nuclei/nuclei_output.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1 $3}')"
+            for issue in $techissue; do
+                echo "<p style='color: #AD3F60; font-size: 10px;'>${issue}</p>"
+            done
+        fi
     done
     echo '</div>'
 }
 
-# based on nuclei
-technologies() {
+serverlogs(){
     echo '<div>'
-    for line in ${TARGETDIR}/screenshots/*; do
-        FILENAME=$(basename $line | sed 's/[.]png//')
-        URL=$(echo "${FILENAME}" | sed -E 's/^(.*)_/\1\:/; s/_/./g')
-        technote=$(grep $URL ${TARGETDIR}/nuclei/nuclei_output_technology.txt)
-        echo $technote
-    done
+    awk 'NR>11' $TARGETDIR/_listen_server.log
     echo '</div>'
 }
-
 
 # Main entry point
 echo "<!DOCTYPE html>
@@ -62,6 +59,7 @@ echo "<!DOCTYPE html>
 "
 
 images
+serverlogs
 
 echo "</BODY>
 </HTML>
