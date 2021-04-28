@@ -152,22 +152,22 @@ sortsubdomains(){
 permutatesubdomains(){
   if [ "$alt" = "1" ]; then
     mkdir $TARGETDIR/alterated/
-    echo "altdns..."
-    altdns -i $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/alterated/altdns_out.txt -w $customSubdomainsWordList
-    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/altdns_out.txt
+    # echo "altdns..."
+    # altdns -i $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/alterated/altdns_out.txt -w $customSubdomainsWordList
+    # sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/altdns_out.txt
 
     echo "dnsgen..."
-    dnsgen -f $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/alterated/dnsgen_out.txt
+    dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/alterated/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[-]/d' $TARGETDIR/alterated/dnsgen_out.txt
 
     # combine permutated domains and exclude out of scope domains
-    SCOPE=$1
-    echo "SCOPE=$SCOPE"
-    grep -r -h "[.]${SCOPE}$" $TARGETDIR/alterated | sort | uniq > $TARGETDIR/alterated/permutated-list.txt
+    # SCOPE=$1
+    # echo "SCOPE=$SCOPE"
+    # grep -r -h "[.]${SCOPE}$" $TARGETDIR/alterated | sort | uniq > $TARGETDIR/alterated/permutated-list.txt
 
-    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/alterated/permutated-list.txt -o $TARGETDIR/2-all-subdomains.txt
-    rm -rf $TARGETDIR/alterated/*
+    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/alterated/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
+    # rm -rf $TARGETDIR/alterated/*
   fi
 }
 
@@ -229,6 +229,7 @@ checkhttprobe(){
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live.txt
+  echo
 }
 
 # async ability for execute chromium
@@ -545,7 +546,7 @@ hydratest(){
 
     if [ "$PROTOCOL" = "ftp" -o "$PROTOCOL" = "ssh" -o "$PROTOCOL" = "smtp" -o "$PROTOCOL" = "mysql" ]; then
       echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
-      hydra -o $TARGETDIR/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL
+      hydra -o $TARGETDIR/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL || true
     fi
   done < $TARGETDIR/masscan_output.gnmap
 }
