@@ -37,9 +37,11 @@ images() {
 }
 
 serverlogs(){
-    echo '<div>'
-    awk 'NR>11' $TARGETDIR/_listen_server.log
-    echo '</div>'
+    if [ -s ${TARGETDIR}/_listen_server.log ]; then
+        echo '<div>'
+        awk 'NR>11' $TARGETDIR/_listen_server.log
+        echo '</div>'
+    fi
 }
 
 # Main entry point
