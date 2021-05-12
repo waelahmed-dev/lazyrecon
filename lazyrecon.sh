@@ -47,7 +47,7 @@ fuzz= # enable parameter fuzzing (local server need to be alive)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
-server= # launch local server at 0.0.0.0:$LISTENPORT (port forwarding to $LISTENSERVER required)
+server= # automatically deploy https://github.com/projectdiscovery/interactsh
 quiet= # quiet mode
 
 # definitions
@@ -150,7 +150,7 @@ sortsubdomains(){
 }
 
 permutatesubdomains(){
-  if [ "$alt" = "1" ]; then
+  if [[ -n "$alt" && -n "$wildcard" ]]; then
     mkdir $TARGETDIR/alterated/
     # echo "altdns..."
     # altdns -i $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/alterated/altdns_out.txt -w $customSubdomainsWordList
@@ -177,19 +177,19 @@ permutatesubdomains(){
 dnsprobing(){
   echo
   # check we test hostname or IP
-  if [[ -n $ip ]]; then
+  if [[ -n "$ip" ]]; then
     echo
     echo "[dnsx] try to get PTR records"
     echo $1 > $TARGETDIR/dnsprobe_ip.txt
     echo $1 | dnsx -silent -ptr -resp-only -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
-  elif [[ -n $cidr ]]; then
+  elif [[ -n "$cidr" ]]; then
     echo "[dnsx] try to get PTR records"
     cp  $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/dnsprobe_ip.txt
     dnsx -silent -ptr -resp-only -r $miniResolvers -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
-  elif [ "$single" = "1" ]; then
+  elif [[ -n "$single" ]]; then
     echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
-  elif [[ -n $list ]]; then
+  elif [[ -n "$list" ]]; then
       # echo "[shuffledns] massdns probing..."
       # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
       # # additional resolving because shuffledns missing IP on output
@@ -208,6 +208,7 @@ dnsprobing(){
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
       dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
+
       # clear file from [ and ] symbols
       tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -225,11 +226,31 @@ checkhttprobe(){
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+
+      if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
+        echo "finding math mode of the IP numbers"
+        MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | sed 's/^ *//')
+        ISMODEOCTET1=$(echo $MODEOCTET | awk '{ print $1 }')
+        if ((ISMODEOCTET1 > 1)); then
+          MODEOCTET1=$(echo $MODEOCTET | awk '{ print $2 }')
+
+          MODEOCTET=$(cut -f2 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | sed 's/^ *//')
+          ISMODEOCTET2=$(echo $MODEOCTET | awk '{ print $1 }')
+          if ((ISMODEOCTET2 > 1)); then
+            MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
+            CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
+            echo "mode found: $CIDR1"
+            # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -ptr -resp-only -r $miniResolvers | grep $1 | sort | uniq | shuffledns -silent -d $1 -retries 2 -r $miniResolvers | httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+            # sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+          fi
+        fi
+        echo "finding math mode done."
+      fi
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live.txt
-  echo
 }
 
 # async ability for execute chromium
@@ -361,7 +382,7 @@ custompathlist(){
     pid_02=$!
     sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
     wait $pid_01 $pid_02
-
+    echo "Custom queryList done."
   fi
 }
 
@@ -427,12 +448,13 @@ ssrftest(){
       ITERATOR=0
       while read line; do
         ITERATOR=$((ITERATOR+1))
-        echo "processing $ITERATOR line"
-        echo "[line] $line"
+        # echo "processing $ITERATOR line"
+        # echo "[line] $line"
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
       done < $customSsrfQueryList
 
       if [ -s $TARGETDIR/ssrf-list.txt ]; then
+        echo "[SSRF-3] fuzz gf ssrf endpoints"
         chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
         # simple math to watch progress
         HOSTCOUNT=$(cat $TARGETDIR/3-all-subdomain-live-scheme.txt | wc -l)
@@ -440,7 +462,6 @@ ssrftest(){
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          echo "[SSRF-3] fuzz gf ssrf endpoints "
           ffuf -s -r -c -t 50 -u HOST/PATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
