@@ -18,7 +18,7 @@ go >= 1.14
 - Take care about appropriate tokens and API keys
 - Don't forget that the script act as a root user
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
-2. [simplehttpserver](https://github.com/projectdiscovery/simplehttpserver)
+2. [interactsh](https://github.com/projectdiscovery/interactsh)
 3. [assetfinder](https://github.com/tomnomnom/assetfinder)
 4. [github-subdomains](https://github.com/storenth/github-search/blob/master/github-subdomains.py)
 5. [github-endpoints](https://github.com/storenth/github-search/blob/master/github-endpoints.py)

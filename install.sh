@@ -3,6 +3,8 @@
 # Script works in current directory
 # for MAC users nmap needs to be pre-installed
 
+. ./lazyconfig
+
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
@@ -24,7 +26,7 @@ third_party_go_dependencies(){
     declare -A gotools
     gotools["subfinder"]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
     gotools["shuffledns"]="go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
-    gotools["simplehttpserver"]="go get -v github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver"
+    gotools["interactsh"]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
     gotools["nuclei"]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
     gotools["mapcidr"]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
     gotools["httpx"]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"

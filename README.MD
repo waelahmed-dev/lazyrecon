@@ -33,7 +33,7 @@ This script is intended to automate your reconnaissance process in an organized 
 
 - Create a dated folder with recon notes for target
 - Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
-- Subdomain discovery through alterations and permutations using `altdns` and `dnsgen`
+- Subdomain discovery through alterations and permutations using `dnsgen` and math mode model
 - Filtering out live subdomains from a list of hosts using `shuffledns`
 - Check 1-200,8000-10000 for http(s) probes using `httpx`
 - Get visual part using `headless chromium`
@@ -58,13 +58,6 @@ It may look tricky cause masscan/nmap/naabu root user required.
 export HOMEUSER= # your normal, non root user: e.g.: kali
 export HOMEDIR= # user's home dir e.g.: /home/kali
 export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
-# Check for your router configuration to handle incoming TCP connection on the port you specify
-# Local listen server starts automatically as 0.0.0.0:$LISTENPORT using --server parameter
-export LISTENSERVER= # public IP of your router that handle incoming TCP connection
-export LISTENPORT= # listen port of your local server
-export SERVICEPORT= # check router's port forwarding or equal to $LISTENPORT
-export ATTACKER=${LISTENSERVER}:${SERVICEPORT}
-export ATTACKERURL=http://${LISTENSERVER}:${SERVICEPORT}
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
 export GOPATH=$HOMEDIR/go
@@ -85,7 +78,6 @@ Customize `.github/workflows/test-install-action.yaml` using `--discord` to rece
     sudo -E ./install.sh
     sudo ./lazyrecon.sh "bugcrowd.com" --quiet --discord
 ```
-[WIP] Limitations: no port forwarding on github so you need to host listen server for now.
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
 
@@ -105,7 +97,7 @@ Execute with `sudo` because of `masscan`:
 | --ip           | Single IP of the target machine                       | ./lazyrecon.sh 192.168.0.1 --single --ip        |
 | --list         | List of subdomains to process for (time sensitive)    | ./lazyrecon.sh "./testa.txt" --list             |
 | --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
-| --server       | Deploy local server to handle incoming connection     | ./lazyrecon.sh tesla.com --server               |
+| --server       | Automatically deploy server to handle connections     | ./lazyrecon.sh tesla.com --server               |
 | --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
 | --fuzz         | SSRF/LFI/SQLi fuzzing                                 | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
@@ -145,6 +137,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
  - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
  - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
+ - local server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
  - WIP: you can track activity in Projects To Do board
 
 
