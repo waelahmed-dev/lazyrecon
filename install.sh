@@ -26,7 +26,7 @@ third_party_go_dependencies(){
     declare -A gotools
     gotools["subfinder"]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
     gotools["shuffledns"]="go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
-    gotools["interactsh"]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
+    gotools["interactsh-client"]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
     gotools["nuclei"]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
     gotools["mapcidr"]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
     gotools["httpx"]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"

@@ -7,7 +7,7 @@ github-endpoints
 ssrf-headers-tool
 subfinder
 shuffledns
-interactsh
+interactsh-client
 nuclei
 mapcidr
 httpx
