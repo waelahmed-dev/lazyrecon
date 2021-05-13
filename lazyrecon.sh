@@ -229,19 +229,21 @@ checkhttprobe(){
 
       if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo "finding math mode of the IP numbers"
-        MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | sed 's/^ *//')
+        MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
         ISMODEOCTET1=$(echo $MODEOCTET | awk '{ print $1 }')
         if ((ISMODEOCTET1 > 1)); then
           MODEOCTET1=$(echo $MODEOCTET | awk '{ print $2 }')
 
-          MODEOCTET=$(cut -f2 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | sed 's/^ *//')
+          MODEOCTET=$(cut -f2 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
           ISMODEOCTET2=$(echo $MODEOCTET | awk '{ print $1 }')
           if ((ISMODEOCTET2 > 1)); then
             MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
             echo "mode found: $CIDR1"
             # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -ptr -resp-only -r $miniResolvers | grep $1 | sort | uniq | shuffledns -silent -d $1 -retries 2 -r $miniResolvers | httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -ptr -resp-only -r $miniResolvers | grep $1 | sort | uniq | \
+                shuffledns -silent -d $1 -retries 2 -r $miniResolvers | dnsx -silent -r $miniResolvers -a -resp | tr -d '\[\]' | cut -f2 -d ' ' | \
+                httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
             # sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
           fi
         fi
