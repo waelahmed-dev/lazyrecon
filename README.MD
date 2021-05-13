@@ -24,7 +24,7 @@ Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdom
 - Teardown and program exit housekeeping
 ## Workflow
 <h3 align="center">
-  <img src="readme_img/ci-cd-flow.png" alt="lazyrecon-flow" width="700px"></a>
+  <img src="readme_img/ci-cd-flow-interactsh.png" alt="lazyrecon-flow" width="700px"></a>
 </h3>
 
 # About
