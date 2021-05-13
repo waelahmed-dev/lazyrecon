@@ -3,7 +3,7 @@
 # Script works in current directory
 # for MAC users nmap needs to be pre-installed
 
-. ./lazyconfig
+# . ./lazyconfig
 
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
