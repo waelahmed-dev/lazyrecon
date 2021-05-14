@@ -228,6 +228,7 @@ checkhttprobe(){
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
 
       if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
+        echo
         echo "finding math mode of the IP numbers"
         MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
         ISMODEOCTET1=$(echo $MODEOCTET | awk '{ print $1 }')
@@ -241,10 +242,14 @@ checkhttprobe(){
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
             echo "mode found: $CIDR1"
             # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -ptr -resp-only -r $miniResolvers | grep $1 | sort | uniq | \
-                shuffledns -silent -d $1 -retries 2 -r $miniResolvers | dnsx -silent -r $miniResolvers -a -resp | tr -d '\[\]' | cut -f2 -d ' ' | \
-                httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | \
+                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | \
+                httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+
+            # sort new assets
             # sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+            sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
+
           fi
         fi
         echo "finding math mode done."
@@ -267,7 +272,7 @@ nucleitest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[nuclei] technologies testing..."
-    # -c maximum templates processed in parallel
+    # use -c for maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[nuclei] CVE testing..."
     nuclei -v -disk-export $TARGETDIR/nuclei/nucleilog -o $TARGETDIR/nuclei/nuclei_output.txt \
@@ -937,7 +942,7 @@ error_exit(){
 # handle teardown
 debug_exit(){
   echo
-  echo "[DEBUG]: debug_exit()"
+  echo "[DEBUG]: teardown successfully triggered"
   stats=$(tail -n 1 _err.log)
   echo $stats
 }
