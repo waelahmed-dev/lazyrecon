@@ -12,7 +12,7 @@
 <a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?logo=discord"></a>
 </p>
 
-Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
+Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
 
 # Features
 - Super fast asynchronous execution
@@ -20,7 +20,7 @@ Lazyrecon is a subdomain discovery tool that discovers and resolves valid subdom
 - HTML/pdf reports
 - Discord integration
 - Background listen server
-- Domain name, list of domains, IP, CIDR input notations support
+- Domain name, list of domains, IP, CIDR input - notations support
 - Teardown and program exit housekeeping
 ## Workflow
 <h3 align="center">
@@ -33,7 +33,8 @@ This script is intended to automate your reconnaissance process in an organized 
 
 - Create a dated folder with recon notes for target
 - Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
-- Subdomain discovery through alterations and permutations using `dnsgen` and math mode model
+- Subdomain discovery through alterations and permutations using `dnsgen`
+- Searches subnets and new assets using math `Mode`
 - Filtering out live subdomains from a list of hosts using `shuffledns`
 - Check 1-200,8000-10000 for http(s) probes using `httpx`
 - Get visual part using `headless chromium`
@@ -95,7 +96,7 @@ Execute with `sudo` because of `masscan`:
 | --wildcard     | Subdomains reconnaissance '*.tesla.com' (default)     | ./lazyrecon.sh tesla.com --wildcard             |
 | --single       | One target instance 'tesla.com'                       | ./lazyrecon.sh tesla.com --single               |
 | --ip           | Single IP of the target machine                       | ./lazyrecon.sh 192.168.0.1 --single --ip        |
-| --list         | List of subdomains to process for (time sensitive)    | ./lazyrecon.sh "./testa.txt" --list             |
+| --list         | List of subdomains to process for                     | ./lazyrecon.sh "./testa.txt" --list             |
 | --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
 | --server       | Automatically deploy server to handle connections     | ./lazyrecon.sh tesla.com --server               |
 | --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
