@@ -645,7 +645,7 @@ recon(){
 
 report(){
   echo "Generating HTML-report here..."
-  ./report.sh $1 $TARGETDIR > $TARGETDIR/report.html
+  ./helpers/report.sh $1 $TARGETDIR > $TARGETDIR/report.html
   chromium --headless --disable-gpu --print-to-pdf=${TARGETDIR}/report.pdf file://${TARGETDIR}/report.html
   chown $HOMEUSER: $TARGETDIR/report.pdf
   echo "Report done!"
@@ -876,7 +876,7 @@ if [ $# -gt 1 ]; then
 fi
 
 if [ "$quiet" == "" ]; then
-  ./logo.sh
+  ./helpers/logo.sh
   # env test
   echo "Check HOMEUSER: $HOMEUSER"
   echo "Check HOMEDIR: $HOMEDIR"
@@ -946,7 +946,7 @@ error_exit(){
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
-    ./discord-hook.sh "[error] line $(caller): ${stats}: "
+    ./helpers/discord-hook.sh "[error] line $(caller): ${stats}: "
   fi
   kill_listen_server
   kill_background_pid
@@ -972,7 +972,7 @@ echo "check for background and subshell"
 jobs -l
 
 if [[ -n "$discord" ]]; then
-  ./discord-hook.sh "[info] $1 done"
+  ./helpers/discord-hook.sh "[info] $1 done"
   if [[ -s $TARGETDIR/report.html ]]; then
     ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
   fi

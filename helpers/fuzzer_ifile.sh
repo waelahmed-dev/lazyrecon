@@ -7,7 +7,7 @@ fuzz(){
     PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
     echo "[cat /dev/random] fuzzing $IP using $PORT port"
 
-    cat /dev/random |  nc -vv $IP $PORT
+    cat /dev/random |  nc -zv $IP $PORT
     echo
   done < $1
 }
