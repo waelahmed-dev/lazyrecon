@@ -49,5 +49,3 @@ jobs:
           echo $STORAGEDIR
           pwd
           ls -alt
-          sudo -E ./install.sh &> /dev/null
-          ./test/test_install.sh "./test/dependencies_list.txt"
