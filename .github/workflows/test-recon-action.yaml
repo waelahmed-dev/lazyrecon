@@ -43,12 +43,14 @@ jobs:
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
-          echo DISCORDWEBHOOKURL
-          echo GITHUBTOKEN
+          echo $DISCORDWEBHOOKURL
+          echo $GITHUBTOKEN
           echo $HOMEDIR
           echo $STORAGEDIR
           pwd
           ls -alt
           sudo -E ./install.sh &> /dev/null
           ./test/test_install.sh "./test/dependencies_list.txt"
-
+      # Runs a single command using the runners shell
+      - name: Check env
+        run: env
