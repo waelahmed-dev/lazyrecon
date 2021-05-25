@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
-      DISCORDWEBHOOKURL: {{ secrets.DISCORD_WEBHOOK_URL }}
-      GITHUBTOKEN: {{ secrets.GH_TOKEN }}
+      DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
