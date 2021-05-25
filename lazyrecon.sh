@@ -105,7 +105,7 @@ getwaybackurl(){
 getgau(){
   echo "gau..."
   SUBS=""
-  if [[ -n $wildcard ]]; then
+  if [[ -n "$wildcard" ]]; then
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
@@ -229,7 +229,7 @@ checkhttprobe(){
   echo
   echo "[httpx] Starting httpx probe testing..."
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
-  if [[ -n $ip || -n $cidr ]]; then
+  if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -follow-host-redirects -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
