@@ -1,6 +1,6 @@
 # This is a demo setup workflow to test ./lazyrecon.sh on Mac and linux
 
-name: test-server-action
+name: test-recon-action
 
 # Controls when the action will run. 
 on:
@@ -20,18 +20,16 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
+    runs-on: ubuntu-latest
     env:
-      LISTENPORT: 43713
-      # GITHUBTOKEN:
-      # DISCORDWEBHOOKURL:
+      GO111MODULE: on
+      DISCORDWEBHOOKURL: {{ secrets.DISCORD_WEBHOOK_URL }}
+      GITHUBTOKEN: {{ secrets.GH_TOKEN }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # sudo ./lazyrecon.sh "goldman.com" --wildcard --server --fuzz --mad --discord
       - name: Check out repository
         uses: actions/checkout@v2
 
@@ -40,37 +38,17 @@ jobs:
         with:
           go-version: 1.14
 
-      # Runs a single command using the runners shell
-      # - name: Install dependencies
-      #   if: steps.cache-go.outputs.cache-hit != 'true'
-      #   env:
-      #     GO111MODULE: on
-      #   run: go get -v github.com/projectdiscovery/simplehttpserver/cmd/simplehttpserver
-      #   shell: bash
-
       # Runs a set of commands using the runners shell
-      - name: Test for listen server
+      - name: Install && Recon
         run: |
           export HOMEDIR=$HOME
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
-          export LISTENSERVER=$(curl -s https://api.ipify.org)
+          echo DISCORDWEBHOOKURL
+          echo GITHUBTOKEN
           echo $HOMEDIR
           echo $STORAGEDIR
-          echo "LISTENSERVER=$LISTENSERVER"
-          echo "LISTENPORT=$LISTENPORT"
-          echo "DISCORDWEBHOOKURL=$DISCORDWEBHOOKURL"
-          echo "DISCORDWEBHOOKURL2=${{ secrets.DISCORD_WEBHOOK_URL }}$"
           pwd
           ls -alt
-          ls -alt $GITHUB_WORKSPACE
-          python3 -m http.server $LISTENPORT &> $GITHUB_WORKSPACE/_listen_server.log &
-          SERVER_PID=$!
-          sleep 15
-          netstat -vtl
-          type nc
-          nc -zv $LISTENSERVER $LISTENPORT
-          sleep 5
-          kill -9 $SERVER_PID
-          ls -alt $GITHUB_WORKSPACE/_listen_server.log
-          cat $GITHUB_WORKSPACE/_listen_server.log
-        shell: bash
+          sudo -E ./install.sh &> /dev/null
+          ./test/test_install.sh "./test/dependencies_list.txt"
+
