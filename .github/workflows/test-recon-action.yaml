@@ -40,19 +40,20 @@ jobs:
         env:
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
-          HOMEDIR: ${{ env.GITHUB_WORKSPACE }}
-          STORAGEDIR: ${{ env.GITHUB_WORKSPACE }}
+          HOMEDIR: ${{ github.workspace }}
+          STORAGEDIR: ${{ github.workspace }}
         run: |
           pwd
+          ls -alt
           env
           echo $HOMEDIR
           echo $STORAGEDIR
-          ls -alt
           sudo -E ./install.sh &> /dev/null
           ./test/test_install.sh "./test/dependencies_list.txt"
       - name: Recon
         run: |
           pwd
+          ls -alt
           env
           echo $HOMEDIR
           echo $STORAGEDIR
