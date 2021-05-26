@@ -4,7 +4,7 @@ set -m
 # Invoke with sudo because of masscan/nmap
 
 # Config
-. ./lazyconfig
+# . ./lazyconfig
 
 # background PID's control
 PID_SUBFINDER_FIRST=
