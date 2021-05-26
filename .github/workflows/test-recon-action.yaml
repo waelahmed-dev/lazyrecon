@@ -46,15 +46,15 @@ jobs:
           pwd
           ls -alt
           env
-          echo $HOMEDIR
-          echo $STORAGEDIR
-          sudo -E ./install.sh &> /dev/null
+          echo "HOMEDIR=$HOMEDIR"
+          echo "STORAGEDIR=$STORAGEDIR"
+          ./install.sh &> /dev/null
           ./test/test_install.sh "./test/dependencies_list.txt"
       - name: Recon
         run: |
           pwd
           ls -alt
           env
-          echo $HOMEDIR
-          echo $STORAGEDIR
+          echo "HOMEDIR=$HOMEDIR"
+          echo "STORAGEDIR=$STORAGEDIR"
           sudo ./lazyrecon.sh "goldman.com" --wildcard --server --discord
