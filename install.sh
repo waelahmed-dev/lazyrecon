@@ -9,10 +9,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 fi
 
-export GOPATH=$HOMEDIR/go
-# export GOROOT=/usr/local/go
-export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
-export GO111MODULE=on
 
 # CI/CD dependencies
 third_party_go_dependencies(){
