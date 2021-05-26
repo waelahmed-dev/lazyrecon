@@ -44,6 +44,6 @@ jobs:
           export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
           pwd
           ls -alt
-          ./install.sh &> /dev/null
+          sudo -E ./install.sh &> /dev/null
           ./test/test_install.sh "./test/dependencies_list.txt"
-          ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          sudo ./lazyrecon.sh "goldman.com" --wildcard --server --discord
