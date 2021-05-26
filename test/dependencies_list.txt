@@ -1,4 +1,3 @@
-nmap
 chromium
 massdns
 masscan

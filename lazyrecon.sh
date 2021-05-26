@@ -532,7 +532,7 @@ masscantest(){
     # max-rate for accuracy
     # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
     # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 --open-only -oG $TARGETDIR/masscan_output.gnmap
-    masscan -p0-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 500 -oG $TARGETDIR/masscan_output.gnmap
+    masscan -p1-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 -oG $TARGETDIR/masscan_output.gnmap
     sleep 1
     sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
   fi
@@ -635,8 +635,8 @@ recon(){
   # smugglertest $1 # disabled because still manually work need
 
   masscantest $1
-  nmap_nse $1
-  hydratest $1
+  # nmap_nse $1 # no auto-install Routine
+  # hydratest $1 # try by hands if no WAF
 
   ffufbrute $1
 

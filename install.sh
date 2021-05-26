@@ -1,18 +1,12 @@
 #!/bin/bash -x
 
 # Script works in current directory
-# for MAC users nmap needs to be pre-installed
 
 # . ./lazyconfig
 
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
-else
-    if ! type nmap; then
-        apt update -y
-        apt install -y nmap
-    fi
 fi
 
 export GOPATH=$HOMEDIR/go
