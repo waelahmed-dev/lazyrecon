@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash -xe
 
 # Script works in current directory
 
@@ -13,25 +13,24 @@ fi
 # CI/CD dependencies
 third_party_go_dependencies(){
     # Third-party tools
-    declare -A gotools
-    gotools["subfinder"]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
-    gotools["shuffledns"]="go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
-    gotools["interactsh-client"]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
-    gotools["nuclei"]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
-    gotools["mapcidr"]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
-    gotools["httpx"]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"
-    gotools["dnsx"]="go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
-    gotools["assetfinder"]="go get -v github.com/tomnomnom/assetfinder"
-    gotools["waybackurls"]="go get -v github.com/tomnomnom/waybackurls"
-    gotools["qsreplace"]="go get -v github.com/tomnomnom/qsreplace"
-    gotools["unfurl"]="go get -v github.com/tomnomnom/unfurl"
-    gotools["gf"]="go get -u github.com/tomnomnom/gf"
-    gotools["gospider"]="go get -u github.com/jaeles-project/gospider"
-    gotools["gau"]="go get -u -v github.com/lc/gau"
-    gotools["ffuf"]="go get -u github.com/ffuf/ffuf"
+    gotools[0]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
+    gotools[1]="go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
+    gotools[2]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
+    gotools[3]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
+    gotools[4]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
+    gotools[5]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"
+    gotools[6]="go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
+    gotools[7]="go get -v github.com/tomnomnom/assetfinder"
+    gotools[8]="go get -v github.com/tomnomnom/waybackurls"
+    gotools[9]="go get -v github.com/tomnomnom/qsreplace"
+    gotools[10]="go get -v github.com/tomnomnom/unfurl"
+    gotools[11]="go get -u github.com/tomnomnom/gf"
+    gotools[12]="go get -u github.com/jaeles-project/gospider"
+    gotools[13]="go get -u -v github.com/lc/gau"
+    gotools[14]="go get -u github.com/ffuf/ffuf"
 
-    for gotool in "${!gotools[@]}"; do
-        type $gotool || ${gotools[$gotool]}
+    for gotool in "${gotools[@]}"; do
+        $gotool
     done
 
     nuclei -update-templates
@@ -80,7 +79,7 @@ custom_origin_dependencies() {
     fi
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv -uf $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
+    mv -f $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
 
     find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }
