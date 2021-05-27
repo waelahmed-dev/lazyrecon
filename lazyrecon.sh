@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 set -eE
 set -m
 # Invoke with sudo because of masscan/nmap
