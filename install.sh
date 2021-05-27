@@ -18,7 +18,7 @@ third_party_go_dependencies(){
     gotools[2]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
     gotools[3]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
     gotools[4]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
-    gotools[5]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"
+    gotools[5]="go get -v github.com/projectdiscovery/httpx/cmd/httpx@v1.0.6"
     gotools[6]="go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
     gotools[7]="go get -v github.com/tomnomnom/assetfinder"
     gotools[8]="go get -v github.com/tomnomnom/waybackurls"
