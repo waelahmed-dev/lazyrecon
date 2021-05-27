@@ -943,6 +943,7 @@ kill_background_pid(){
 error_exit(){
   echo
   echo "[ERROR]: error_exit()"
+  cat _err.log
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
