@@ -40,11 +40,13 @@ jobs:
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
           HOMEDIR: ${{ github.workspace }}
+          HOMEUSER: ${{ github.actor }}
         run: |
           export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
           ls -alt
           env
+          echo "HOMEUSER=$HOMEUSER"
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
           echo "GO111MODULE=$GO111MODULE"
@@ -58,11 +60,13 @@ jobs:
           GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
           HOMEDIR: ${{ github.workspace }}
           STORAGEDIR: ${{ github.workspace }}
+          HOMEUSER: ${{ github.actor }}
         run: |
           export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
           ls -alt
           env
+          echo "HOMEUSER=$HOMEUSER"
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
           sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
