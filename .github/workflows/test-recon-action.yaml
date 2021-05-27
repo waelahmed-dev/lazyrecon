@@ -34,7 +34,7 @@ jobs:
           go-version: 1.15
 
       # Runs a set of commands using the runners shell
-      - name: Install
+      - name: Install & Recon
         env:
           GO111MODULE: on
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -52,22 +52,5 @@ jobs:
           echo "GO111MODULE=$GO111MODULE"
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
-        shell: bash
-      - name: Recon
-        env:
-          GO111MODULE: on
-          DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
-          HOMEDIR: ${{ github.workspace }}
-          STORAGEDIR: ${{ github.workspace }}
-          HOMEUSER: ${{ github.actor }}
-        run: |
-          export STORAGEDIR="${HOMEDIR}"/lazytargets
-          pwd
-          ls -alt
-          env
-          echo "HOMEUSER=$HOMEUSER"
-          echo "HOMEDIR=$HOMEDIR"
-          echo "STORAGEDIR=$STORAGEDIR"
           sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
         shell: bash
