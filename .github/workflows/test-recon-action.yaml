@@ -53,4 +53,5 @@ jobs:
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
           ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          ls -alth $STORAGEDIR
         shell: bash
