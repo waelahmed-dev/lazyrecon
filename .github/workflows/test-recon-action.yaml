@@ -40,8 +40,8 @@ jobs:
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
           HOMEDIR: ${{ github.workspace }}
-          HOMEUSER: ${{ github.actor }}
         run: |
+          export HOMEUSER=$RUNNER_USER
           export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
           ls -alt
