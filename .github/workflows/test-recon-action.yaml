@@ -47,12 +47,17 @@ jobs:
           env
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
-          echo "STORAGEDIR=$STORAGEDIR"
           echo "GO111MODULE=$GO111MODULE"
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
         shell: bash
       - name: Recon
+        env:
+          GO111MODULE: on
+          DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
+          HOMEDIR: ${{ github.workspace }}
+          STORAGEDIR: ${{ github.workspace }}
         run: |
           pwd
           ls -alt
