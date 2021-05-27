@@ -40,8 +40,8 @@ jobs:
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
           HOMEDIR: ${{ github.workspace }}
-          STORAGEDIR: ${{ github.workspace }}
         run: |
+          export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
           ls -alt
           env
@@ -59,10 +59,11 @@ jobs:
           HOMEDIR: ${{ github.workspace }}
           STORAGEDIR: ${{ github.workspace }}
         run: |
+          export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
           ls -alt
           env
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
-          sudo ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
         shell: bash
