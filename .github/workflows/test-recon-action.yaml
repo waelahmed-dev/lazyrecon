@@ -52,5 +52,5 @@ jobs:
           echo "GO111MODULE=$GO111MODULE"
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
-          sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          ./lazyrecon.sh "goldman.com" --wildcard --server --discord
         shell: bash
