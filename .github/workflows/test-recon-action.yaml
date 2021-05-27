@@ -39,8 +39,8 @@ jobs:
           GO111MODULE: on
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
-          HOMEDIR: ${{ github.workspace }}
         run: |
+          export HOMEDIR=$HOME
           export HOMEUSER=$RUNNER_USER
           export STORAGEDIR="${HOMEDIR}"/lazytargets
           pwd
@@ -53,5 +53,6 @@ jobs:
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
           ./lazyrecon.sh "goldman.com" --wildcard --server --discord
-          ls -alth $STORAGEDIR
+          ls -alth $HOMEDIR/*
+          ls -alth $STORAGEDIR/*
         shell: bash
