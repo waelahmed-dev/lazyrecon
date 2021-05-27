@@ -38,7 +38,7 @@ jobs:
         env:
           GO111MODULE: on
           DISCORDWEBHOOKURL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          GITHUBTOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
           HOMEDIR: ${{ github.workspace }}
           HOMEUSER: ${{ github.actor }}
         run: |
