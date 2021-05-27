@@ -48,7 +48,7 @@ jobs:
           env
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
-          sudo ./install.sh &> /dev/null
+          sudo ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
       - name: Recon
         run: |
