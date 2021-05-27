@@ -13,21 +13,21 @@ fi
 # CI/CD dependencies
 third_party_go_dependencies(){
     # Third-party tools
-    gotools[0]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
-    gotools[1]="go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
-    gotools[2]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
-    gotools[3]="go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
-    gotools[4]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
-    gotools[5]="go get -v github.com/projectdiscovery/httpx/cmd/httpx"
-    gotools[6]="go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
-    gotools[7]="go get -v github.com/tomnomnom/assetfinder"
-    gotools[8]="go get -v github.com/tomnomnom/waybackurls"
-    gotools[9]="go get -v github.com/tomnomnom/qsreplace"
-    gotools[10]="go get -v github.com/tomnomnom/unfurl"
-    gotools[11]="go get -u github.com/tomnomnom/gf"
-    gotools[12]="go get -u github.com/jaeles-project/gospider"
-    gotools[13]="go get -u -v github.com/lc/gau"
-    gotools[14]="go get -u github.com/ffuf/ffuf"
+    gotools[0]="GO111MODULE=on go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
+    gotools[1]="GO111MODULE=on go get -v github.com/projectdiscovery/shuffledns/cmd/shuffledns"
+    gotools[2]="GO111MODULE=on go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
+    gotools[3]="GO111MODULE=on go get -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei"
+    gotools[4]="GO111MODULE=on go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
+    gotools[5]="GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx"
+    gotools[6]="GO111MODULE=on go get -v github.com/projectdiscovery/dnsx/cmd/dnsx"
+    gotools[7]="GO111MODULE=on go get -v github.com/tomnomnom/assetfinder"
+    gotools[8]="GO111MODULE=on go get -v github.com/tomnomnom/waybackurls"
+    gotools[9]="GO111MODULE=on go get -v github.com/tomnomnom/qsreplace"
+    gotools[10]="GO111MODULE=on go get -v github.com/tomnomnom/unfurl"
+    gotools[11]="GO111MODULE=on go get -u github.com/tomnomnom/gf"
+    gotools[12]="GO111MODULE=on go get -u github.com/jaeles-project/gospider"
+    gotools[13]="GO111MODULE=on go get -u -v github.com/lc/gau"
+    gotools[14]="GO111MODULE=on go get -u github.com/ffuf/ffuf"
 
     for gotool in "${gotools[@]}"; do
         $gotool
