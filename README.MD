@@ -49,8 +49,7 @@ This script is intended to automate your reconnaissance process in an organized 
 The point is to get a list of live IPs (in form of socket addresses), attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Installing
-- `Linux` tested
-- `Mac` users must have `nmap` installed first
+- `Linux` & `Mac` tested
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
 It may look tricky cause masscan/nmap/naabu root user required.
@@ -70,14 +69,19 @@ export GO111MODULE=on
 4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
 
 ### Github Actions way
-Customize `.github/workflows/test-install-action.yaml` using `--discord` to receive report:
+Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` and `GITHUBTOKEN` [secrets](https://docs.github.com/en/actions/reference/encrypted-secrets), enable `--discord` to receive a report:
 ```yaml
-- name: Execute on target
-  run: |
-    export HOMEDIR=$HOME
-    export STORAGEDIR=$GITHUB_WORKSPACE/lazytarget
-    sudo -E ./install.sh
-    sudo ./lazyrecon.sh "bugcrowd.com" --quiet --discord
+  - name: Install & Recon
+    env:
+      GO111MODULE: on
+      DISCORDWEBHOOKURL: ${{ secrets.DISCORDWEBHOOKURL }}
+      GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
+    run: |
+      export HOMEDIR=$HOME
+      export HOMEUSER=$RUNNER_USER
+      export STORAGEDIR="${HOMEDIR}"/lazytargets
+      sudo -E ./install.sh
+      sudo ./lazyrecon.sh "hackerone.com" --quiet --discord
 ```
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
@@ -110,7 +114,7 @@ Execute with `sudo` because of `masscan`:
 # Methodology
 0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
 1. Run `./lazyrecon.sh`
-2. Check output reports of chromium, nuclei, nmap, hydra, server_log, ffuf
+2. Check output reports of chromium, nuclei, masscan, server_log, ssrf, lfi
 3. Explore file upload vulnerabilities
 4. Perform Google, Trello, Atlassian, Github, Bitbucket dorking
 5. Check JS sources for credentials, API endpoints
@@ -130,7 +134,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
 ### Notes
  - `aquatone` replaced by [headless chromium async script](https://github.com/storenth/lazyrecon/compare/0a9c4c586ee4...24c35f9cadd0) based on performance
  - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
- - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040)
+ - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040), use `helpers/nmap_nse_ifile.sh` by hands using `masscan_output.gnmap` as input
  - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
  - ~~`grep` `meg`'s output for [Location](https://twitter.com/hunter0x7/status/1293168500672954368) in order to exclude 301/302 status codes~~
  (replaced with `httpx -fc 301,302` approach)
