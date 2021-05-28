@@ -15,7 +15,7 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
     echo "[screenshot] new target..."
     echo $line
 
-      SCOPE=$(echo "$line" | grep -oriahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
+      SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
       chromium --headless --disable-gpu --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
 
         PID_CHROMIUM[$ITERATOR]=$!
