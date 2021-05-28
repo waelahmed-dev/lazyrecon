@@ -9,6 +9,7 @@
 
 <p align="center">
 <a href="https://twitter.com/storenth"><img src="https://img.shields.io/twitter/follow/storenth.svg?logo=twitter"></a>
+<a href="https://www.blackhat.com/us-21/arsenal/schedule/#lazyrecon-v-24051"><img src="https://raw.githubusercontent.com/storenth/badges/master/arsenal/usa/2021.svg"></a>
 <a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?logo=discord"></a>
 </p>
 
