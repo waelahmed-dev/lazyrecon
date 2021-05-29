@@ -2,7 +2,8 @@
 
 # Script works in current directory
 
-# . ./lazyconfig
+# https://golang.org/doc/install#install
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
 
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then

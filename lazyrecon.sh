@@ -1,10 +1,9 @@
 #!/bin/bash
-set -eE
-set -m
-# Invoke with sudo because of masscan/nmap
+set -emE
 
-# Config
-# . ./lazyconfig
+# Invoke with sudo because of masscan/nmap
+# https://golang.org/doc/install#install
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
 
 # background PID's control
 PID_SUBFINDER_FIRST=
