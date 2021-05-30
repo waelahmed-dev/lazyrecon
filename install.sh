@@ -50,15 +50,6 @@ custom_origin_dependencies() {
         tar xfzv ffuf_1.2.1_* && ln -s $PWD/ffuf /usr/local/bin/ffuf
     fi
 
-    if ! type hydra; then
-        git clone https://github.com/vanhauser-thc/thc-hydra.git
-        if cd thc-hydra; then
-            ./configure
-            make && make install
-            cd -
-        fi
-    fi
-
     if ! type massdns; then
         git clone https://github.com/blechschmidt/massdns.git
         if cd massdns; then

@@ -1,7 +1,6 @@
 chromium
 massdns
 masscan
-hydra
 github-endpoints
 ssrf-headers-tool
 subfinder
