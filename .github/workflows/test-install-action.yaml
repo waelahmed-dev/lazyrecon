@@ -21,10 +21,6 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    env:
-      GO111MODULE: on
-      # GITHUBTOKEN:
-      # DISCORDWEBHOOKURL:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -36,6 +32,8 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.14
+        env:
+          GO111MODULE: on
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
