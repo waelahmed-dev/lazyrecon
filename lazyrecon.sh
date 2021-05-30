@@ -98,7 +98,7 @@ enumeratesubdomains(){
 getwaybackurl(){
   echo "waybackurls..."
   cat $TARGETDIR/enumerated-subdomains.txt | waybackurls | sort | uniq | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
-  echo "waybackurls done"
+  echo "waybackurls done."
 }
 getgau(){
   echo "gau..."
@@ -108,12 +108,12 @@ getgau(){
   fi
   # gau -subs mean include subdomains
   cat $TARGETDIR/enumerated-subdomains.txt | gau $SUBS | sort | uniq | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
-  echo "gau done"
+  echo "gau done."
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
   github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/github-endpoints_out.txt
-  echo "github-endpoints done"
+  echo "github-endpoints done."
 }
 
 checkwaybackurls(){
@@ -221,6 +221,7 @@ dnsprobing(){
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   fi
+  echo "[dnsx] done."
 }
 
 checkhttprobe(){
@@ -260,6 +261,7 @@ checkhttprobe(){
         fi
         echo "finding math mode done."
       fi
+    echo "[httpx] done."
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
@@ -306,6 +308,7 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/credentials-disclosure.yaml \
                     -t $HOMEDIR/nuclei-templates/exposed-tokens/generic/general-tokens.yaml \
                     -t $HOMEDIR/nuclei-templates/fuzzing/
+    echo "[nuclei] CVE testing done."
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
       cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
@@ -336,6 +339,7 @@ gospidertest(){
 
     # full paths+queries
     # cat $TARGETDIR/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/gospider/gospider-paths-list.txt
+    echo "[gospider] done."
   fi
 }
 
@@ -413,7 +417,8 @@ ssrftest(){
     # /?url=
     ffuf -c -r -t 250 -u HOST/\?url=https://${LISTENSERVER}/DOMAIN \
         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-        -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork > /dev/null
+        -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork -debug-log $TARGETDIR/ffuf_debug.log
+    echo "[SSRF-2] Blind probe done."
 
     # index.php?url=
     # ffuf -s -c -u HOST/index.php\?url=https://${LISTENSERVER}/DOMAIN/url \
@@ -478,6 +483,7 @@ ssrftest(){
           ffuf -r -c -t 250 -u HOST/PATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+        echo "[SSRF-3] done."
       fi
     fi
   fi
@@ -490,6 +496,7 @@ lfitest(){
     echo
     echo "[LFI] nuclei testing..."
     nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
+    echo "[LFI] done."
   fi
 }
 sqlmaptest(){
@@ -498,6 +505,7 @@ sqlmaptest(){
     echo "[sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
     sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --ignore-timeouts  --output-dir=$TARGETDIR/sqlmap/
+    echo "[sqlmap] done."
   fi
 }
 
@@ -938,7 +946,6 @@ kill_background_pid(){
 error_exit(){
   echo
   echo "[ERROR]: error_exit()"
-  cat _err.log
   stats=$(tail -n 1 _err.log)
   echo $stats
   if [[ -n "$discord" ]]; then
