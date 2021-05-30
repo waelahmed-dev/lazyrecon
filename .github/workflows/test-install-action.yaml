@@ -1,5 +1,5 @@
 # This is a setup workflow to help test ./install.sh on Mac and linux
-
+# `sudo -E` needs to avoid Permission denied issue
 name: test-install-action
 
 # Controls when the action will run. 
@@ -34,7 +34,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.15
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
