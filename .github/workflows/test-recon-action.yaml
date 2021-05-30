@@ -50,9 +50,9 @@ jobs:
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
           echo "GO111MODULE=$GO111MODULE"
-          ./install.sh
+          sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
-          ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
           ls -alth $HOMEDIR/*
           ls -alth $STORAGEDIR/*
         shell: bash

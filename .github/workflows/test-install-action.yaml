@@ -48,5 +48,5 @@ jobs:
           pwd
           ls -alt
           env
-          ./install.sh
+          sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
