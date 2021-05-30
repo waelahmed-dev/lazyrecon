@@ -81,8 +81,8 @@ Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` a
       export HOMEDIR=$HOME
       export HOMEUSER=$RUNNER_USER
       export STORAGEDIR="${HOMEDIR}"/lazytargets
-      ./install.sh
-      ./lazyrecon.sh "hackerone.com" --quiet --discord
+      sudo -E ./install.sh
+      sudo -E ./lazyrecon.sh "hackerone.com" --quiet --discord
 ```
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
