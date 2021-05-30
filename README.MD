@@ -62,12 +62,12 @@ export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
 export GOPATH=$HOMEDIR/go
-export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
 export GO111MODULE=on
 ```
 2. Enable new environment `source ./lazyconfig`
 3. Call `sudo -E ./install.sh`
-4. Execute `sudo ./lazyrecon.sh "hackerone.com"`
+4. Execute `sudo -E ./lazyrecon.sh "hackerone.com"`
 
 ### Github Actions way
 Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` and `GITHUBTOKEN` [secrets](https://docs.github.com/en/actions/reference/encrypted-secrets), enable `--discord` to receive a report:
@@ -81,8 +81,8 @@ Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` a
       export HOMEDIR=$HOME
       export HOMEUSER=$RUNNER_USER
       export STORAGEDIR="${HOMEDIR}"/lazytargets
-      sudo -E ./install.sh
-      sudo ./lazyrecon.sh "hackerone.com" --quiet --discord
+      ./install.sh
+      ./lazyrecon.sh "hackerone.com" --quiet --discord
 ```
 ### Hard way
 Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
@@ -93,7 +93,7 @@ If you faced with some issues, feel free to join [Discord](https://discord.gg/fR
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
-▶ sudo ./lazyrecon.sh tesla.com --wildcard
+▶ sudo -E ./lazyrecon.sh tesla.com --wildcard
 ```
 
 | **Parameter**  | **Description**                                       | **Example**                                     |
@@ -103,7 +103,6 @@ Execute with `sudo` because of `masscan`:
 | --ip           | Single IP of the target machine                       | ./lazyrecon.sh 192.168.0.1 --single --ip        |
 | --list         | List of subdomains to process for                     | ./lazyrecon.sh "./testa.txt" --list             |
 | --cidr         | Perform network recon, CIDR notation                  | ./lazyrecon.sh "192.168.0.0/16" --cidr          |
-| --server       | Automatically deploy server to handle connections     | ./lazyrecon.sh tesla.com --server               |
 | --mad          | Wayback machine's stuff                               | ./lazyrecon.sh tesla.com --mad                  |
 | --fuzz         | SSRF/LFI/SQLi fuzzing                                 | ./lazyrecon.sh tesla.com --mad --fuzz           |
 | --alt          | Additionally permutate subdomains (*.tesla.com only)  | ./lazyrecon.sh tesla.com --wildcard --alt       |
@@ -143,7 +142,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
  - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
  - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
- - local server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
+ - local listen server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
  - WIP: you can track activity in Projects To Do board
 
 

@@ -44,11 +44,10 @@ single= # if just one target in scope
 list= # list of domains to test, no need wildcard support, mad mode not implemented (need to avoid --list with --mad)
 wildcard= # fight against multi-level wildcard DNS to avoid false-positive results while subdomain resolves
 brute= # enable directory bruteforce
-fuzz= # enable parameter fuzzing (local server need to be alive)
+fuzz= # enable parameter fuzzing (listen server is automatically deployed using https://github.com/projectdiscovery/interactsh)
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
-server= # automatically deploy https://github.com/projectdiscovery/interactsh
 quiet= # quiet mode
 
 # definitions
@@ -623,7 +622,7 @@ recon(){
 
   custompathlist $1
 
-  if [[ -n "$fuzz" && -n "$server" ]]; then
+  if [[ -n "$fuzz" ]]; then
     ssrftest $1
   fi
 
@@ -695,7 +694,7 @@ main(){
   fi
   mkdir -p $TARGETDIR
 
-  if [[ -n "$server" ]]; then
+  if [[ -n "$fuzz" ]]; then
     # Listen server
     interactsh-client -persist -v &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
@@ -848,8 +847,6 @@ checkargs(){
                                   ;;
           -q | --quiet )          quiet="1"
                                   ;;
-          --server )              server="1"
-                                  ;;
           # * )                     invokation $1
           #                         exit 1
       esac
@@ -894,7 +891,6 @@ if [ "$quiet" == "" ]; then
   echo "Check params \$mad: $mad"
   echo "Check params \$alt: $alt"
   echo "Check params \$wildcard: $wildcard"
-  echo "Check params \$server: $server"
   echo "Check params \$discord: $discord"
   echo
 fi
