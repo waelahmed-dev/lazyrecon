@@ -28,7 +28,6 @@ third_party_go_dependencies(){
     gotools[11]="go get -u github.com/tomnomnom/gf"
     gotools[12]="go get -u github.com/jaeles-project/gospider"
     gotools[13]="go get -u -v github.com/lc/gau"
-    gotools[14]="go get -u github.com/ffuf/ffuf"
 
     for gotool in "${gotools[@]}"; do
         $gotool
@@ -41,6 +40,16 @@ third_party_go_dependencies(){
 }
 
 custom_origin_dependencies() {
+
+    if ! type ffuf; then
+        if [[ -n "$MACOS" ]]; then
+            wget -nc https://github.com/ffuf/ffuf/releases/download/v1.2.1/ffuf_1.2.1_macOS_amd64.tar.gz
+        else
+            wget -nc https://github.com/ffuf/ffuf/releases/download/v1.2.1/ffuf_1.2.1_linux_amd64.tar.gz
+        fi
+        tar xfzv ffuf_1.2.1_* && ln -s $PWD/ffuf /usr/local/bin/ffuf
+    fi
+
     if ! type hydra; then
         git clone https://github.com/vanhauser-thc/thc-hydra.git
         if cd thc-hydra; then
