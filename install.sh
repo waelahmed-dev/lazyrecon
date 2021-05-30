@@ -62,7 +62,11 @@ custom_origin_dependencies() {
     if ! type massdns; then
         git clone https://github.com/blechschmidt/massdns.git
         if cd massdns; then
-            make
+            if [[ -n "$MACOS" ]]; then
+                make nolinux
+            else
+                make
+            fi
             ln -s $PWD/bin/massdns /usr/local/bin/massdns
             cd -
         fi
