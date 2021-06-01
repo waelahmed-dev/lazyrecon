@@ -50,3 +50,4 @@ jobs:
           env
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
+          sudo -E ./test/test_nuclei_templates.sh ./test/nuclei_templates_list.txt
