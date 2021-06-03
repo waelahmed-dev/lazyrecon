@@ -705,7 +705,7 @@ main(){
 
   if [[ -n "$fuzz" ]]; then
     # Listen server
-    interactsh-client -persist -v &> $TARGETDIR/_listen_server.log &
+    interactsh-client -v &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
     sleep 5 # to properly start listen server
     LISTENSERVER=$(tail -n 1 $TARGETDIR/_listen_server.log)
