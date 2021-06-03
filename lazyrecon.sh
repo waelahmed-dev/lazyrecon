@@ -97,7 +97,7 @@ enumeratesubdomains(){
 
 getwaybackurl(){
   echo "waybackurls..."
-  cat $TARGETDIR/enumerated-subdomains.txt | waybackurls | sort | uniq | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
+  cat $TARGETDIR/enumerated-subdomains.txt | waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
   echo "waybackurls done."
 }
 getgau(){
@@ -107,7 +107,7 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  cat $TARGETDIR/enumerated-subdomains.txt | gau $SUBS | sort | uniq | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
+  cat $TARGETDIR/enumerated-subdomains.txt | gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
   echo "gau done."
 }
 getgithubendpoints(){
@@ -233,6 +233,7 @@ checkhttprobe(){
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
       if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
@@ -242,16 +243,16 @@ checkhttprobe(){
         if ((ISMODEOCTET1 > 1)); then
           MODEOCTET1=$(echo $MODEOCTET | awk '{ print $2 }')
 
-          MODEOCTET=$(cut -f2 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
+          MODEOCTET=$(grep "^${MODEOCTET1}" | cut -f2 -d '.' | sort -n | uniq -c | sort | tail -n1 | xargs)
           ISMODEOCTET2=$(echo $MODEOCTET | awk '{ print $1 }')
           if ((ISMODEOCTET2 > 1)); then
             MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
             echo "mode found: $CIDR1"
             # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | \
-                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | \
-                httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -follow-host-redirects -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee -a $TARGETDIR/dnsprobe_ptr.txt | \
+                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee -a $TARGETDIR/dnsprobe_ip_mode.txt | \
+                httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
             # sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
