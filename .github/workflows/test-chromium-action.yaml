@@ -52,8 +52,24 @@ jobs:
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
           echo "GO111MODULE=$GO111MODULE"
-          sudo -E ./install.sh
-          ./test/test_install.sh "./test/dependencies_list.txt"
+          # sudo -E ./install.sh
+          # ./test/test_install.sh "./test/dependencies_list.txt"
+          MACOS=
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            MACOS="1"
+          fi
+          git clone https://github.com/storenth/chromium-latest-linux.git
+          if cd chromium-latest-linux; then
+              if [[ -n "$MACOS" ]]; then
+                  # mac development https://github.com/storenth/chromium-latest-linux
+                  ./install-update-mac.sh
+                  ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
+              else
+                  ./update.sh
+                  ln -s $PWD/latest/chrome /usr/local/bin/chromium
+              fi
+              cd -
+          fi
           sudo /usr/local/bin/chromium --headless --no-sandbox --window-size=1280,720 --screenshot="screenshots/104_16_51_111_8443.png" https://104.16.51.111:8443
           ls -alth
           ls -alth ./screenshots
