@@ -62,11 +62,11 @@ jobs:
           if cd chromium-latest-linux; then
               if [[ -n "$MACOS" ]]; then
                   # mac development https://github.com/storenth/chromium-latest-linux
-                  ./install-update-mac.sh
-                  ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
+                  sudo ./install-update-mac.sh
+                  sudo ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
               else
-                  ./update.sh
-                  ln -s $PWD/latest/chrome /usr/local/bin/chromium
+                  sudo ./update.sh
+                  sudo ln -s $PWD/latest/chrome /usr/local/bin/chromium
               fi
               cd -
           fi
