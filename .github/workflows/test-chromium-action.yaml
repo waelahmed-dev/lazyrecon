@@ -75,5 +75,5 @@ jobs:
           ls -alth
           ls -alth ./screenshots
           file="screenshots/104_16_51_111_8443.png"
-          curl -v -H "Content-Type: multipart/form-data" -X POST -F file=@$file $DISCORDWEBHOOKURL
+          curl -v -H "Content-Type: multipart/form-data" -X POST -F file=$file $DISCORDWEBHOOKURL
         shell: bash
