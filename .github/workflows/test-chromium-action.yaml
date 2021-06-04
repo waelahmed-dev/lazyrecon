@@ -74,6 +74,6 @@ jobs:
           sudo /usr/local/bin/chromium --headless --no-sandbox --window-size=1280,720 --screenshot="screenshots/google_com.png" https://google.com
           ls -alth
           ls -alth ./screenshots
-          file="screenshots/104_16_51_111_8443.png"
+          file="${PWD}/screenshots/google_com.png"
           sudo curl -v -H "Content-Type: multipart/form-data" -X POST -F file=@$file $DISCORDWEBHOOKURL
         shell: bash
