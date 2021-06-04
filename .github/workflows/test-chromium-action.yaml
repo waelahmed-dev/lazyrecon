@@ -70,6 +70,7 @@ jobs:
               fi
               cd -
           fi
+          mkdir screenshots
           sudo /usr/local/bin/chromium --headless --no-sandbox --window-size=1280,720 --screenshot="screenshots/104_16_51_111_8443.png" https://104.16.51.111:8443
           ls -alth
           ls -alth ./screenshots
