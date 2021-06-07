@@ -1,4 +1,5 @@
 # This is a demo setup workflow to test ./lazyrecon.sh on Mac and linux
+# `sudo -E` needs to avoid Permission denied issue
 
 name: test-recon-action
 
@@ -52,7 +53,7 @@ jobs:
           echo "GO111MODULE=$GO111MODULE"
           sudo -E ./install.sh
           ./test/test_install.sh "./test/dependencies_list.txt"
-          sudo -E ./lazyrecon.sh "goldman.com" --wildcard --server --discord
+          sudo -E ./lazyrecon.sh "gs.de" --wildcard --alt --mad --fuzz --discord
           ls -alth $HOMEDIR/*
           ls -alth $STORAGEDIR/*
         shell: bash
