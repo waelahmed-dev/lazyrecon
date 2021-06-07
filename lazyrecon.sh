@@ -243,7 +243,7 @@ checkhttprobe(){
         if ((ISMODEOCTET1 > 1)); then
           MODEOCTET1=$(echo $MODEOCTET | awk '{ print $2 }')
 
-          MODEOCTET=$(grep "^${MODEOCTET1}" | cut -f2 -d '.' | sort -n | uniq -c | sort | tail -n1 | xargs)
+          MODEOCTET=$(grep "^${MODEOCTET1}" $TARGETDIR/dnsprobe_ip.txt | cut -f2 -d '.' | sort -n | uniq -c | sort | tail -n1 | xargs)
           ISMODEOCTET2=$(echo $MODEOCTET | awk '{ print $1 }')
           if ((ISMODEOCTET2 > 1)); then
             MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
