@@ -91,7 +91,7 @@ custom_origin_dependencies() {
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
 chromium_dependencies(){
-    if ! type chromium; then
+    if ! type /usr/local/bin/chromium; then
         git clone https://github.com/storenth/chromium-latest-linux.git
         if cd chromium-latest-linux; then
             if [[ -n "$MACOS" ]]; then

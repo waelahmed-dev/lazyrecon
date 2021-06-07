@@ -653,7 +653,7 @@ recon(){
 report(){
   echo "Generating HTML-report here..."
   ./helpers/report.sh $1 $TARGETDIR > $TARGETDIR/report.html
-  chromium --headless --disable-gpu --print-to-pdf=${TARGETDIR}/report.pdf file://${TARGETDIR}/report.html
+  /usr/local/bin/chromium --headless --no-sandbox --print-to-pdf=${TARGETDIR}/report.pdf file://${TARGETDIR}/report.html
   chown $HOMEUSER: $TARGETDIR/report.pdf
   echo "Report done!"
 }

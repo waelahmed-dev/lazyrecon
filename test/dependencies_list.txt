@@ -1,4 +1,4 @@
-chromium
+/usr/local/bin/chromium
 massdns
 masscan
 github-endpoints

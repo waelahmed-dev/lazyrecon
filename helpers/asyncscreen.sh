@@ -22,7 +22,7 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
         SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
       fi
 
-      chromium --headless --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
+      /usr/local/bin/chromium --headless --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
 
         PID_CHROMIUM[$ITERATOR]=$!
         echo "PID_CHROMIUM=${PID_CHROMIUM[@]}"
