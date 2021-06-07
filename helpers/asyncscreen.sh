@@ -14,9 +14,15 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
     echo
     echo "[screenshot] new target..."
     echo $line
+      # check if target is IP address
+      ISIP=$(echo "$line" | grep -oE "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])")
+      if [[ -n "$ISIP" ]]; then
+        SCOPE=$(echo "$line" | grep -oiahE "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
+      else
+        SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
+      fi
 
-      SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
-      chromium --headless --disable-gpu --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
+      chromium --headless --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
 
         PID_CHROMIUM[$ITERATOR]=$!
         echo "PID_CHROMIUM=${PID_CHROMIUM[@]}"
