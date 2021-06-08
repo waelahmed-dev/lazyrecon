@@ -14,5 +14,5 @@ nuclei-templates/takeovers/
 nuclei-templates/default-logins/
 nuclei-templates/exposures/
 nuclei-templates/exposed-panels/
-nuclei-templates/exposed-tokens/generic/
+nuclei-templates/exposures/generic/
 nuclei-templates/fuzzing/
