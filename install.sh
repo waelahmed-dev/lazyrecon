@@ -33,7 +33,7 @@ third_party_go_dependencies(){
         $gotool
     done
 
-    nuclei -update-templates
+    nuclei -ut -ud "$HOMEDIR/nuclei-templates"
 
     mkdir -p $HOMEDIR/.gf
     cp -r ./gfpatterns/* $HOMEDIR/.gf
