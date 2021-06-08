@@ -51,4 +51,4 @@ jobs:
           sudo -E ./install.sh
           sudo -E env
           ./test/test_install.sh "./test/dependencies_list.txt"
-          find / -name "nuclei-templates" -type d
+          ./test/test_nuclei_templates.sh ./test/nuclei_templates_list.txt
