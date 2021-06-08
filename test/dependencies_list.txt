@@ -18,3 +18,4 @@ gf
 gospider
 gau
 ffuf
+dnsgen
