@@ -951,7 +951,9 @@ error_exit(){
   echo $stats
   if [[ -n "$discord" ]]; then
     ./helpers/discord-hook.sh "[error] line $(caller): ${stats}: "
-    ./helpers/discord-file-hook.sh _err.log
+    if [[ -s ./_err.log ]]; then
+      ./helpers/discord-file-hook.sh "./_err.log"
+    fi
   fi
   kill_listen_server
   kill_background_pid
