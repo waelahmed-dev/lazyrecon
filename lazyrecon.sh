@@ -306,8 +306,8 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/default-logins/ \
                     -t $HOMEDIR/nuclei-templates/exposures/ \
                     -t $HOMEDIR/nuclei-templates/exposed-panels/ \
-                    -t $HOMEDIR/nuclei-templates/exposures/generic/credentials-disclosure.yaml \
-                    -t $HOMEDIR/nuclei-templates/exposures/generic/general-tokens.yaml \
+                    -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/credentials-disclosure.yaml \
+                    -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/general-tokens.yaml \
                     -t $HOMEDIR/nuclei-templates/fuzzing/
     echo "[nuclei] CVE testing done."
 
