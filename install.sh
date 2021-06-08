@@ -47,7 +47,7 @@ custom_origin_dependencies() {
         else
             wget -nc https://github.com/ffuf/ffuf/releases/download/v1.2.1/ffuf_1.2.1_linux_amd64.tar.gz
         fi
-        tar xfzv ffuf_1.2.1_* && sudo ln -s $PWD/ffuf /usr/local/bin/ffuf
+        tar xfzv ffuf_1.2.1_* && ln -s $PWD/ffuf /usr/local/bin/ffuf
     fi
 
     if ! type massdns; then
@@ -58,7 +58,7 @@ custom_origin_dependencies() {
             else
                 sudo make
             fi
-            sudo ln -s $PWD/bin/massdns /usr/local/bin/massdns
+            ln -s $PWD/bin/massdns /usr/local/bin/massdns
             cd -
         fi
     fi
@@ -67,20 +67,20 @@ custom_origin_dependencies() {
         git clone https://github.com/robertdavidgraham/masscan.git
         if cd masscan; then
             sudo make
-            sudo ln -s $PWD/bin/masscan /usr/local/bin/masscan
+            ln -s $PWD/bin/masscan /usr/local/bin/masscan
             cd -
         fi
     fi
 
     if ! type github-endpoints; then
         git clone https://github.com/storenth/github-search.git
-        sudo ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
-        sudo ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
+        ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
+        ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
     fi
 
     if ! type ssrf-headers-tool; then
         git clone https://github.com/storenth/Bug-Bounty-Toolz.git
-        sudo ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
+        ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
     fi
 
     wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
@@ -97,10 +97,10 @@ chromium_dependencies(){
             if [[ -n "$MACOS" ]]; then
                 # mac development https://github.com/storenth/chromium-latest-linux
                 ./install-update-mac.sh
-                sudo ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
+                ln -s $PWD/latest/Chromium.app/Contents/MacOS/Chromium /usr/local/bin/chromium
             else
                 ./update.sh
-                sudo ln -s $PWD/latest/chrome /usr/local/bin/chromium
+                ln -s $PWD/latest/chrome /usr/local/bin/chromium
             fi
             cd -
         fi
