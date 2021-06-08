@@ -3,7 +3,7 @@ set -emE
 
 # Invoke with sudo because of masscan/nmap
 # https://golang.org/doc/install#install
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 
 # background PID's control
 PID_SUBFINDER_FIRST=
