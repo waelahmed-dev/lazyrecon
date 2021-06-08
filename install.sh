@@ -3,7 +3,7 @@
 # Script works in current directory
 
 # https://golang.org/doc/install#install
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 
 MACOS=
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -40,7 +40,24 @@ third_party_go_dependencies(){
 }
 
 custom_origin_dependencies() {
+    if ! type github-endpoints; then
+        git clone https://github.com/storenth/github-search.git
+        ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
+        ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
+    fi
 
+    if ! type ssrf-headers-tool; then
+        git clone https://github.com/storenth/Bug-Bounty-Toolz.git
+        ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
+    fi
+
+    wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
+    mv -f $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
+
+    find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
+}
+
+third_party_dependencies(){
     if ! type ffuf; then
         if [[ -n "$MACOS" ]]; then
             wget -nc https://github.com/ffuf/ffuf/releases/download/v1.2.1/ffuf_1.2.1_macOS_amd64.tar.gz
@@ -72,21 +89,14 @@ custom_origin_dependencies() {
         fi
     fi
 
-    if ! type github-endpoints; then
-        git clone https://github.com/storenth/github-search.git
-        ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
-        ln -s $PWD/github-search/github-subdomains.py /usr/local/bin/github-subdomains
+    if ! type dnsgen; then
+        git clone https://github.com/ProjectAnte/dnsgen
+        if cd dnsgen; then
+            pip3 install -r requirements.txt
+            python3 setup.py install
+            cd -
+        fi
     fi
-
-    if ! type ssrf-headers-tool; then
-        git clone https://github.com/storenth/Bug-Bounty-Toolz.git
-        ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
-    fi
-
-    wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv -f $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
-
-    find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
@@ -115,6 +125,7 @@ notification(){
 main() {
     # Entry point
     third_party_go_dependencies
+    third_party_dependencies
     custom_origin_dependencies
     chromium_dependencies
 
