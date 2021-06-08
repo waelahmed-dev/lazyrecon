@@ -47,7 +47,7 @@ jobs:
           echo $HOMEUSER
           pwd
           env
-          ./install.sh
+          sudo -E ./install.sh
           ls -alt
           ./test/test_install.sh "./test/dependencies_list.txt"
           ./test/test_nuclei_templates.sh ./test/nuclei_templates_list.txt
