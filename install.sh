@@ -54,9 +54,9 @@ custom_origin_dependencies() {
         git clone https://github.com/blechschmidt/massdns.git
         if cd massdns; then
             if [[ -n "$MACOS" ]]; then
-                make nolinux
+                sudo make nolinux
             else
-                make
+                sudo make
             fi
             ln -s $PWD/bin/massdns /usr/local/bin/massdns
             cd -
@@ -66,7 +66,7 @@ custom_origin_dependencies() {
     if ! type masscan; then
         git clone https://github.com/robertdavidgraham/masscan.git
         if cd masscan; then
-            make
+            sudo make
             ln -s $PWD/bin/masscan /usr/local/bin/masscan
             cd -
         fi
