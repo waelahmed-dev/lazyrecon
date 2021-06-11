@@ -2,6 +2,7 @@
 set -emE
 
 # Invoke with sudo because of masscan/nmap
+
 # https://golang.org/doc/install#install
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 
@@ -88,6 +89,7 @@ enumeratesubdomains(){
     sed "${SEDOPTION[@]}" '/^[.]/d' $TARGETDIR/enumerated-subdomains.txt
 
     if [[ -n "$alt" && -s "$TARGETDIR"/enumerated-subdomains.txt ]]; then
+      echo
       echo "[subfinder] second try..."
       subfinder -all -dL "${TARGETDIR}"/enumerated-subdomains.txt -silent -o "${TARGETDIR}"/subfinder-list-2.txt
       sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
@@ -137,7 +139,7 @@ checkwaybackurls(){
   # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $TARGETDIR/wayback/wayback_output.txt | sort -u -o $TARGETDIR/wayback/wayback_output.txt
 
   # need to get some extras subdomains
-  cat $TARGETDIR/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d' > $TARGETDIR/wayback-subdomains-list.txt
+  cat $TARGETDIR/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
 
   # full paths+queries
   # remove archive and potential emails
@@ -595,13 +597,8 @@ hydratest(){
 ffufbrute(){
   if [ "$brute" = "1" ]; then
     echo "Start directory bruteforce using ffuf..."
-    iterator=1
-    while read subdomain; do
       # -c stands for colorized, -s for silent mode
-      ffuf -c -u ${subdomain}/FUZZ -p 0.1-2.0 -recursion -recursion-depth 2 -mc all -fc 300,301,302,303,304,400,403,404,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads \
-          -o $TARGETDIR/ffuf/${iterator}.html  -of html > /dev/null
-      iterator=$((iterator+1))
-    done < $TARGETDIR/3-all-subdomain-live-scheme.txt
+      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" -o $TARGETDIR/ffuf/_cleantarget_.html -of html"
   fi
 }
 
@@ -755,10 +752,7 @@ main(){
 
   # nuclei output
   mkdir $TARGETDIR/nuclei/
-  # nmap output
-  mkdir $TARGETDIR/nmap/
-  # hydra output
-  mkdir $TARGETDIR/hydra/
+
   if [ "$mad" = "1" ]; then
     # gospider output
     mkdir $TARGETDIR/gospider/
