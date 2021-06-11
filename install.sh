@@ -62,7 +62,7 @@ third_party_dependencies(){
 
     if ! type interlace; then
         git clone https://github.com/codingo/Interlace.git
-        if cd interlace; then
+        if cd Interlace; then
             python3 setup.py install
             cd -
         fi
