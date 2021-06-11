@@ -13,7 +13,7 @@
 <a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?logo=discord"></a>
 </p>
 
-Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
+Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing, brute-force and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
 
 # Features
 - Super fast asynchronous execution
@@ -32,25 +32,30 @@ Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains
 
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
 
-- Create a dated folder with recon notes for target
-- Grab subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
-- Subdomain discovery through alterations and permutations using `dnsgen`
+- Creates a dated folder with recon notes for a target
+- Grabs subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
+- Additionally finds new subdomains through alterations and permutations using `dnsgen`
 - Searches subnets and new assets using math `Mode`
-- Filtering out live subdomains from a list of hosts using `shuffledns`
-- Check 1-200,8000-10000 for http(s) probes using `httpx`
-- Get visual part using `headless chromium`
-- Perform `masscan` on live servers
-- Automatically brute-forces services with default credentials using `hydra`
-- Scanning for known paths and CVEs using `nuclei`
-- Shot for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
-- Check for potential request smuggling vulnerabilities using `smuggler`
-- Perform `ffuf` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
-- Generate report and send it to Discord
+- Filters out live subdomains from a list of hosts using `shuffledns`
+- Checks 1-200,8000-10000 for http(s) probes using `httpx`
+- Gets visual part using `headless chromium`
+- Performs `masscan` on live servers
+- Scanns for known paths and CVEs using `nuclei`
+- Shots for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
+- Checks for potential request smuggling vulnerabilities using `smuggler`
+- Performs `ffuf` supercharged by `interlace` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
+- Generates report and send it to Discord
 
 The point is to get a list of live IPs (in form of socket addresses), attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
 # Installing
 - `Linux` & `Mac` tested
+## Prerequirements
+```bash
+python >= 3.7
+pip3 >= 19.0
+go >= 1.14
+```
 ### CI/CD way
 You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
 It may look tricky cause masscan/nmap/naabu root user required.
@@ -62,7 +67,7 @@ export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
 export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
 export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
 export GOPATH=$HOMEDIR/go
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 export GO111MODULE=on
 ```
 2. Enable new environment `source ./lazyconfig`
