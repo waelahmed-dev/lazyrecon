@@ -45,5 +45,6 @@ go >= 1.14
 26. [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml)
 27. [nmap](https://nmap.org/download.html)
 28. [chromium](https://github.com/storenth/chromium-latest-linux.git)
+29. [interlace](https://github.com/codingo/Interlace.git)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)

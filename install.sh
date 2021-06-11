@@ -59,6 +59,15 @@ custom_origin_dependencies() {
 
 third_party_dependencies(){
     pip3 install setuptools
+
+    if ! type interlace; then
+        git clone https://github.com/codingo/Interlace.git
+        if cd interlace; then
+            python3 setup.py install
+            cd -
+        fi
+    fi
+
     if ! type ffuf; then
         if [[ -n "$MACOS" ]]; then
             wget -nc https://github.com/ffuf/ffuf/releases/download/v1.2.1/ffuf_1.2.1_macOS_amd64.tar.gz
