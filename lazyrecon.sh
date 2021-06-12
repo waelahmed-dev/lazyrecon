@@ -14,6 +14,7 @@ PID_WAYBACK=
 SERVER_PID=
 PID_SCREEN=
 PID_NUCLEI=
+PID_HTTPX=
 
 
 [ -d "$STORAGEDIR" ] || mkdir -p $STORAGEDIR
@@ -233,6 +234,7 @@ checkhttprobe(){
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
     httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
@@ -252,8 +254,8 @@ checkhttprobe(){
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
             echo "mode found: $CIDR1"
             # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee -a $TARGETDIR/dnsprobe_ptr.txt | \
-                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee -a $TARGETDIR/dnsprobe_ip_mode.txt | \
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
+                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
                 httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
@@ -611,7 +613,10 @@ recon(){
   permutatesubdomains $1
 
   dnsprobing $1
-  checkhttprobe $1
+  checkhttprobe $1 &
+  PID_HTTPX=$!
+  echo "wait PID_HTTPX=$PID_HTTPX"
+  wait $PID_HTTPX
 
   screenshots $1 &
   PID_SCREEN=$!
@@ -629,6 +634,7 @@ recon(){
   custompathlist $1
 
   if [[ -n "$fuzz" ]]; then
+    pagefetcher $1
     ssrftest $1
   fi
 
@@ -925,6 +931,11 @@ kill_background_pid(){
     echo "kill $PID_GAU and $PID_WAYBACK"
     kill -- -${PID_GAU} &> /dev/null || true
     kill -- -${PID_WAYBACK} &> /dev/null || true
+  fi
+
+  if [[ -n "$PID_HTTPX" ]]; then
+    echo "kill PID_HTTPX $PID_HTTPX"
+    kill -- -${PID_HTTPX} &> /dev/null || true
   fi
 
   if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
