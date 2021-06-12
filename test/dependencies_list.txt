@@ -20,3 +20,4 @@ gau
 ffuf
 dnsgen
 interlace
+page-fetch
