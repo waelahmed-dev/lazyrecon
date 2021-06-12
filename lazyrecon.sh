@@ -373,6 +373,15 @@ hakrawlercrawling(){
   fi
 }
 
+pagefetcher(){
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    echo
+    echo "[page-fetch] Fetch page's DOM..."
+    cat $TARGETDIR/3-all-subdomain-live-scheme.txt | page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
+    echo "[page-fetch] done."
+  fi
+}
+
 # prepare custom wordlist for
 # ssrf test --mad only mode
 # directory bruteforce using --mad and --brute mode only
