@@ -82,9 +82,9 @@ third_party_dependencies(){
         git clone https://github.com/blechschmidt/massdns.git
         if cd massdns; then
             if [[ -n "$MACOS" ]]; then
-                sudo make nolinux
+                make nolinux
             else
-                sudo make
+                make
             fi
             ln -s $PWD/bin/massdns /usr/local/bin/massdns
             cd -
@@ -94,7 +94,7 @@ third_party_dependencies(){
     if ! type masscan; then
         git clone https://github.com/robertdavidgraham/masscan.git
         if cd masscan; then
-            sudo make
+            make
             ln -s $PWD/bin/masscan /usr/local/bin/masscan
             cd -
         fi
