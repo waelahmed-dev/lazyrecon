@@ -705,6 +705,13 @@ main(){
   touch $TARGETDIR/query_list.txt
   queryList=$TARGETDIR/query_list.txt
 
+  if [[ -n "$fuzz" || -n "$brute" ]]; then
+    mkdir $TARGETDIR/gospider/
+    mkdir $TARGETDIR/page-fetched/
+    touch $TARGETDIR/gospider/gospider_out.txt
+    touch $TARGETDIR/page-fetched/pagefetcher_output.txt
+  fi
+
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
