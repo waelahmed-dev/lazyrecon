@@ -26,17 +26,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
-
 dirsearchWordlist=./wordlist/top1000.txt # used in directory bruteforcing (--brute option)
 dirsearchThreads=10 # to avoid blocking of waf
 
 miniResolvers=./resolvers/mini_resolvers.txt
-
-# used in hydra attack
-# use preferred list if possible
-# too much words required up to 6 hours
-usersList=./wordlist/top-users.txt
-passwordsList=./wordlist/top-passwords.txt
 
 
 # optional positional arguments
@@ -133,20 +126,11 @@ checkwaybackurls(){
   wait $PID_GAU $PID_WAYBACK
 
   sort -u $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
-  # teardown: remove raw files
-  # rm -rf $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt
-
-  # remove all out-of-scope lines
-  # grep -e "[.]${SCOPE}" -e "//${SCOPE}" $TARGETDIR/wayback/wayback_output.txt | sort -u -o $TARGETDIR/wayback/wayback_output.txt
 
   # need to get some extras subdomains
   cat $TARGETDIR/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
 
-  # full paths+queries
-  # remove archive and potential emails
-  # cat $TARGETDIR/wayback/wayback_output.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/wayback/wayback-paths-list.txt
-
-  if [ "$alt" = "1" -a "$mad" = "1" ]; then
+  if [[ -n "$alt" && -n "$wildcard" ]]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
     cat $TARGETDIR/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
     sort -u $altdnsWordlist $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
@@ -278,6 +262,7 @@ screenshots(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     mkdir $TARGETDIR/screenshots
     ./helpers/asyncscreen.sh "$TARGETDIR"
+    chown $HOMEUSER: $TARGETDIR/screenshots/*
   fi
 }
 
@@ -341,9 +326,6 @@ gospidertest(){
     # prepare paths list
     grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
     grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
-
-    # full paths+queries
-    # cat $TARGETDIR/gospider/gospider_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | sort | uniq > $TARGETDIR/gospider/gospider-paths-list.txt
     echo "[gospider] done."
   fi
 }
@@ -375,9 +357,11 @@ hakrawlercrawling(){
 
 pagefetcher(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    SCOPE=$1
     echo
     echo "[page-fetch] Fetch page's DOM..."
     cat $TARGETDIR/3-all-subdomain-live-scheme.txt | page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
+    grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
     echo "[page-fetch] done."
   fi
 }
@@ -386,22 +370,25 @@ pagefetcher(){
 # ssrf test --mad only mode
 # directory bruteforce using --mad and --brute mode only
 custompathlist(){
-  if [ "$mad" = "1" ]; then
-    echo "Prepare custom queryList"
-    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt -o $queryList
+  echo "Prepare custom queryList"
+  if [[ -n "$mad" ]]; then
+    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
     # rm -rf $TARGETDIR/wayback/wayback_output.txt
+  else
+    sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
+  fi
 
-    # echo "Prepare custom customFfufWordList"
-    # merge base dirsearchWordlist with target-specific list for deep dive (time sensitive)
-    # sudo sort -u $TARGETDIR/nuclei/nuclei-paths-list.txt $TARGETDIR/wayback/wayback-paths-list.txt $TARGETDIR/gospider/gospider-paths-list.txt $TARGETDIR/hakrawler/hakrawler-paths-list.txt $customFfufWordList -o $customFfufWordList
-    # sort -u $TARGETDIR/wayback/wayback-paths-list.txt $TARGETDIR/gospider/gospider-paths-list.txt -o $customFfufWordList
+  if [[ -n "$brute" ]]; then
+    echo "Prepare custom customFfufWordList"
+    # filter first and first-second paths from full paths remove empty lines
+    cat $queryList | unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
+                                                     tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
+    sort -u $customFfufWordList -o $customFfufWordList
+    chown $HOMEUSER: $customFfufWordList
+  fi
 
-    # GREPSCOPE=$(echo $1 | sed "s/\./[.]/")
-    # grep -E  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $queryList | sed "s|%3A|:|gi;s|%2F|\/|gi;s|%253A|:|gi;s|%252F|\/|gi;s|%25253A|:|gi;s|%25252F|\/|gi" | uniq > $customPathWordList
-
-    # chown $HOMEUSER: $customFfufWordList
+  if [[ -n "$fuzz" ]]; then
     chown $HOMEUSER: $queryList
-
     chown $HOMEUSER: $customSsrfQueryList
     chown $HOMEUSER: $customLfiQueryList
     chown $HOMEUSER: $customSqliQueryList
@@ -588,36 +575,23 @@ nmap_nse(){
   done < $TARGETDIR/masscan_output.gnmap
 }
 
-# hydra user/password attack on popular protocols
-hydratest(){
-  echo "[hydra] attacking network protocols"
-  while read line; do
-    IP=$(echo $line | awk '{ print $4 }')
-    PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
-    PROTOCOL=$(echo $line | awk -F '[/ ]+' '{print $10}')
-    FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "hydra_"PORT"_"$4}' )
-
-    if [ "$PROTOCOL" = "ftp" -o "$PROTOCOL" = "ssh" -o "$PROTOCOL" = "smtp" -o "$PROTOCOL" = "mysql" ]; then
-      echo "[hydra] scanning $IP on $PORT port using $PROTOCOL protocol"
-      hydra -o $TARGETDIR/hydra/$FILENAME -b text -L $usersList -P $passwordsList -s $PORT $IP $PROTOCOL || true
-    fi
-  done < $TARGETDIR/masscan_output.gnmap
-}
-
 # directory bruteforce
 ffufbrute(){
   if [ "$brute" = "1" ]; then
     echo "Start directory bruteforce using ffuf..."
       # -c stands for colorized, -s for silent mode
-      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 -w $dirsearchWordlist -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" -o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 -w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" -o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+      chown $HOMEUSER: $TARGETDIR/ffuf/*
   fi
 }
 
 recon(){
   enumeratesubdomains $1
+
   if [[ -n "$mad" && ( -n "$single" || -n "$wildcard" ) ]]; then
     checkwaybackurls $1
   fi
+
   sortsubdomains $1
   permutatesubdomains $1
 
@@ -631,31 +605,28 @@ recon(){
   PID_SCREEN=$!
   nucleitest $1 &
   PID_NUCLEI=$!
-
   echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
   wait $PID_SCREEN $PID_NUCLEI
 
-  if [ "$mad" = "1" ]; then
+  if [[ -n "$fuzz" || -n "$brute" ]]; then
+    pagefetcher $1
     gospidertest $1
     # hakrawlercrawling $1 # disabled cause SSRF PoC need
   fi
 
-  custompathlist $1
-
-  if [[ -n "$fuzz" ]]; then
-    pagefetcher $1
-    ssrftest $1
+  if [[ -n "$fuzz" || -n "$brute" ]]; then
+    custompathlist $1
   fi
 
-  if [[ -n "$mad" ]]; then
+  if [[ -n "$fuzz" ]]; then
+    ssrftest $1
     lfitest $1
     sqlmaptest $1
   fi
+
   # smugglertest $1 # disabled because still manually work need
 
   masscantest $1
-  # nmap_nse $1 # no auto-install Routine
-  # hydratest $1 # try by hands if no WAF
 
   ffufbrute $1
 
@@ -729,12 +700,13 @@ main(){
   echo "$@" >> $TARGETDIR/_call_params.txt
   echo "$@" >> ./_call.log
 
-  # used for ffuf bruteforce
-  if [ "$mad" = "1" ]; then
-    # merged wayback, gospider, nuclei list
-    touch $TARGETDIR/query_list.txt
-    queryList=$TARGETDIR/query_list.txt
 
+  # merges gospider and page-fetch outputs
+  touch $TARGETDIR/query_list.txt
+  queryList=$TARGETDIR/query_list.txt
+
+  # used for fuzz and bruteforce
+  if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
     touch $TARGETDIR/custom_ssrf_list.txt
     customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
@@ -744,10 +716,16 @@ main(){
     # to work with gf ssrf output
     touch $TARGETDIR/custom_sqli_list.txt
     customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
-
-    # touch $TARGETDIR/custom_path_list.txt
-    # customPathWordList=$TARGETDIR/custom_path_list.txt
   fi
+
+  # ffuf dir uses to store brute output
+  if [[ -n "$brute" ]]; then
+    mkdir $TARGETDIR/ffuf/
+    touch $TARGETDIR/custom_ffuf_wordlist.txt
+    customFfufWordList=$TARGETDIR/custom_ffuf_wordlist.txt
+    cp $dirsearchWordlist $customFfufWordList
+  fi
+
   # used to save target specific list for alterations (shuffledns, altdns)
   if [ "$alt" = "1" ]; then
     touch $TARGETDIR/custom_subdomains_wordlist.txt
@@ -755,42 +733,19 @@ main(){
     cp $altdnsWordlist $customSubdomainsWordList
   fi
 
-  if [ "$brute" = "1" ]; then
-    # ffuf dir uses to store brute output
-    mkdir $TARGETDIR/ffuf/
-  fi
-  # if [ "$brute" = "1" -a "$mad" = "1" ]; then
-    # touch $TARGETDIR/custom_ffuf_wordlist.txt
-    # customFfufWordList=$TARGETDIR/custom_ffuf_wordlist.txt
-    # cp $dirsearchWordlist $customFfufWordList
-  # fi
-
   # nuclei output
   mkdir $TARGETDIR/nuclei/
 
   if [ "$mad" = "1" ]; then
-    # gospider output
-    mkdir $TARGETDIR/gospider/
-    # touch $TARGETDIR/gospider/gospider-paths-list.txt
-    # hakrawler output
-    # mkdir $TARGETDIR/hakrawler/
-    # touch $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-    # sqlmap output
-    mkdir $TARGETDIR/sqlmap/
     # gau/waybackurls output
     mkdir $TARGETDIR/wayback/
-    # touch $TARGETDIR/wayback/wayback-paths-list.txt
   fi
-  # brutespray output
-  # mkdir $TARGETDIR/brutespray/
   # subfinder list of subdomains
   touch $TARGETDIR/subfinder-list.txt 
   # assetfinder list of subdomains
   touch $TARGETDIR/assetfinder-list.txt
   # all assetfinder/subfinder finded domains
   touch $TARGETDIR/enumerated-subdomains.txt
-  # amass list of subdomains
-  # touch $TARGETDIR/amass-list.txt
   # shuffledns list of subdomains
   touch $TARGETDIR/shuffledns-list.txt
   # gau/waybackurls list of subdomains
