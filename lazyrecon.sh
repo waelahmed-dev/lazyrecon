@@ -876,7 +876,7 @@ foldername=recon-$(date +"%y-%m-%d_%H-%M-%S")
 kill_listen_server(){
   if [[ -n "$SERVER_PID" ]]; then
     echo "killing listen server $SERVER_PID..."
-    kill -2 $SERVER_PID &> /dev/null || true
+    kill -9 $SERVER_PID &> /dev/null || true
   fi
 }
 
