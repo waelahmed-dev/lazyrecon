@@ -273,7 +273,7 @@ nucleitest(){
     # use -c for maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[nuclei] CVE testing..."
-    nuclei -v -disk-export $TARGETDIR/nuclei/nucleilog -o $TARGETDIR/nuclei/nuclei_output.txt \
+    nuclei -v -trace-log $TARGETDIR/nuclei/nucleilog -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
@@ -407,6 +407,7 @@ custompathlist(){
 # https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
 # https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68
 # https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF
+# https://cobalt.io/blog/from-ssrf-to-port-scanner
 ssrftest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
