@@ -104,6 +104,10 @@ enumeratesubdomains(){
         done < "${TARGETDIR}"/enumerated-subdomains.txt
 
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
+
+        cat $TARGETDIR/enumerated-subdomains.txt | unfurl format %S | sort | uniq > $TARGETDIR/enumerated-subdomains-wordlist.txt
+        sort -u $altdnsWordlist $TARGETDIR/enumerated-subdomains-wordlist.txt -o $customSubdomainsWordList
+  fi
       fi
     else 
       echo "No target was found!"
@@ -154,7 +158,7 @@ checkwaybackurls(){
   if [[ -n "$alt" && -n "$wildcard" ]]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
     cat $TARGETDIR/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
-    sort -u $altdnsWordlist $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
+    sort -u $customSubdomainsWordList $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
   fi
 }
 
@@ -238,11 +242,11 @@ checkhttprobe(){
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
       if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
