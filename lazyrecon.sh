@@ -280,7 +280,7 @@ checkhttprobe(){
 screenshots(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     mkdir $TARGETDIR/screenshots
-    ./helpers/asyncscreen.sh "$TARGETDIR"
+    ./helpers/asyncscreen.sh $TARGETDIR/3-all-subdomain-live-scheme.txt
     chown $HOMEUSER: $TARGETDIR/screenshots/*
   fi
 }

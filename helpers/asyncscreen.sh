@@ -2,12 +2,12 @@
 # kill used as workaround:
 # https://bugs.chromium.org/p/chromium/issues/detail?id=1097565&can=2&q=component%3AInternals%3EHeadless
 
-# 10 threads
-THREADS=10
+# threads
+THREADS=5
 # to handle background PID of screenshot
 declare -a PID_CHROMIUM
 
-if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
+if [ -s "${1}" ]; then
   ITERATOR=0
 
   while read line; do
@@ -22,14 +22,16 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
         SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
       fi
 
-      /usr/local/bin/chromium --headless --no-sandbox --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
+      /usr/local/bin/chromium --headless --no-sandbox --disable-setuid-sandbox --user-data-dir="${1}" --disable-web-security \
+                              --disable-extensions --ignore-urlfetcher-cert-requests --ignore-certificate-errors --ignore-ssl-errors --disable-dev-shm-usage \
+                              --window-size=1280,720 --screenshot="${1}/screenshots/${SCOPE}.png" $line &
 
         PID_CHROMIUM[$ITERATOR]=$!
         echo "PID_CHROMIUM=${PID_CHROMIUM[@]}"
         ITERATOR=$((ITERATOR+1))
 
         if [ $((ITERATOR % THREADS)) -eq 0 ]; then
-          sleep 6
+          sleep 10
             for PID_TMP in "${!PID_CHROMIUM[@]}"; do
                 echo "#PID_CHROMIUM=${#PID_CHROMIUM[@]}"
                 echo "killing ${PID_CHROMIUM[$PID_TMP]}"
@@ -38,12 +40,12 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
             done
         fi
 
-  done < "${1}/3-all-subdomain-live-scheme.txt"
+  done < "${1}"
 
   # remaining targets
   echo
   echo "[screenshot] remaining targets: ${#PID_CHROMIUM[@]}"
-  sleep 6
+  sleep 10
   for PID_TMP in "${!PID_CHROMIUM[@]}"; do
       echo "killing ${PID_CHROMIUM[$PID_TMP]}"
       kill -9 "${PID_CHROMIUM[$PID_TMP]}" || true
@@ -52,5 +54,7 @@ if [ -s "${1}/3-all-subdomain-live-scheme.txt" ]; then
 
   echo "[screenshot][debug] Done, jobs -l:"
   jobs -l
-
+else
+  echo "No such file ${1}"
+  exit 1
 fi
