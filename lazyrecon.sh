@@ -25,13 +25,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   SEDOPTION=(-i '')
 fi
 
-altdnsWordlist=./lazyWordLists/altdns_wordlist_uniq.txt # used for permutations (--alt option required)
-dirsearchWordlist=./wordlist/top1000.txt # used in directory bruteforcing (--brute option)
-dirsearchThreads=10 # to avoid blocking of waf
-
-miniResolvers=./resolvers/mini_resolvers.txt
-
-
 # optional positional arguments
 ip= # test for specific single IP
 cidr= # test for CIDR based on ASN number, see https://bgp.he.net/
@@ -43,7 +36,12 @@ fuzz= # enable parameter fuzzing (listen server is automatically deployed using 
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
+vps= # tune async jobs to reduce stuff like concurrent headless chromium but rise bruteforce list
 quiet= # quiet mode
+
+MINIRESOLVERS=./resolvers/mini_resolvers.txt
+ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
+BRUTEDNSWORDLIST=./wordlist/assetnote/best-dns-wordlist.txt
 
 # definitions
 enumeratesubdomains(){
@@ -74,9 +72,9 @@ enumeratesubdomains(){
     # echo "amass..."
     # amass enum --passive -log $TARGETDIR/amass_errors.log -d $1 -o $TARGETDIR/amass-list.txt
 
-    # remove all lines start with *-asterix and out-of-scope domains
     SCOPE=$1
     grep "[.]${SCOPE}$" $TARGETDIR/assetfinder-list.txt | sort -u -o $TARGETDIR/assetfinder-list.txt
+    # remove all lines start with *-asterix and out-of-scope domains
     sed "${SEDOPTION[@]}" '/^*/d' $TARGETDIR/assetfinder-list.txt
     # sort enumerated subdomains
     sort -u "$TARGETDIR"/subfinder-list.txt $TARGETDIR/assetfinder-list.txt "$TARGETDIR"/github-subdomains-list.txt -o "$TARGETDIR"/enumerated-subdomains.txt
@@ -93,21 +91,20 @@ enumeratesubdomains(){
         barLen=30
         count=0
 
-        # --- iterate over lines in file ---
-        while read line; do
-            # update progress bar
-            count=$(($count + 1))
-            percent=$((($count * 100 / $totalLines * 100) / 100))
-            i=$(($percent * $barLen / 100))
-            echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
-            subfinder -all -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
-        done < "${TARGETDIR}"/enumerated-subdomains.txt
+          # --- iterate over lines in file ---
+          while read line; do
+              # update progress bar
+              count=$(($count + 1))
+              percent=$((($count * 100 / $totalLines * 100) / 100))
+              i=$(($percent * $barLen / 100))
+              echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
+              subfinder -all -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
+          done < "${TARGETDIR}"/enumerated-subdomains.txt
 
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
 
         cat $TARGETDIR/enumerated-subdomains.txt | unfurl format %S | sort | uniq > $TARGETDIR/enumerated-subdomains-wordlist.txt
-        sort -u $altdnsWordlist $TARGETDIR/enumerated-subdomains-wordlist.txt -o $customSubdomainsWordList
-  fi
+        sort -u $ALTDNSWORDLIST $TARGETDIR/enumerated-subdomains-wordlist.txt -o $customSubdomainsWordList
       fi
     else 
       echo "No target was found!"
@@ -167,22 +164,19 @@ sortsubdomains(){
   cp $TARGETDIR/1-real-subdomains.txt $TARGETDIR/2-all-subdomains.txt
 }
 
+dnsbruteforcing(){
+  if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
+    echo "puredns bruteforce..."
+    puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
+  fi
+}
+
 permutatesubdomains(){
   if [[ -n "$alt" && -n "$wildcard" ]]; then
     mkdir $TARGETDIR/alterated/
-    # echo "altdns..."
-    # altdns -i $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/alterated/altdns_out.txt -w $customSubdomainsWordList
-    # sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/altdns_out.txt
-
     echo "dnsgen..."
     dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/alterated/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/dnsgen_out.txt
-    sed "${SEDOPTION[@]}" '/^[-]/d' $TARGETDIR/alterated/dnsgen_out.txt
-
-    # combine permutated domains and exclude out of scope domains
-    # SCOPE=$1
-    # echo "SCOPE=$SCOPE"
-    # grep -r -h "[.]${SCOPE}$" $TARGETDIR/alterated | sort | uniq > $TARGETDIR/alterated/permutated-list.txt
 
     sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/alterated/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
     # rm -rf $TARGETDIR/alterated/*
@@ -203,17 +197,17 @@ dnsprobing(){
   elif [[ -n "$cidr" ]]; then
     echo "[dnsx] try to get PTR records"
     cp  $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/dnsprobe_ip.txt
-    dnsx -silent -ptr -resp-only -r $miniResolvers -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
+    dnsx -silent -ptr -resp-only -r $MINIRESOLVERS -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [[ -n "$single" ]]; then
     echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n "$list" ]]; then
       # echo "[shuffledns] massdns probing..."
-      # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
+      # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/2-all-subdomains.txt -o $TARGETDIR/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/2-all-subdomains.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
@@ -221,11 +215,11 @@ dnsprobing(){
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
       echo "[shuffledns] massdns probing with wildcard sieving..."
-      shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 2 -r $miniResolvers -o $TARGETDIR/shuffledns-list.txt
+      shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 5 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $miniResolvers -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/shuffledns-list.txt -o $TARGETDIR/dnsprobe_out.txt
 
       # clear file from [ and ] symbols
       tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
@@ -264,7 +258,7 @@ checkhttprobe(){
             echo "mode found: $CIDR1"
             # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
-                shuffledns -silent -d $1 -r $miniResolvers -wt 100 | dnsx -silent -r $miniResolvers -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
+                shuffledns -silent -d $1 -r $MINIRESOLVERS | dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
                 httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
@@ -619,6 +613,7 @@ recon(){
   fi
 
   sortsubdomains $1
+  dnsbruteforcing $1
   permutatesubdomains $1
 
   dnsprobing $1
@@ -668,6 +663,14 @@ report(){
 }
 
 main(){
+  # VPS used with max wordlist size
+  if [[ -n "$vps" ]]; then
+    dirsearchWordlist=./wordlist/top1000.txt # used in directory bruteforcing (--brute option)
+    dirsearchThreads=10 # to avoid blocking of waf
+  else
+    dirsearchWordlist=./wordlist/top10000.txt
+    dirsearchThreads=20 
+  fi
   # collect wildcard and single targets statistic to retest later (optional)
   if [[ -n "$wildcard" ]]; then
     if [ -s $STORAGEDIR/wildcard.txt ]; then
@@ -763,7 +766,7 @@ main(){
   if [ "$alt" = "1" ]; then
     touch $TARGETDIR/custom_subdomains_wordlist.txt
     customSubdomainsWordList=$TARGETDIR/custom_subdomains_wordlist.txt
-    cp $altdnsWordlist $customSubdomainsWordList
+    cp $ALTDNSWORDLIST $customSubdomainsWordList
   fi
 
   # nuclei output
@@ -850,6 +853,8 @@ checkargs(){
           -c | --cidr )           cidr="1"
                                   ;;
           -b | --brute )          brute="1"
+                                  ;;
+          -v | --vps )            vps="1"
                                   ;;
           -q | --quiet )          quiet="1"
                                   ;;
