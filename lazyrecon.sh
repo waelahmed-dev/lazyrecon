@@ -41,7 +41,7 @@ quiet= # quiet mode
 
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
-BRUTEDNSWORDLIST=./wordlist/assetnote/best-dns-wordlist.txt
+BRUTEDNSWORDLIST=./best-dns-wordlist.txt
 
 # definitions
 enumeratesubdomains(){
