@@ -82,11 +82,32 @@ enumeratesubdomains(){
     sort -u "$TARGETDIR"/subfinder-list.txt $TARGETDIR/assetfinder-list.txt "$TARGETDIR"/github-subdomains-list.txt -o "$TARGETDIR"/enumerated-subdomains.txt
     sed "${SEDOPTION[@]}" '/^[.]/d' $TARGETDIR/enumerated-subdomains.txt
 
-    if [[ -n "$alt" && -s "$TARGETDIR"/enumerated-subdomains.txt ]]; then
-      echo
-      echo "[subfinder] second try..."
-      subfinder -all -dL "${TARGETDIR}"/enumerated-subdomains.txt -silent -o "${TARGETDIR}"/subfinder-list-2.txt
-      sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
+    if [[ -s "$TARGETDIR"/enumerated-subdomains.txt ]]; then
+      if [[ -n "$alt" ]]; then
+        echo
+        echo "[subfinder] second try..."
+        # dynamic sensor
+        BAR='##############################'
+        FILL='------------------------------'
+        totalLines=$(wc -l "$TARGETDIR"/enumerated-subdomains.txt | awk '{print $1}')  # num. lines in file
+        barLen=30
+        count=0
+
+        # --- iterate over lines in file ---
+        while read line; do
+            # update progress bar
+            count=$(($count + 1))
+            percent=$((($count * 100 / $totalLines * 100) / 100))
+            i=$(($percent * $barLen / 100))
+            echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
+            subfinder -all -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
+        done < "${TARGETDIR}"/enumerated-subdomains.txt
+
+        sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
+      fi
+    else 
+      echo "No target was found!"
+      error_exit
     fi
   fi
 }
@@ -900,7 +921,7 @@ kill_background_pid(){
   fi
 
   if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
-    echo "kill $PID_GAU and $PID_WAYBACK"
+    echo "kill PID_GAU $PID_GAU and PID_WAYBACK $PID_WAYBACK"
     kill -- -${PID_GAU} &> /dev/null || true
     kill -- -${PID_WAYBACK} &> /dev/null || true
   fi
@@ -911,13 +932,14 @@ kill_background_pid(){
   fi
 
   if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
-    echo "kill $PID_SCREEN and $PID_NUCLEI"
+    echo "kill PID_SCREEN $PID_SCREEN and PID_NUCLEI $PID_NUCLEI"
     kill -- -${PID_SCREEN} &> /dev/null || true
     kill -- -${PID_NUCLEI} &> /dev/null || true
   fi
 
   echo "subshell after:"
   jobs -l
+  echo "subshell successfully done."
 }
 
 # handle script issues
@@ -926,14 +948,14 @@ error_exit(){
   echo "[ERROR]: error_exit()"
   stats=$(tail -n 1 _err.log)
   echo $stats
+  kill_listen_server
+  kill_background_pid
   if [[ -n "$discord" ]]; then
     ./helpers/discord-hook.sh "[error] line $(caller): ${stats}: "
     if [[ -s ./_err.log ]]; then
       ./helpers/discord-file-hook.sh "./_err.log"
     fi
   fi
-  kill_listen_server
-  kill_background_pid
   exit 1
 }
 
@@ -941,8 +963,6 @@ error_exit(){
 debug_exit(){
   echo
   echo "[DEBUG]: teardown successfully triggered"
-  stats=$(tail -n 1 _err.log)
-  echo $stats
 }
 
 trap error_exit ERR
