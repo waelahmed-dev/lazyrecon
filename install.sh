@@ -29,6 +29,7 @@ third_party_go_dependencies(){
     gotools[12]="go get -u github.com/jaeles-project/gospider"
     gotools[13]="go get -u -v github.com/lc/gau"
     gotools[14]="go get github.com/detectify/page-fetch"
+    gotools[15]="go get github.com/d3mondev/puredns/v2"
 
     for gotool in "${gotools[@]}"; do
         $gotool

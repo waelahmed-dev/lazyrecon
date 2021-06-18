@@ -21,3 +21,4 @@ ffuf
 dnsgen
 interlace
 page-fetch
+puredns
