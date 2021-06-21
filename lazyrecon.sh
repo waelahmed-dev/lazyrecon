@@ -1,5 +1,6 @@
 #!/bin/bash
-set -emE
+set -eE
+set -m
 
 # Invoke with sudo because of masscan/nmap
 
@@ -67,8 +68,9 @@ enumeratesubdomains(){
     echo "github-subdomains.py..."
     github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" | grep "[.]${1}" > $TARGETDIR/github-subdomains-list.txt
 
+    echo "wait PID_SUBFINDER_FIRST $PID_SUBFINDER_FIRST and PID_ASSETFINDER $PID_ASSETFINDER"
     wait $PID_SUBFINDER_FIRST $PID_ASSETFINDER
-
+    echo "PID_SUBFINDER_FIRST $PID_SUBFINDER_FIRST and PID_ASSETFINDER $PID_ASSETFINDER done."
     # echo "amass..."
     # amass enum --passive -log $TARGETDIR/amass_errors.log -d $1 -o $TARGETDIR/amass-list.txt
 
@@ -108,7 +110,7 @@ enumeratesubdomains(){
       fi
     else 
       echo "No target was found!"
-      error_exit
+      error_handler
     fi
   fi
 }
@@ -137,10 +139,10 @@ getgithubendpoints(){
 checkwaybackurls(){
   SCOPE=$1
 
-  getgau &
+  getgau $1 &
   PID_GAU=$!
 
-  getwaybackurl &
+  getwaybackurl $1 &
   PID_WAYBACK=$!
 
   getgithubendpoints $1
@@ -256,7 +258,7 @@ checkhttprobe(){
             MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
             echo "mode found: $CIDR1"
-            # wait https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
+            # look at https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
                 shuffledns -silent -d $1 -r $MINIRESOLVERS | dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
                 httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
@@ -278,10 +280,10 @@ checkhttprobe(){
 
 # async ability for execute chromium
 screenshots(){
-  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
-    mkdir $TARGETDIR/screenshots
-    ./helpers/asyncscreen.sh $TARGETDIR/3-all-subdomain-live-scheme.txt
-    chown $HOMEUSER: $TARGETDIR/screenshots/*
+  if [ -s "$TARGETDIR"/3-all-subdomain-live-scheme.txt ]; then
+    mkdir "$TARGETDIR"/screenshots
+    ./helpers/asyncscreen.sh "$TARGETDIR"/3-all-subdomain-live-scheme.txt
+    chown $HOMEUSER: "$TARGETDIR"/screenshots/*
   fi
 }
 
@@ -624,10 +626,13 @@ recon(){
 
   screenshots $1 &
   PID_SCREEN=$!
+  echo "Waiting for screenshots ${PID_SCREEN}"
+  wait $PID_SCREEN
+
   nucleitest $1 &
   PID_NUCLEI=$!
-  echo "Waiting for ${PID_SCREEN} and ${PID_NUCLEI}..."
-  wait $PID_SCREEN $PID_NUCLEI
+  echo "Waiting for nucleitest ${PID_NUCLEI}..."
+  wait $PID_NUCLEI
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     pagefetcher $1
@@ -714,6 +719,7 @@ main(){
     fi
   fi
   mkdir -p $TARGETDIR
+  echo "target dir created: $TARGETDIR"
 
   if [[ -n "$fuzz" ]]; then
     # Listen server
@@ -797,6 +803,7 @@ main(){
 clean_up() {
   # Perform program exit housekeeping
   echo
+  echo "SIGINT received"
   echo "clean_up..."
   echo "housekeeping rm -rf $TARGETDIR"
   rm -rf $TARGETDIR
@@ -808,7 +815,7 @@ clean_up() {
 usage(){
   PROGNAME=$(basename $0)
   echo "Usage: sudo ./lazyrecon.sh <target> [[-b] | [--brute]] [[-m] | [--mad]]"
-  echo "Example: sudo $PROG NAME example.com --wildcard"
+  echo "Example: sudo $PROGNAME example.com --wildcard"
 }
 
 invokation(){
@@ -890,7 +897,7 @@ if [ "$quiet" == "" ]; then
   echo "Check STORAGEDIR: $STORAGEDIR"
   echo
   # positional parameters test
-  echo "Check params: $@"
+  echo "Check params: $*"
   echo "Check # of params: $#"
   echo "Check params \$1: $1"
   echo "Check params \$ip: $ip"
@@ -919,19 +926,33 @@ kill_listen_server(){
 }
 
 # kill background and subshell
+# Are you trying to have the parent kill the subprocess, or the subprocess kill the parent?
+# At the moment, it's the subprocess that gets the error, and hence runs the trap; is it supposed to be killing its parent?
 kill_background_pid(){
+  echo
+  echo "killing background jobs by PIDs..."
   echo "subshell before:"
   jobs -l
+  jobs -l | awk '{print $2}'| xargs kill -9
   echo
-  if [[ -n "$PID_SUBFINDER_FIRST" || -n "$PID_ASSETFINDER" ]]; then
-    echo "kill $PID_SUBFINDER_FIRST and $PID_ASSETFINDER"
+
+  if [[ -n "$PID_SUBFINDER_FIRST" ]]; then
+    echo "kill PID_SUBFINDER_FIRST $PID_SUBFINDER_FIRST"
     kill -- -${PID_SUBFINDER_FIRST} &> /dev/null || true
+  fi
+
+  if [[ -n "$PID_ASSETFINDER" ]]; then
+    echo "kill PID_ASSETFINDER $PID_ASSETFINDER"
     kill -- -${PID_ASSETFINDER} &> /dev/null || true
   fi
 
-  if [[ -n "$PID_GAU" || -n "$PID_WAYBACK" ]]; then
-    echo "kill PID_GAU $PID_GAU and PID_WAYBACK $PID_WAYBACK"
+  if [[ -n "$PID_GAU" ]]; then
+    echo "kill PID_GAU $PID_GAU"
     kill -- -${PID_GAU} &> /dev/null || true
+  fi
+
+  if [[ -n "$PID_WAYBACK" ]]; then
+    echo "kill PID_WAYBACK $PID_WAYBACK"
     kill -- -${PID_WAYBACK} &> /dev/null || true
   fi
 
@@ -940,45 +961,65 @@ kill_background_pid(){
     kill -- -${PID_HTTPX} &> /dev/null || true
   fi
 
-  if [[ -n "$PID_SCREEN" || -n "$PID_NUCLEI" ]]; then
-    echo "kill PID_SCREEN $PID_SCREEN and PID_NUCLEI $PID_NUCLEI"
+  if [[ -n "$PID_SCREEN" ]]; then
+    echo "kill PID_SCREEN $PID_SCREEN"
     kill -- -${PID_SCREEN} &> /dev/null || true
+  fi
+
+  if [[ -n "$PID_NUCLEI" ]]; then
+    echo "kill PID_NUCLEI $PID_NUCLEI"
     kill -- -${PID_NUCLEI} &> /dev/null || true
   fi
 
+  sleep 3
   echo "subshell after:"
   jobs -l
   echo "subshell successfully done."
 }
 
 # handle script issues
-error_exit(){
+error_handler(){
   echo
-  echo "[ERROR]: error_exit()"
-  stats=$(tail -n 1 _err.log)
-  echo $stats
+  echo "[ERROR]: LINENO=${LINENO}, SOURCE=$(caller)"
+  echo "[ERROR]: $(basename $0): ${FUNCNAME} ${LINENO} ${BASH_LINENO[@]}"
+  # stats=$(tail -n 1 _err.log)
+  # echo $stats
+  if [[ -s ${PWD}/_err.log ]]; then
+    cat ${PWD}/_err.log
+  fi
+
   kill_listen_server
   kill_background_pid
+
   if [[ -n "$discord" ]]; then
     ./helpers/discord-hook.sh "[error] line $(caller): ${stats}: "
     if [[ -s ./_err.log ]]; then
-      ./helpers/discord-file-hook.sh "./_err.log"
+      ./helpers/discord-file-hook.sh ./_err.log
     fi
   fi
-  exit 1
+  exit 1 # exit 1 force kill all subshells because of EXIT signal
 }
 
 # handle teardown
-debug_exit(){
+error_exit(){
   echo
-  echo "[DEBUG]: teardown successfully triggered"
+  echo "[EXIT]: teardown successfully triggered"
+  echo "[EXIT]: LINENO=${LINENO}, SOURCE=$(caller)"
+  echo "[EXIT]: $(basename $0): ${FUNCNAME} ${LINENO} ${BASH_LINENO[@]}"
+  PID_EXIT=$$
+  echo "exit PID = $PID_EXIT"
+  echo "jobs:"
+  jobs -l
+  jobs -l | awk '{print $2}' | xargs kill -9 &>/dev/null || true
+  kill -- -${PID_EXIT} &>/dev/null || true
+  echo "[EXIT] done."
 }
 
-trap error_exit ERR
-trap debug_exit EXIT
+trap error_handler ERR
+trap error_exit EXIT
 
 # invoke
-main "$@" 2> _err.log
+main "$@"
 kill_listen_server
 
 echo "check for background and subshell"
