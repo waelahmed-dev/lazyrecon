@@ -352,31 +352,6 @@ gospidertest(){
   fi
 }
 
-hakrawlercrawling(){
-  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
-    echo
-    echo "[hakrawler] Web crawling..."
-    cat $TARGETDIR/3-all-subdomain-live-scheme.txt | hakrawler -plain -insecure -depth 3 > $TARGETDIR/hakrawler/hakrawler_out.txt
-
-    # prepare paths
-    # cat $TARGETDIR/hakrawler/hakrawler_out.txt | unfurl paths | sed 's/\///;/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt
-    # filter first and first-second paths from full paths and remove empty lines
-    # cut -f1 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler_paths.txt
-    # cut -f1-2 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $TARGETDIR/hakrawler/hakrawler_paths.txt
-    # cut -f1-3 -d '/' $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt | sed '/^$/d' | sort | uniq >> $TARGETDIR/hakrawler/hakrawler_paths.txt
-
-    # full paths+queries
-    cat $TARGETDIR/hakrawler/hakrawler_out.txt | unfurl format '%p%?%q' | sed 's/^\///;/^$/d' | sort | uniq > $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-
-    # sort -u $TARGETDIR/hakrawler/hakrawler-paths-list.txt -o $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-    # chown $HOMEUSER: $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-
-    # sort -u $TARGETDIR/hakrawler/hakrawler_unfurl_paths_out.txt $TARGETDIR/hakrawler/hakrawler_paths.txt $TARGETDIR/hakrawler/hakrawler_paths_queries.txt -o $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-    # remove .jpg .jpeg .webp .png .svg .gif from paths
-    # sed "${SEDOPTION[@]}" $unwantedpaths $TARGETDIR/hakrawler/hakrawler-paths-list.txt
-  fi
-}
-
 pagefetcher(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     SCOPE=$1
@@ -638,7 +613,6 @@ recon(){
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     pagefetcher $1
     gospidertest $1
-    # hakrawlercrawling $1 # disabled cause SSRF PoC need
   fi
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
