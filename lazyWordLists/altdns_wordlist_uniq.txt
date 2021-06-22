@@ -63,6 +63,7 @@ box
 brand
 brasil
 brazil
+broker
 bucket
 bucket1
 bucky
@@ -273,6 +274,7 @@ rc1
 rc2
 rout
 safe
+sandbox
 sd
 secure
 sentry
