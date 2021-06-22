@@ -42,7 +42,7 @@ quiet= # quiet mode
 
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
-BRUTEDNSWORDLIST=./best-dns-wordlist.txt
+BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
 
 # definitions
 enumeratesubdomains(){
@@ -105,7 +105,7 @@ enumeratesubdomains(){
 
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
 
-        cat $TARGETDIR/enumerated-subdomains.txt | unfurl format %S | sort | uniq > $TARGETDIR/enumerated-subdomains-wordlist.txt
+        < $TARGETDIR/enumerated-subdomains.txt unfurl format %S | sort | uniq > $TARGETDIR/enumerated-subdomains-wordlist.txt
         sort -u $ALTDNSWORDLIST $TARGETDIR/enumerated-subdomains-wordlist.txt -o $customSubdomainsWordList
       fi
     else 
@@ -117,7 +117,7 @@ enumeratesubdomains(){
 
 getwaybackurl(){
   echo "waybackurls..."
-  cat $TARGETDIR/enumerated-subdomains.txt | waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
   echo "waybackurls done."
 }
 getgau(){
@@ -127,7 +127,7 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  cat $TARGETDIR/enumerated-subdomains.txt | gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
   echo "gau done."
 }
 getgithubendpoints(){
@@ -152,11 +152,11 @@ checkwaybackurls(){
   sort -u $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
 
   # need to get some extras subdomains
-  cat $TARGETDIR/wayback/wayback_output.txt | unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
+  < $TARGETDIR/wayback/wayback_output.txt unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
 
   if [[ -n "$alt" && -n "$wildcard" ]]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
-    cat $TARGETDIR/wayback/wayback_output.txt | unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
+    < $TARGETDIR/wayback/wayback_output.txt unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
     sort -u $customSubdomainsWordList $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
   fi
 }
@@ -170,6 +170,7 @@ dnsbruteforcing(){
   if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
     echo "puredns bruteforce..."
     puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
+    sort -u $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/1-real-subdomains.txt
   fi
 }
 
@@ -271,11 +272,11 @@ checkhttprobe(){
         fi
         echo "finding math mode done."
       fi
-    echo "[httpx] done."
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-  cat $TARGETDIR/3-all-subdomain-live-scheme.txt | unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
+  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
+  echo "[httpx] done."
 }
 
 # async ability for execute chromium
@@ -381,7 +382,7 @@ pagefetcher(){
     SCOPE=$1
     echo
     echo "[page-fetch] Fetch page's DOM..."
-    cat $TARGETDIR/3-all-subdomain-live-scheme.txt | page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
+    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
     grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
     echo "[page-fetch] done."
   fi
@@ -402,7 +403,7 @@ custompathlist(){
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
     # filter first and first-second paths from full paths remove empty lines
-    cat $queryList | unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
+    < $queryList unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
                                                      tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
     sort -u $customFfufWordList -o $customFfufWordList
     chown $HOMEUSER: $customFfufWordList
@@ -538,11 +539,11 @@ smugglertest(){
 
   # check for VULNURABLE keyword
   if [ -s $TARGETDIR/smuggler/output ]; then
-    cat ./smuggler/output | grep 'VULNERABLE' > $TARGETDIR/smugglinghosts.txt
+    grep 'VULNERABLE' ./smuggler/output > $TARGETDIR/smugglinghosts.txt
     if [ -s $TARGETDIR/smugglinghosts.txt ]; then
       echo "Smuggling vulnerability found under the next hosts:"
       echo
-      cat $TARGETDIR/smugglinghosts.txt | grep 'VULN'
+      grep 'VULN' $TARGETDIR/smugglinghosts.txt
     else
       echo "There are no Request Smuggling host found"
     fi
@@ -927,7 +928,7 @@ kill_listen_server(){
 
 # kill background and subshell
 # Are you trying to have the parent kill the subprocess, or the subprocess kill the parent?
-# At the moment, it's the subprocess that gets the error, and hence runs the trap; is it supposed to be killing its parent?
+# At the moment, it's the subprocess that gets the error, and hence runs the error-handler; is it supposed to be killing its parent
 kill_background_pid(){
   echo
   echo "killing background jobs by PIDs..."
@@ -985,7 +986,7 @@ error_handler(){
   # stats=$(tail -n 1 _err.log)
   # echo $stats
   if [[ -s ${PWD}/_err.log ]]; then
-    cat ${PWD}/_err.log
+    < ${PWD}/_err.log
   fi
 
   kill_listen_server
