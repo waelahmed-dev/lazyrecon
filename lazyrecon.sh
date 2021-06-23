@@ -205,12 +205,14 @@ dnsprobing(){
     echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n "$list" ]]; then
-      # echo "[shuffledns] massdns probing..."
+      echo "[massdns] probing and wildcard sieving..."
       # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
-      # # additional resolving because shuffledns missing IP on output
+      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -w $TARGETDIR/resolved-list.txt
+      # # additional resolving because shuffledns/pureDNS missing IP on output
+      echo
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
-      dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/2-all-subdomains.txt -o $TARGETDIR/dnsprobe_out.txt
+      dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
       tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
