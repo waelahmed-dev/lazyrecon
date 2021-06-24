@@ -177,13 +177,11 @@ dnsbruteforcing(){
 
 permutatesubdomains(){
   if [[ -n "$alt" && -n "$wildcard" ]]; then
-    mkdir $TARGETDIR/alterated/
     echo "dnsgen..."
-    dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/alterated/dnsgen_out.txt
-    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/alterated/dnsgen_out.txt
+    dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/tmp/dnsgen_out.txt
+    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/tmp/dnsgen_out.txt
 
-    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/alterated/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
-    # rm -rf $TARGETDIR/alterated/*
+    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/tmp/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
   fi
 }
 
