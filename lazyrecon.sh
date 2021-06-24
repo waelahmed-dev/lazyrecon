@@ -58,7 +58,7 @@ enumeratesubdomains(){
     # Passive subdomain enumeration
     echo "subfinder..."
     echo $1 >> $TARGETDIR/subfinder-list.txt # to be sure main domain added in case of one domain scope
-    subfinder -d $1 -silent -o $TARGETDIR/subfinder-list.txt &
+    subfinder -all -d $1 -silent -o $TARGETDIR/subfinder-list.txt &
     PID_SUBFINDER_FIRST=$!
 
     echo "assetfinder..."
@@ -100,7 +100,7 @@ enumeratesubdomains(){
               percent=$((($count * 100 / $totalLines * 100) / 100))
               i=$(($percent * $barLen / 100))
               echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
-              subfinder -all -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
+              subfinder -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
           done < "${TARGETDIR}"/enumerated-subdomains.txt
 
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
