@@ -1007,9 +1007,17 @@ jobs -l
 
 if [[ -n "$discord" ]]; then
   ./helpers/discord-hook.sh "[info] $1 done"
-  if [[ -s $TARGETDIR/report.html ]]; then
-    ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
-  fi
+    if [[ -s $TARGETDIR/report.pdf ]]; then
+      # check then file more then maximum of 8MB to pass the discord
+      if (($(ls -l $TARGETDIR/report.pdf | awk '{print $5}') > 8000000)); then
+            split -b 8m $TARGETDIR/report.pdf $TARGETDIR/tmp/_report_
+            for file in $TARGETDIR/tmp/_report_*; do
+                ./helpers/discord-file-hook.sh $TARGETDIR/file
+            done
+      else 
+          ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
+      fi
+    fi
 fi
 
 exit 0
