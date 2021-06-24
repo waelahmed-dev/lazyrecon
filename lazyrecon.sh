@@ -117,7 +117,7 @@ enumeratesubdomains(){
 
 getwaybackurl(){
   echo "waybackurls..."
-  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/waybackurls_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/waybackurls_output.txt
   echo "waybackurls done."
 }
 getgau(){
@@ -127,12 +127,12 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/gau_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/gau_output.txt
   echo "gau done."
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/wayback/github-endpoints_out.txt
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt
   echo "github-endpoints done."
 }
 
@@ -149,7 +149,7 @@ checkwaybackurls(){
 
   wait $PID_GAU $PID_WAYBACK
 
-  sort -u $TARGETDIR/wayback/gau_output.txt $TARGETDIR/wayback/waybackurls_output.txt $TARGETDIR/wayback/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
+  sort -u $TARGETDIR/tmp/gau_output.txt $TARGETDIR/tmp/waybackurls_output.txt $TARGETDIR/tmp/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
 
   # need to get some extras subdomains
   < $TARGETDIR/wayback/wayback_output.txt unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
