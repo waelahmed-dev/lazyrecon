@@ -44,6 +44,8 @@ MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
 
+alias httpxcall='httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -random-agent'
+
 # definitions
 enumeratesubdomains(){
   if [ "$single" = "1" ]; then
@@ -100,7 +102,7 @@ enumeratesubdomains(){
               percent=$((($count * 100 / $totalLines * 100) / 100))
               i=$(($percent * $barLen / 100))
               echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
-              subfinder -d "$line" -silent >> "${TARGETDIR}"/subfinder-list-2.txt
+              subfinder -silent -d $line >> "${TARGETDIR}"/subfinder-list-2.txt
           done < "${TARGETDIR}"/enumerated-subdomains.txt
 
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
@@ -241,11 +243,11 @@ checkhttprobe(){
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpxcall -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    httpxcall -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
       if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
@@ -268,7 +270,6 @@ checkhttprobe(){
                 httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
-            # sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
             sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
 
           fi
@@ -280,6 +281,44 @@ checkhttprobe(){
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
   echo "[httpx] done."
+}
+
+gospidertest(){
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    SCOPE=$1
+    echo
+    echo "[gospider] Web crawling..."
+    gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
+
+    # combine the results and filter out of scope
+    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
+
+    # prepare paths list
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
+    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
+
+    # extract domains
+    < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+                  httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    echo "[gospider] done."
+  fi
+}
+
+pagefetcher(){
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    SCOPE=$1
+    echo
+    echo "[page-fetch] Fetch page's DOM..."
+    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
+    grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
+
+    < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+                  httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+
+    # sort new assets
+    sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    echo "[page-fetch] done."
+  fi
 }
 
 # async ability for execute chromium
@@ -338,33 +377,6 @@ nucleitest(){
   fi
 }
 
-gospidertest(){
-  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
-    SCOPE=$1
-    echo
-    echo "[gospider] Web crawling..."
-    gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
-
-    # combine the results and filter out of scope
-    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
-
-    # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
-    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
-    echo "[gospider] done."
-  fi
-}
-
-pagefetcher(){
-  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
-    SCOPE=$1
-    echo
-    echo "[page-fetch] Fetch page's DOM..."
-    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
-    grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
-    echo "[page-fetch] done."
-  fi
-}
 
 # prepare custom wordlist for
 # ssrf test --mad only mode
@@ -422,47 +434,7 @@ ssrftest(){
         -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork -debug-log $TARGETDIR/ffuf_debug.log
     echo "[SSRF-2] Blind probe done."
 
-    # index.php?url=
-    # ffuf -s -c -u HOST/index.php\?url=https://${LISTENSERVER}/DOMAIN/url \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # /?uri=
-    # ffuf -s -c -u HOST/\?uri=https://${LISTENSERVER}/DOMAIN/ \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # /?redirect_to=
-    # ffuf -s -c -u HOST/\?redirect_to=$LISTENSERVER/DOMAIN/ \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # /?page=
-    # ffuf -s -c -u HOST/\?page=$LISTENSERVER/DOMAIN/ \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # /?p=
-    # ffuf -s -c -u HOST/\?p=$LISTENSERVER/DOMAIN/ \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # ?url=&file=
-    # ffuf -s -c -u HOST/\?url=https://${LISTENSERVER}/DOMAIN/url\&file=https://${LISTENSERVER}/DOMAIN/file \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # manifest.json?url=
-    # ffuf -s -c -u HOST/manifest.json\?url=https://${LISTENSERVER}/DOMAIN/url \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    # # ?returnUrl=
-    # ffuf -s -c -u HOST/\?returnUrl=https://${LISTENSERVER}/DOMAIN/url \
-    #     -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-    #     -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork
-
-    if [[ -n "$mad" && -s "$customSsrfQueryList" ]]; then
+    if [ -s "$customSsrfQueryList" ]; then
       # similar to paramspider but all wayback without limits
       echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf..."
       ITERATOR=0
@@ -603,6 +575,12 @@ recon(){
   echo "wait PID_HTTPX=$PID_HTTPX"
   wait $PID_HTTPX
 
+  if [[ -n "$fuzz" || -n "$brute" ]]; then
+    gospidertest $1
+    pagefetcher $1
+    custompathlist $1
+  fi
+
   screenshots $1 &
   PID_SCREEN=$!
   echo "Waiting for screenshots ${PID_SCREEN}"
@@ -612,15 +590,6 @@ recon(){
   PID_NUCLEI=$!
   echo "Waiting for nucleitest ${PID_NUCLEI}..."
   wait $PID_NUCLEI
-
-  if [[ -n "$fuzz" || -n "$brute" ]]; then
-    pagefetcher $1
-    gospidertest $1
-  fi
-
-  if [[ -n "$fuzz" || -n "$brute" ]]; then
-    custompathlist $1
-  fi
 
   if [[ -n "$fuzz" ]]; then
     ssrftest $1
