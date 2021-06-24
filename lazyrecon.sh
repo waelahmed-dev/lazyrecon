@@ -169,7 +169,8 @@ sortsubdomains(){
 dnsbruteforcing(){
   if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
     echo "puredns bruteforce..."
-    puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
+    # https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing
+    puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -l 5000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
     sort -u $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/1-real-subdomains.txt
   fi
 }
@@ -696,6 +697,7 @@ main(){
     fi
   fi
   mkdir -p $TARGETDIR
+  [[ -d $TARGETDIR/tmp ]] || mkdir $TARGETDIR/tmp
   echo "target dir created: $TARGETDIR"
 
   if [[ -n "$fuzz" ]]; then
@@ -714,8 +716,8 @@ main(){
 
 
   # merges gospider and page-fetch outputs
-  touch $TARGETDIR/query_list.txt
   queryList=$TARGETDIR/query_list.txt
+  touch $queryList
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     mkdir $TARGETDIR/gospider/
@@ -727,28 +729,28 @@ main(){
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
-    touch $TARGETDIR/custom_ssrf_list.txt
     customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
+    touch $customSsrfQueryList
     # to work with gf lfi output
-    touch $TARGETDIR/custom_lfi_list.txt
     customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
+    touch $customLfiQueryList
     # to work with gf ssrf output
-    touch $TARGETDIR/custom_sqli_list.txt
     customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
+    touch $customSqliQueryList
   fi
 
   # ffuf dir uses to store brute output
   if [[ -n "$brute" ]]; then
     mkdir $TARGETDIR/ffuf/
-    touch $TARGETDIR/custom_ffuf_wordlist.txt
-    customFfufWordList=$TARGETDIR/custom_ffuf_wordlist.txt
+    customFfufWordList=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
+    touch $customFfufWordList
     cp $dirsearchWordlist $customFfufWordList
   fi
 
   # used to save target specific list for alterations (shuffledns, altdns)
   if [ "$alt" = "1" ]; then
-    touch $TARGETDIR/custom_subdomains_wordlist.txt
-    customSubdomainsWordList=$TARGETDIR/custom_subdomains_wordlist.txt
+    customSubdomainsWordList=$TARGETDIR/tmp/custom_subdomains_wordlist.txt
+    touch $customSubdomainsWordList
     cp $ALTDNSWORDLIST $customSubdomainsWordList
   fi
 
@@ -778,7 +780,7 @@ main(){
 }
 
 clean_up() {
-  # Perform program exit housekeeping
+  # Perform program interupt housekeeping
   echo
   echo "SIGINT received"
   echo "clean_up..."
@@ -989,6 +991,7 @@ error_exit(){
   jobs -l
   jobs -l | awk '{print $2}' | xargs kill -9 &>/dev/null || true
   kill -- -${PID_EXIT} &>/dev/null || true
+  rm -rf $TARGETDIR/tmp
   echo "[EXIT] done."
 }
 
