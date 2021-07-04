@@ -37,14 +37,14 @@ fuzz= # enable parameter fuzzing (listen server is automatically deployed using 
 mad= # if you sad about subdomains count, call it
 alt= # permutate and alterate subdomains
 discord= # send notifications
-vps= # tune async jobs to reduce stuff like concurrent headless chromium but rise bruteforce list
+vps= # tune async jobs to reduce stuff like concurrent headless chromium but increase bruteforce list and enable DNS bruteforce
 quiet= # quiet mode
 
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
 
-alias httpxcall='httpx -silent -ports 80,81,443,4444,8000,8001,8008,8080,8443,8800,8888,10000 -random-agent'
+httpxcall='httpx -silent -threads 150 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,32000,55440,55672 -random-agent'
 
 # definitions
 enumeratesubdomains(){
@@ -169,7 +169,7 @@ sortsubdomains(){
 }
 
 dnsbruteforcing(){
-  if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
+  if [[  -n "$wildcard" && -n "$vps" ]]; then
     echo "puredns bruteforce..."
     # https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing
     puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -l 5000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
@@ -178,7 +178,7 @@ dnsbruteforcing(){
 }
 
 permutatesubdomains(){
-  if [[ -n "$alt" && -n "$wildcard" ]]; then
+  if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
     echo "dnsgen..."
     dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/tmp/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/tmp/dnsgen_out.txt
@@ -189,7 +189,7 @@ permutatesubdomains(){
 
 # check live subdomains
 # wildcard check like: `dig @188.93.60.15 A,CNAME {test123,0000}.$domain +short`
-# shuffledns uses for wildcard because massdn can't
+# puredns/shuffledns uses for wildcard sieving because massdns can't
 dnsprobing(){
   echo
   # check we test hostname or IP
@@ -208,7 +208,7 @@ dnsprobing(){
   elif [[ -n "$list" ]]; then
       echo "[massdns] probing and wildcard sieving..."
       # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
-      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -w $TARGETDIR/resolved-list.txt
+      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # # additional resolving because shuffledns/pureDNS missing IP on output
       echo
       echo "[dnsx] getting hostnames and its A records:"
@@ -220,10 +220,11 @@ dnsprobing(){
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
-      echo "[shuffledns] massdns probing with wildcard sieving..."
-      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -w $TARGETDIR/resolved-list.txt
+      echo "[puredns] massdns probing with wildcard sieving..."
+      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 5 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
+      echo
       echo "[dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
       dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
@@ -239,17 +240,17 @@ dnsprobing(){
 
 checkhttprobe(){
   echo
-  echo "[httpx] Starting httpx probe testing..."
+  echo "[httpx] Starting http probe testing..."
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
-    httpxcall -l $TARGETDIR/dnsprobe_ip.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
   else
-    httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -threads 150 -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    httpxcall -l $TARGETDIR/dnsprobe_ip.txt -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -l $TARGETDIR/dnsprobe_ip.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
-      if [[ -n "$alt" && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
+      if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
         echo "finding math mode of the IP numbers"
         MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
@@ -265,9 +266,9 @@ checkhttprobe(){
             echo "mode found: $CIDR1"
             # look at https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
-                puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 | \
+                puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
                 dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
-                httpx -silent -ports 80,81,443,4444,8000-8010,8080,8443,8800,8888 -threads 150 >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+                $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
             sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
@@ -299,7 +300,7 @@ gospidertest(){
 
     # extract domains
     < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
-                  httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+                  $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
     echo "[gospider] done."
   fi
 }
@@ -313,7 +314,7 @@ pagefetcher(){
     grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
-                  httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+                  $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
     # sort new assets
     sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
@@ -325,8 +326,9 @@ pagefetcher(){
 screenshots(){
   if [ -s "$TARGETDIR"/3-all-subdomain-live-scheme.txt ]; then
     mkdir "$TARGETDIR"/screenshots
-    ./helpers/asyncscreen.sh "$TARGETDIR"/3-all-subdomain-live-scheme.txt
-    chown $HOMEUSER: "$TARGETDIR"/screenshots/*
+    ./helpers/asyncscreen.sh "$TARGETDIR/3-all-subdomain-live-scheme.txt"
+    chown -R $HOMEUSER: $TARGETDIR/screenshots/
+    echo "[screenshot] done."
   fi
 }
 
@@ -550,12 +552,11 @@ nmap_nse(){
 
 # directory bruteforce
 ffufbrute(){
-  if [ "$brute" = "1" ]; then
     echo "Start directory bruteforce using ffuf..."
+      mkdir $TARGETDIR/ffuf
       # -c stands for colorized, -s for silent mode
-      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 -w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" -o $TARGETDIR/ffuf/_cleantarget_.html -of html"
-      chown $HOMEUSER: $TARGETDIR/ffuf/*
-  fi
+      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+      chown -R $HOMEUSER: $TARGETDIR/ffuf
 }
 
 recon(){
@@ -601,7 +602,9 @@ recon(){
 
   masscantest $1
 
-  ffufbrute $1
+  if [[ -n "$brute" ]]; then
+    ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
+  fi
 
   echo "Recon done!"
 }
@@ -617,10 +620,10 @@ report(){
 main(){
   # VPS used with max wordlist size
   if [[ -n "$vps" ]]; then
-    dirsearchWordlist=./wordlist/top1000.txt # used in directory bruteforcing (--brute option)
+    dirsearchWordlist=./wordlist/top10000.txt # used in directory bruteforcing (--brute option)
     dirsearchThreads=10 # to avoid blocking of waf
   else
-    dirsearchWordlist=./wordlist/top10000.txt
+    dirsearchWordlist=./wordlist/top1000.txt
     dirsearchThreads=20 
   fi
   # collect wildcard and single targets statistic to retest later (optional)
@@ -710,7 +713,6 @@ main(){
 
   # ffuf dir uses to store brute output
   if [[ -n "$brute" ]]; then
-    mkdir $TARGETDIR/ffuf/
     customFfufWordList=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
     touch $customFfufWordList
     cp $dirsearchWordlist $customFfufWordList
@@ -736,8 +738,6 @@ main(){
   touch $TARGETDIR/assetfinder-list.txt
   # all assetfinder/subfinder finded domains
   touch $TARGETDIR/enumerated-subdomains.txt
-  # shuffledns list of subdomains
-  touch $TARGETDIR/shuffledns-list.txt
   # gau/waybackurls list of subdomains
   touch $TARGETDIR/wayback-subdomains-list.txt
 
@@ -855,6 +855,7 @@ if [ "$quiet" == "" ]; then
   echo "Check params \$brute: $brute"
   echo "Check params \$fuzz: $fuzz"
   echo "Check params \$mad: $mad"
+  echo "Check params \$brute: $vps"
   echo "Check params \$alt: $alt"
   echo "Check params \$wildcard: $wildcard"
   echo "Check params \$discord: $discord"
@@ -961,6 +962,7 @@ error_exit(){
   jobs -l | awk '{print $2}' | xargs kill -9 &>/dev/null || true
   kill -- -${PID_EXIT} &>/dev/null || true
   rm -rf $TARGETDIR/tmp
+  find . -type f -empty -delete
   echo "[EXIT] done."
 }
 
@@ -969,7 +971,6 @@ trap error_exit EXIT
 
 # invoke
 main "$@"
-kill_listen_server
 
 echo "check for background and subshell"
 jobs -l
@@ -981,12 +982,13 @@ if [[ -n "$discord" ]]; then
       if (($(ls -l $TARGETDIR/report.pdf | awk '{print $5}') > 8000000)); then
             split -b 8m $TARGETDIR/report.pdf $TARGETDIR/tmp/_report_
             for file in $TARGETDIR/tmp/_report_*; do
-                ./helpers/discord-file-hook.sh $TARGETDIR/file
+                ./helpers/discord-file-hook.sh "$file"
             done
       else 
           ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
       fi
     fi
 fi
+kill_listen_server
 
 exit 0
