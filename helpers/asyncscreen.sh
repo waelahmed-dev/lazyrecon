@@ -56,7 +56,6 @@ if [ -s "${1}" ]; then
   echo "[screenshot][debug] jobs -l:"
   jobs -l
   jobs -l | awk '{print $2}' | xargs kill -9 &>/dev/null || true
-  echo "[screenshot][debug] done.:"
 else
   echo "No such file ${1}"
   exit 1
