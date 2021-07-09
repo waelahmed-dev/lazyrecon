@@ -12,14 +12,19 @@ nmap_nse(){
     FILENAME=$(echo $line | awk -v PORT=$PORT '{ print "nmap_"PORT"_"$4}' )
 
     echo "[nmap] scanning $IP using $PORT port"
+    # -O: OS detection
     # -Pn: Treat all hosts as online - skip host discovery
     # -sV: Probe open ports to determine service/version info (--version-intensity 9: means maximum probes)
     # -sS: raw packages
     # -n: no DNS resolution
     # -sC: equivalent to --script=default (-O and -sC equal to run with -A)
     # -T4: aggressive time scanning
-    # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product
-    nmap -vv --spoof-mac 0 -n -sV --version-intensity 9 -sS -Pn -T4 -p$PORT -oG ./nmap-test/$FILENAME $IP
+    # --spoof-mac Cisco: Spoofs the MAC address to match a Cisco product (0=random)
+    # -f: used to fragment the packets (i.e. split them into smaller pieces) making it less likely that the packets will be detected by a firewall or IDS.
+
+    # grep smtp /usr/local/Cellar/nmap/7.91/share/nmap/scripts/script.db
+    # grep "intrusive" /usr/share/nmap/scripts/script.db
+    nmap -vv --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -f -p$PORT -oG ./nmap-test/$FILENAME $IP
     echo
     echo
     sleep 1
