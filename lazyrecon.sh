@@ -533,6 +533,7 @@ masscantest(){
     masscan -p1-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 -oG $TARGETDIR/masscan_output.gnmap
     sleep 1
     sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+    echo "[masscan] done."
   fi
 }
 
@@ -619,6 +620,9 @@ recon(){
   # smugglertest $1 # disabled because still manually work need
 
   masscantest $1
+  if [[ -n "$single" ]]; then
+    nmap_nse $1
+  fi
 
   if [[ -n "$brute" ]]; then
     ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
