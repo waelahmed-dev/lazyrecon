@@ -280,7 +280,6 @@ checkhttprobe(){
   fi
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
   echo "[httpx] done."
 }
 
@@ -384,6 +383,9 @@ nucleitest(){
 # ssrf test --mad only mode
 # directory bruteforce using --mad and --brute mode only
 custompathlist(){
+  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
+  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-scheme.txt
+
   echo "Prepare custom queryList"
   if [[ -n "$mad" ]]; then
     sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
@@ -438,7 +440,7 @@ ssrftest(){
 
     if [ -s "$customSsrfQueryList" ]; then
       # similar to paramspider but all wayback without limits
-      echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf..."
+      echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf with listen server..."
       ITERATOR=0
       while read line; do
         ITERATOR=$((ITERATOR+1))
@@ -448,18 +450,32 @@ ssrftest(){
       done < $customSsrfQueryList
 
       if [ -s $TARGETDIR/ssrf-list.txt ]; then
-        echo "[SSRF-3] fuzz gf ssrf endpoints"
+        echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
         chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
         # simple math to watch progress
         HOSTCOUNT=$(cat $TARGETDIR/3-all-subdomain-live-scheme.txt | wc -l)
         ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-list.txt | wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
+            ffuf -r -c -t 250 -u HOST -w $TARGETDIR/ssrf-list.txt:HOST > /dev/null
+        echo "[SSRF-3] done."
+        echo
+        echo "[SSRF-4] fuzz mixed headers with paths"
+            ssrf-headers-tool $TARGETDIR/ssrf-list.txt $LISTENSERVER > /dev/null
+        echo "[SSRF-4] done."
+        echo
+        echo "[SSRF-5] prepare paths from original ssrf-list..."
+        < $TARGETDIR/ssrf-list.txt unfurl format '%p%?%q' > $TARGETDIR/ssrf-path-list.txt
+        chown $HOMEUSER: $TARGETDIR/ssrf-path-list.txt
+        # simple math to watch progress
+        ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-path-list.txt | wc -l)
+        echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -r -c -t 250 -u HOST/PATH \
-              -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-              -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
-        echo "[SSRF-3] done."
+        echo "[SSRF-5] fuzz all live servers with ssrf-list-path"
+            ffuf -r -c -t 250 -u HOSTPATH \
+                -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+                -w $TARGETDIR/ssrf-path-list.txt:PATH > /dev/null
+        echo "[SSRF-5] done."
       fi
     fi
   fi
@@ -554,7 +570,9 @@ nmap_nse(){
 ffufbrute(){
     echo "Start directory bruteforce using ffuf..."
       mkdir $TARGETDIR/ffuf
-      # -c stands for colorized, -s for silent mode
+      # gobuster -x append to each word in the selected wordlist
+      # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
+      # ffuf -c stands for colorized, -s for silent mode
       interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
       chown -R $HOMEUSER: $TARGETDIR/ffuf
 }
