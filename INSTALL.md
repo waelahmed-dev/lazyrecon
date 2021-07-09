@@ -28,6 +28,7 @@ go >= 1.14
 9. [dnsgen](https://github.com/ProjectAnte/dnsgen/)
 10. [puredns](github.com/d3mondev/puredns)
 11. [masscan](https://github.com/robertdavidgraham/masscan)
+11. [massdns](https://github.com/blechschmidt/massdns)
 12. [dnsx](https://github.com/projectdiscovery/dnsx)
 13. [httpx](https://github.com/projectdiscovery/httpx)
 14. [nuclei](https://github.com/projectdiscovery/nuclei)
