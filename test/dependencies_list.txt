@@ -2,9 +2,9 @@
 massdns
 masscan
 github-endpoints
+github-subdomains
 ssrf-headers-tool
 subfinder
-shuffledns
 interactsh-client
 nuclei
 mapcidr
