@@ -95,6 +95,13 @@ Config your environment variables and dependencies using [INSTALL.MD](https://gi
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
+## Testing
+You can check if the dependencies are installed correctly on your machine by running the following tests:
+```bash
+./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
+./test/test_install.sh "./test/dependencies_list.txt"
+```
+
 # Usage
 Execute with `sudo` because of `masscan`:
 ```bash
@@ -146,7 +153,8 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
  (replaced with `httpx -fc 301,302` approach)
  - ~~`httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)~~
  - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
- - `massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)
+ - ~~`massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)~~
+ - `shuffledns` replaced with `puredns` based on performance
  - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
  - local listen server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
  - WIP: you can track activity in Projects To Do board
