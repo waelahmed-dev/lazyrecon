@@ -12,6 +12,7 @@ go >= 1.14
 - To start using lazyrecon script, please clone and setup the dependencies bellow
 - Note that many dependencies are tuned for recon needs and differ from the original ones
 - Make sure environment variables are filled in `./lazyconfig`
+- If you operate under VPS: first call `./helpers/linux-apt-install.sh`
 - Update your local `~/.gf` with `./gfpatterns/*`
 - Use option `nuclei -update-templates` to use it properly under `$HOMEDIR`, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
@@ -48,3 +49,10 @@ go >= 1.14
 28. [page-fetch](https://github.com/detectify/page-fetch)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
+
+## Testing
+You can check if the dependencies are installed correctly on your machine by running the following tests:
+```bash
+./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
+./test/test_install.sh "./test/dependencies_list.txt"
+```
