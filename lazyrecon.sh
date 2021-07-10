@@ -545,6 +545,7 @@ nmap_nse(){
   # https://youtu.be/La3iWKRX-tE?t=1200
   # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
   echo "[nmap] scanning..."
+  mkdir $TARGETDIR/nmap
   while read line; do
     IP=$(echo $line | awk '{ print $4 }')
     PORT=$(echo $line | awk -F '[/ ]+' '{print $7}')
