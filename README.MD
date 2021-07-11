@@ -36,12 +36,12 @@ This script is intended to automate your reconnaissance process in an organized 
 - Grabs subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
 - Additionally finds new subdomains through alterations and permutations using `dnsgen`
 - Searches subnets and new assets using math `Mode`
-- Filters out live subdomains from a list of hosts using `shuffledns`
+- Filters out live subdomains from a list of hosts using `puredns`
 - Checks 1-200,8000-10000 for http(s) probes using `httpx`
 - Gets visual part using `headless chromium`
 - Performs `masscan` on live servers
 - Scanns for known paths and CVEs using `nuclei`
-- Shots for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on wayback machine's data
+- Shots for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on fetched DOM's and Wayback machine's data
 - Checks for potential request smuggling vulnerabilities using `smuggler`
 - Performs `ffuf` supercharged by `interlace` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - Generates report and send it to Discord
@@ -95,7 +95,7 @@ Config your environment variables and dependencies using [INSTALL.MD](https://gi
 
 If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
-## Testing
+# Testing
 You can check if the dependencies are installed correctly on your machine by running the following tests:
 ```bash
 ./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
