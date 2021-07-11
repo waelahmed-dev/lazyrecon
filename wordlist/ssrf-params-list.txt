@@ -70,7 +70,10 @@ show
 h
 value
 filename
+rdrct
 redirect
+redirectto
+redirect_to
 year
 group
 template
@@ -565,6 +568,7 @@ flush
 fileName
 dl
 controller
+con
 catid
 PayerID
 newname
@@ -1286,6 +1290,7 @@ placement
 pin
 pID
 php
+php_path
 parentID
 pagination
 pagesize
