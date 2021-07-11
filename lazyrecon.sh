@@ -43,6 +43,7 @@ quiet= # quiet mode
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
+LFIPAYLOAD=./wordlist/LFI-payload.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
 httpxcall='httpx -silent -threads 150 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,32000,55440,55672 -random-agent'
@@ -69,7 +70,7 @@ enumeratesubdomains(){
     PID_ASSETFINDER=$!
 
     echo "github-subdomains.py..."
-    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" | grep "[.]${1}" > $TARGETDIR/github-subdomains-list.txt
+    github-subdomains -d $1 -t $GITHUBTOKEN | sed "s/^\.//;/error/d" | grep "[.]${1}" > $TARGETDIR/github-subdomains-list.txt || true
 
     echo "wait PID_SUBFINDER_FIRST $PID_SUBFINDER_FIRST and PID_ASSETFINDER $PID_ASSETFINDER"
     wait $PID_SUBFINDER_FIRST $PID_ASSETFINDER
@@ -135,7 +136,7 @@ getgau(){
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt || true
   echo "github-endpoints done."
 }
 
@@ -487,9 +488,29 @@ ssrftest(){
 lfitest(){
   if [[ -s "$customLfiQueryList" ]]; then
     echo
-    echo "[LFI] nuclei testing..."
+    echo "[LFI-1] nuclei original endpoint testing..."
     nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
-    echo "[LFI] done."
+    echo "[LFI-1] done."
+
+    echo "[LFI-2] prepare paths from original..."
+    < $customLfiQueryList unfurl format '%p%?%q' > $TARGETDIR/lfi-path-list.txt
+    while read lfiline; do
+        while read hostline; do
+            echo "${hostline}${lfiline}" >> $TARGETDIR/lfi-list.txt
+        done < $TARGETDIR/3-all-subdomain-live-scheme.txt
+    done < $TARGETDIR/lfi-path-list.txt
+
+    echo "[LFI-2] nuclei with all live servers with lfi-path-list..."
+    nuclei -v -l $TARGETDIR/lfi-list.txt -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
+    echo "[LFI-2] done."
+    echo "[LFI-3] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
+        ffuf -r -c -t 550 -u HOSTPATH \
+             -w $TARGETDIR/lfi-list.txt:HOST \
+             -w $LFIPAYLOAD:PATH \
+             -mr "root:[x*]:0:0:" \
+             -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+             -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
+    echo "[LFI-3] done."
   fi
 }
 sqlmaptest(){
@@ -572,7 +593,6 @@ nmap_nse(){
 # directory bruteforce
 ffufbrute(){
     echo "Start directory bruteforce using ffuf..."
-      mkdir $TARGETDIR/ffuf
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
       # ffuf -c stands for colorized, -s for silent mode
@@ -713,6 +733,7 @@ main(){
   touch $queryList
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
+    mkdir $TARGETDIR/ffuf/
     mkdir $TARGETDIR/gospider/
     mkdir $TARGETDIR/page-fetched/
     touch $TARGETDIR/gospider/gospider_out.txt
@@ -876,7 +897,7 @@ if [ "$quiet" == "" ]; then
   echo "Check params \$brute: $brute"
   echo "Check params \$fuzz: $fuzz"
   echo "Check params \$mad: $mad"
-  echo "Check params \$brute: $vps"
+  echo "Check params \$vps: $vps"
   echo "Check params \$alt: $alt"
   echo "Check params \$wildcard: $wildcard"
   echo "Check params \$discord: $discord"
