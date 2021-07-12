@@ -44,9 +44,12 @@ MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
 LFIPAYLOAD=./wordlist/LFI-payload.txt
+# https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params
+# https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
+PARAMSLIST=./wordlist/params-list.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
-httpxcall='httpx -silent -threads 150 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,32000,55440,55672 -random-agent'
+httpxcall='httpx -silent -no-color -threads 250 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,32000,55440,55672 -random-agent'
 
 # definitions
 enumeratesubdomains(){
@@ -246,11 +249,15 @@ checkhttprobe(){
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
-    $httpxcall -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    $httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -status-code -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
+    $httpxcall -status-code -l $TARGETDIR/dnsprobe_subdomains.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
+    cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/403-all-subdomain-live-scheme.txt
   else
-    $httpxcall -l $TARGETDIR/dnsprobe_subdomains.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    $httpxcall -l $TARGETDIR/dnsprobe_ip.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    $httpxcall -status-code -l $TARGETDIR/dnsprobe_subdomains.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
+    $httpxcall -status-code -l $TARGETDIR/dnsprobe_ip.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
+    cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/403-all-subdomain-live-scheme.txt
 
       if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
@@ -283,6 +290,14 @@ checkhttprobe(){
 
   # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   echo "[httpx] done."
+}
+
+bypass403test(){
+  echo
+  echo "[bypass403] Try bypass 4xx..."
+  # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
+  interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" 1> $TARGETDIR/403-bypass-output.txt
+  echo "[bypass403] done."
 }
 
 gospidertest(){
@@ -418,6 +433,14 @@ custompathlist(){
     pid_02=$!
     sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
     wait $pid_01 $pid_02
+    echo
+    echo "add more grep to customFfufWordList"
+    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true
+    sort -u $customSsrfQueryList -o $customSsrfQueryList
+    echo
+    echo "add more grep to customLfiQueryList"
+    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customLfiQueryList || true
+    sort -u $customLfiQueryList -o $customLfiQueryList
     echo "Custom queryList done."
   fi
 }
@@ -438,7 +461,7 @@ ssrftest(){
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-                         -mode pitchfork < wordlist/ssrf-params-list.txt
+                         -mode pitchfork < $PARAMSLIST
     echo "[SSRF-2] Blind probe done."
     echo
     if [ -s "$customSsrfQueryList" ]; then
@@ -459,7 +482,7 @@ ssrftest(){
         HOSTCOUNT=$(cat $TARGETDIR/3-all-subdomain-live-scheme.txt | wc -l)
         ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-list.txt | wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
-            ffuf -r -c -t 250 -u HOST -w $TARGETDIR/ssrf-list.txt:HOST > /dev/null
+            ffuf -r -c -t 550 -u HOST -w $TARGETDIR/ssrf-list.txt:HOST > /dev/null
         echo "[SSRF-3] done."
         echo
         echo "[SSRF-4] fuzz mixed headers with paths"
@@ -475,7 +498,7 @@ ssrftest(){
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
         echo "[SSRF-5] fuzz all live servers with ssrf-list-path"
-            ffuf -r -c -t 250 -u HOSTPATH \
+            ffuf -r -c -t 550 -u HOSTPATH \
                 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                 -w $TARGETDIR/ssrf-path-list.txt:PATH > /dev/null
         echo "[SSRF-5] done."
@@ -490,9 +513,9 @@ lfitest(){
   if [[ -s "$customLfiQueryList" ]]; then
     echo
     echo "[LFI-1] nuclei original endpoint testing..."
-    nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
+    # nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
     echo "[LFI-1] done."
-
+    echo
     echo "[LFI-2] prepare paths from original..."
     < $customLfiQueryList unfurl format '%p%?%q' > $TARGETDIR/lfi-path-list.txt
     while read lfiline; do
@@ -502,8 +525,9 @@ lfitest(){
     done < $TARGETDIR/lfi-path-list.txt
 
     echo "[LFI-2] nuclei with all live servers with lfi-path-list..."
-    nuclei -v -l $TARGETDIR/lfi-list.txt -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
+    # nuclei -v -l $TARGETDIR/lfi-list.txt -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
     echo "[LFI-2] done."
+    echo
     echo "[LFI-3] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
         ffuf -r -c -t 550 -u HOSTPATH \
              -w $TARGETDIR/lfi-list.txt:HOST \
@@ -597,7 +621,7 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
       # ffuf -c stands for colorized, -s for silent mode
-      interlace -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+      interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
       chown -R $HOMEUSER: $TARGETDIR/ffuf
 }
 
@@ -617,6 +641,7 @@ recon(){
   PID_HTTPX=$!
   echo "wait PID_HTTPX=$PID_HTTPX"
   wait $PID_HTTPX
+  bypass403test $1
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     gospidertest $1
