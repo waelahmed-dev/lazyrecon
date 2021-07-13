@@ -1004,7 +1004,7 @@ error_handler(){
   if [[ -n "$discord" ]]; then
     ./helpers/discord-hook.sh "[error] line $(caller): ${stats}: "
     if [[ -s ./_err.log ]]; then
-      ./helpers/discord-file-hook.sh ./_err.log
+      ./helpers/discord-file-hook.sh "_err.log"
     fi
   fi
   exit 1 # exit 1 force kill all subshells because of EXIT signal
