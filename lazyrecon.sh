@@ -293,8 +293,10 @@ checkhttprobe(){
 bypass403test(){
   echo
   echo "[bypass403] Try bypass 4xx..."
-  # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
-  interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" > $TARGETDIR/403-bypass-output.txt
+  if [ -s $TARGETDIR/403-all-subdomain-live-scheme.txt ]; then
+    # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
+    interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" > $TARGETDIR/403-bypass-output.txt
+  fi
   echo "[bypass403] done."
 }
 
@@ -476,10 +478,8 @@ ssrftest(){
       if [ -s $TARGETDIR/ssrf-list.txt ]; then
         echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
         chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
-        # simple math to watch progress
-        HOSTCOUNT=$(cat $TARGETDIR/3-all-subdomain-live-scheme.txt | wc -l)
-        ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-list.txt | wc -l)
-        echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
+        ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-list.txt wc -l)
+        echo "requests count of ENDPOINTCOUNT=$ENDPOINTCOUNT"
             ffuf -r -c -t 550 -u HOST -w $TARGETDIR/ssrf-list.txt:HOST > /dev/null
         echo "[SSRF-3] done."
         echo
@@ -491,7 +491,7 @@ ssrftest(){
         < $TARGETDIR/ssrf-list.txt unfurl format '%p%?%q' > $TARGETDIR/ssrf-path-list.txt
         chown $HOMEUSER: $TARGETDIR/ssrf-path-list.txt
         # simple math to watch progress
-        ENDPOINTCOUNT=$(cat $TARGETDIR/ssrf-path-list.txt | wc -l)
+        ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-path-list.txt wc -l)
         echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
         echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
