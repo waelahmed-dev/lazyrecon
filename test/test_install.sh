@@ -7,7 +7,9 @@ set -eE
 # array to test for dependencies
 test_third_party_dependencies(){
     while read line; do
-        type $line
+        if ! type $line; then
+            exit 1
+        fi
     done < "$1"
 }
 
