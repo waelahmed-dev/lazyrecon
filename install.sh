@@ -41,6 +41,12 @@ third_party_go_dependencies(){
 }
 
 custom_origin_dependencies() {
+    if ! type bypass-403; then
+        git clone https://github.com/storenth/bypass-403.git
+        ln -s $PWD/bypass-403/bypass-403.sh /usr/local/bin/bypass-403
+        ln -s $PWD/bypass-403/bypass-403.sh /usr/local/bin/bypass-403
+    fi
+
     if ! type github-endpoints; then
         git clone https://github.com/storenth/github-search.git
         ln -s $PWD/github-search/github-endpoints.py /usr/local/bin/github-endpoints
