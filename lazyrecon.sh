@@ -422,25 +422,27 @@ custompathlist(){
 
   if [[ -n "$fuzz" ]]; then
     chown $HOMEUSER: $queryList
-    chown $HOMEUSER: $customSsrfQueryList
-    chown $HOMEUSER: $customLfiQueryList
+    chown $HOMEUSER: $customSsrfLfiQueryList
     chown $HOMEUSER: $customSqliQueryList
 
+    echo "Prepare custom customSsrfLfiQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList &
+    # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfLfiQueryList &
+    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfLfiQueryList || true &
     pid_01=$!
-    sudo -u $HOMEUSER helpers/gf-filter.sh lfi $queryList $customLfiQueryList &
+    echo
+    echo "Prepare custom customSqliQueryList"
+    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php|aspx?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
     pid_02=$!
-    sudo -u $HOMEUSER helpers/gf-filter.sh sqli $queryList $customSqliQueryList
+
     wait $pid_01 $pid_02
-    echo
-    echo "add more grep to customFfufWordList"
-    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true
-    sort -u $customSsrfQueryList -o $customSsrfQueryList
-    echo
-    echo "add more grep to customLfiQueryList"
-    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customLfiQueryList || true
-    sort -u $customLfiQueryList -o $customLfiQueryList
+
+    sort -u $customSsrfLfiQueryList -o $customSsrfLfiQueryList
+    sort -u $customSqliQueryList -o $customSqliQueryList
+
+    < $customSsrfLfiQueryList unfurl format '%p%?%q' > $TARGETDIR/ssrf-lfi-path-list.txt
+    sort -u $TARGETDIR/ssrf-lfi-path-list.txt -o $TARGETDIR/ssrf-lfi-path-list.txt
+
     echo "Custom queryList done."
   fi
 }
@@ -464,43 +466,43 @@ ssrftest(){
                          -mode pitchfork < $PARAMSLIST
     echo "[SSRF-2] Blind probe done."
     echo
-    if [ -s "$customSsrfQueryList" ]; then
+    if [ -s "$TARGETDIR/ssrf-lfi-path-list.txt" ]; then
       # similar to paramspider but all wayback without limits
-      echo "[SSRF-3] prepare ssrf-list: concat path out from gf ssrf with listen server..."
-      ITERATOR=0
+      echo "[SSRF-3] prepare ssrf-list: concat .com?params= out with listen server..."
+
       while read line; do
-        ITERATOR=$((ITERATOR+1))
-        # echo "processing $ITERATOR line"
-        # echo "[line] $line"
+        echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-original-list.txt
+      done < $customSsrfLfiQueryList
+
+      while read line; do
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
-      done < $customSsrfQueryList
+      done < $TARGETDIR/ssrf-lfi-path-list.txt
 
-      if [ -s $TARGETDIR/ssrf-list.txt ]; then
-        echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
-        chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
-        ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-list.txt wc -l)
-        echo "requests count of ENDPOINTCOUNT=$ENDPOINTCOUNT"
-            ffuf -r -c -t 550 -u HOST -w $TARGETDIR/ssrf-list.txt:HOST > /dev/null
-        echo "[SSRF-3] done."
-        echo
-        echo "[SSRF-4] fuzz mixed headers with paths"
-            ssrf-headers-tool $TARGETDIR/ssrf-list.txt $LISTENSERVER > /dev/null
-        echo "[SSRF-4] done."
-        echo
-        echo "[SSRF-5] prepare paths from original ssrf-list..."
-        < $TARGETDIR/ssrf-list.txt unfurl format '%p%?%q' > $TARGETDIR/ssrf-path-list.txt
-        chown $HOMEUSER: $TARGETDIR/ssrf-path-list.txt
-        # simple math to watch progress
-        ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-path-list.txt wc -l)
-        echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
-        echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
+      chown $HOMEUSER: $TARGETDIR/ssrf-original-list.txt
+      chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
 
-        echo "[SSRF-5] fuzz all live servers with ssrf-list-path"
-            ffuf -r -c -t 550 -u HOSTPATH \
-                -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-                -w $TARGETDIR/ssrf-path-list.txt:PATH > /dev/null
-        echo "[SSRF-5] done."
-      fi
+      echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
+      ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
+      echo "requests count = $ENDPOINTCOUNT"
+          ffuf -r -c -t 550 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
+      echo "[SSRF-3] done."
+      echo
+      echo "[SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
+          ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
+      echo "[SSRF-4] done."
+      echo
+
+      echo "[SSRF-5] fuzz all live servers with ssrf-list"
+      # simple math to watch progress
+      ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-list.txt wc -l)
+      HOSTCOUNT=$(< $TARGETDIR/3-all-subdomain-live-scheme.txt wc -l)
+      echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
+      echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
+
+          ffuf -r -c -t 550 -u HOSTPATH \
+              -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+              -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+      echo "[SSRF-5] done."
     fi
   fi
 }
@@ -508,32 +510,24 @@ ssrftest(){
 # https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
 # https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
 lfitest(){
-  if [[ -s "$customLfiQueryList" ]]; then
+  if [[ -s "$customSsrfLfiQueryList" ]]; then
     echo
-    echo "[LFI-1] nuclei original endpoint testing..."
-    # nuclei -v -l $customLfiQueryList -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
-    echo "[LFI-1] done."
-    echo
-    echo "[LFI-2] prepare paths from original..."
-    < $customLfiQueryList unfurl format '%p%?%q' > $TARGETDIR/lfi-path-list.txt
+    echo "[LFI] prepare paths from original..."
     while read lfiline; do
         while read hostline; do
             echo "${hostline}${lfiline}" >> $TARGETDIR/lfi-list.txt
         done < $TARGETDIR/3-all-subdomain-live-scheme.txt
-    done < $TARGETDIR/lfi-path-list.txt
+    done < $TARGETDIR/ssrf-lfi-path-list.txt
 
-    echo "[LFI-2] nuclei with all live servers with lfi-path-list..."
-    # nuclei -v -l $TARGETDIR/lfi-list.txt -o $TARGETDIR/nuclei/lfi_output.txt -t $HOMEDIR/nuclei-templates/vulnerabilities/other/storenth-lfi.yaml
-    echo "[LFI-2] done."
     echo
-    echo "[LFI-3] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
+    echo "[LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
         ffuf -r -c -t 550 -u HOSTPATH \
              -w $TARGETDIR/lfi-list.txt:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
              -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
-    echo "[LFI-3] done."
+    echo "[LFI] done."
   fi
 }
 sqlmaptest(){
@@ -768,11 +762,11 @@ main(){
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
-    customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
-    touch $customSsrfQueryList
+    customSsrfLfiQueryList=$TARGETDIR/custom_ssrf_lfi_list.txt
+    touch $customSsrfLfiQueryList
     # to work with gf lfi output
-    customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
-    touch $customLfiQueryList
+    # customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
+    # touch $customLfiQueryList
     # to work with gf ssrf output
     customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
     touch $customSqliQueryList
