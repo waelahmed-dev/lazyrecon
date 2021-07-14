@@ -342,7 +342,7 @@ pagefetcher(){
 screenshots(){
   if [ -s "$TARGETDIR"/3-all-subdomain-live-scheme.txt ]; then
     mkdir "$TARGETDIR"/screenshots
-    ./helpers/asyncscreen.sh "$TARGETDIR/3-all-subdomain-live-scheme.txt"
+    ./helpers/gowitness.sh "$TARGETDIR/3-all-subdomain-live-scheme.txt"
     chown -R $HOMEUSER: $TARGETDIR/screenshots/
     echo "[screenshot] done."
   fi
