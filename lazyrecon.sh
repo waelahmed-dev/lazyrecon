@@ -546,25 +546,6 @@ sqlmaptest(){
   fi
 }
 
-smugglertest(){
-  echo "[smuggler.py] Try to find request smuggling vulns..."
-  smuggler -u $TARGETDIR/3-all-subdomain-live-scheme.txt
-
-  # check for VULNURABLE keyword
-  if [ -s $TARGETDIR/smuggler/output ]; then
-    grep 'VULNERABLE' ./smuggler/output > $TARGETDIR/smugglinghosts.txt
-    if [ -s $TARGETDIR/smugglinghosts.txt ]; then
-      echo "Smuggling vulnerability found under the next hosts:"
-      echo
-      grep 'VULN' $TARGETDIR/smugglinghosts.txt
-    else
-      echo "There are no Request Smuggling host found"
-    fi
-  else
-    echo "smuggler doesn\'t provide the output, check it issue!"
-  fi
-}
-
 # nmap(){
 #   echo "[phase 7] Test for unexpected open ports..."
 #   nmap -sS -PN -T4 --script='http-title' -oG nmap_output_og.txt
