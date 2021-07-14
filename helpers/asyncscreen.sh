@@ -22,7 +22,7 @@ if [ -s "${1}" ]; then
       else
         SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
       fi
-
+      # first try the simplest approach /usr/local/bin/chromium --headless --no-sandbox
       /usr/local/bin/chromium --headless --no-sandbox --disable-setuid-sandbox --user-data-dir="/tmp" --disable-web-security \
                               --disable-extensions --ignore-urlfetcher-cert-requests --ignore-certificate-errors --ignore-ssl-errors --disable-dev-shm-usage \
                               --window-size=1280,720 --screenshot="${DIRNAMEPATH}/screenshots/${SCOPE}.png" $line &
