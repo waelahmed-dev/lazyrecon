@@ -512,14 +512,6 @@ ssrftest(){
 lfitest(){
   if [[ -s "$customSsrfLfiQueryList" ]]; then
     echo
-    echo "[LFI] prepare paths from original..."
-    while read lfiline; do
-        while read hostline; do
-            echo "${hostline}${lfiline}" >> $TARGETDIR/lfi-list.txt
-        done < $TARGETDIR/3-all-subdomain-live-scheme.txt
-    done < $customSsrfLfiQueryList
-
-    echo
     echo "[LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
       # simple math to watch progress
       HOSTCOUNT=$(< $customSsrfLfiQueryList wc -l)
@@ -543,6 +535,7 @@ lfitest(){
     echo "[LFI] done."
   fi
 }
+
 sqlmaptest(){
   if [[ -s "$customSqliQueryList" ]]; then
     # perform the sqlmap
