@@ -533,7 +533,7 @@ lfitest(){
         #      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
         #      -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
     # 2 real life:
-        ffuf -timeout 4 -t 1050 -u HOSTPATH \
+        ffuf -timeout 5 -t 550 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
