@@ -148,6 +148,11 @@ third_party_wordlists(){
     if ! wget -nc https://wordlists-cdn.assetnote.io/data/manual/best-dns-wordlist.txt; then
         exit 1
     fi
+    if wget -nc https://raw.githubusercontent.com/storenth/LFI-Payload-List/master/lfi-payload.txt; then
+        mv -f $PWD/lfi-payload.txt $PWD/wordlist/lfi-payload.txt
+    else
+        exit 1
+    fi
 }
 
 notification(){
