@@ -548,7 +548,7 @@ sqlmaptest(){
     # perform the sqlmap
     echo "[sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
-    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --ignore-timeouts  --output-dir=$TARGETDIR/sqlmap/
+    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --output-dir=$TARGETDIR/sqlmap/
     echo "[sqlmap] done."
   fi
 }
