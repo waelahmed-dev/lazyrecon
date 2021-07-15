@@ -43,7 +43,8 @@ quiet= # quiet mode
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
-LFIPAYLOAD=./wordlist/LFI-payload.txt
+# https://github.com/storenth/LFI-Payload-List
+LFIPAYLOAD=./wordlist/lfi-payload.txt
 # https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params
 # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
 PARAMSLIST=./wordlist/params-list.txt
