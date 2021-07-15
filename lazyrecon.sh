@@ -448,7 +448,9 @@ custompathlist(){
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customLfiQueryList"
     # 1 limited to lfi pattern
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
+    # rabbit hole
+    # grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|source|attach|cmd|location|file|download|path|include|content|document|root|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
     # 2 limited to [:alnum:]=file.ext pattern
     grep -oiaE "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|css|json|js|csv|src|old|jsp|sql|zip|xls|dll)" $queryList | grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" >> $customLfiQueryList || true
     sort -u $customLfiQueryList -o $customLfiQueryList
