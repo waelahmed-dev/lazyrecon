@@ -42,7 +42,7 @@ This script is intended to automate your reconnaissance process in an organized 
 - Performs `masscan` on live servers
 - Scanns for known paths and CVEs using `nuclei`
 - Shots for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on fetched DOM's and Wayback machine's data
-- Checks for potential request smuggling vulnerabilities using `smuggler`
+- Checks for 401/403 bypass using [bypass-403](https://github.com/storenth/bypass-403/)
 - Performs `ffuf` supercharged by `interlace` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
 - Generates report and send it to Discord
 
@@ -126,16 +126,18 @@ Execute with `sudo` because of `masscan`:
 # Methodology
 0. Use [dnsperftest](https://github.com/cleanbrowsing/dnsperftest) to know your best resolvers
 1. Run `./lazyrecon.sh`
-2. Check output reports of chromium, nuclei, masscan, server_log, ssrf, lfi
-3. Explore file upload vulnerabilities
-4. Perform Google, Trello, Atlassian, Github, Bitbucket dorking
-5. Check JS sources for credentials, API endpoints
-6. Investigate `XHR` requests, fuzz parameters and variables
-7. Check exploit-db.com for target-specific CVE
-8. GET/POST Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
-9. Continue bruteforcing using custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
-10. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
-11. Look for XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
+2. Check output reports of chromium, nuclei, masscan, `403-bypass-output.txt` `_listen_server.log`, `lfi-matched-url.txt`
+3. Pick the right target for you based on screenshot and ports opened.
+4. Use Firefox and Burp to proxy all requests while exploratory testing
+5. Try to find file upload vulnerabilities
+6. Perform Google, Trello, Atlassian, Github, Bitbucket dorking
+7. Check JS sources for credentials, API endpoints
+8. Investigate `XHR` requests, fuzz parameters and variables
+9. Check exploit-db.com for target-specific CVE based on `nmap`/`masscan` output
+10. GET/POST Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
+11. Continue bruteforcing using custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
+12. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
+13. Look for XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
 
 # Origin
 This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) and aimed to implement some of the best practices like [Mechanizing the Methodology](https://www.youtube.com/watch?v=L_qoz2_Qyhk), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
@@ -157,6 +159,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
  - `shuffledns` replaced with `puredns` based on performance
  - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
  - local listen server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
+ - LFI payload now handled and fully featured by [LFI-Payload-List](https://github.com/storenth/LFI-Payload-List) caused outdated [LFI-Payload-List](https://github.com/emadshanab/LFI-Payload-List)
  - WIP: you can track activity in Projects To Do board
 
 
