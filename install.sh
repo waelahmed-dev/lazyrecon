@@ -115,6 +115,14 @@ third_party_dependencies(){
             cd -
         fi
     fi
+
+    if ! type sqlmap; then
+        git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev
+        if cd sqlmap-dev; then
+            ln -s $PWD/sqlmap-dev/sqlmap.py /usr/local/bin/sqlmap
+            cd -
+        fi
+    fi
 }
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome

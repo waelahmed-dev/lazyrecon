@@ -24,3 +24,4 @@ page-fetch
 puredns
 bypass-403
 gowitness
+sqlmap
