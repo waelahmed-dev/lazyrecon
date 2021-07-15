@@ -452,7 +452,9 @@ custompathlist(){
     # 1 limited to lfi pattern
     grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $customSsrfQueryList | qsreplace -a > $customLfiQueryList || true
     # 2 limited to [:alnum:]=file.ext pattern
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" $queryList | grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" | qsreplace -a  >> $customLfiQueryList || true
+    grep -oiaE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
+               -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList | \
+               grep -oiaE "(([[:alnum:][:punct:]]+)+)?=" | qsreplace -a  >> $customLfiQueryList || true
     sort -u $customLfiQueryList -o $customLfiQueryList
 
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
