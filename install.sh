@@ -122,7 +122,6 @@ third_party_dependencies(){
         if ! /usr/bin/env python -h; then
             sudo ln -s /usr/bin/python3 /usr/bin/python
         fi
-        fi
     fi
 }
 
