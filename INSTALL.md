@@ -15,6 +15,7 @@ go >= 1.14
 - If you operate under VPS: first call `./helpers/linux-apt-install.sh`
 - Update your local `~/.gf` with `./gfpatterns/*`
 - Use option `nuclei -update-templates` to use it properly under `$HOMEDIR`, but for LFI update templates with [storenth-lfi](https://github.com/storenth/nuclei-templates/blob/master/vulnerabilities/other/storenth-lfi.yaml) till the time [projectdiscovery](https://github.com/projectdiscovery) introduce feature for dynamic replacement of parameters.
+- Not forget to include [LFI-Payload-List](https://github.com/storenth/LFI-Payload-List) to the `./wordlist/lfi-payload.txt`
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 - Take care about appropriate tokens and API keys
 - Don't forget that the script act as a root user
@@ -47,6 +48,8 @@ go >= 1.14
 26. [chromium](https://github.com/storenth/chromium-latest-linux.git)
 27. [interlace](https://github.com/codingo/Interlace.git)
 28. [page-fetch](https://github.com/detectify/page-fetch)
+29. [gowitness](https://github.com/sensepost/gowitness)
+30. [bypass-403](https://github.com/storenth/bypass-403)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
 
