@@ -320,7 +320,7 @@ gospidertest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[$(date | awk '{ print $4}')] [gospider] Web crawling..."
-    gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
+    gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
     cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
@@ -676,8 +676,6 @@ recon(){
   echo "wait PID_HTTPX=$PID_HTTPX"
   wait $PID_HTTPX
 
-  # bypass403test $1
-
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     gospidertest $1
     pagefetcher $1
@@ -700,8 +698,7 @@ recon(){
     sqlmaptest $1
   fi
 
-  # smugglertest $1 # disabled because still manually work need
-
+  # bypass403test $1
   masscantest $1
 
   if [[ -n "$brute" ]]; then
