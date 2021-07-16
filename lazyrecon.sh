@@ -262,12 +262,12 @@ checkhttprobe(){
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_subdomains.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
-    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/403-all-subdomain-live-scheme.txt
+    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/4xx-all-subdomain-live-scheme.txt
   else
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_subdomains.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_ip.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
-    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/403-all-subdomain-live-scheme.txt
+    grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/4xx-all-subdomain-live-scheme.txt
 
       if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
         echo
@@ -304,9 +304,9 @@ checkhttprobe(){
 bypass403test(){
   echo
   echo "[$(date | awk '{ print $4}')] [bypass403] Try bypass 4xx..."
-  if [ -s $TARGETDIR/403-all-subdomain-live-scheme.txt ]; then
-    # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/403-all-subdomain-live-scheme.txt"
-    interlace --silent -tL "$TARGETDIR/403-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" | tee $TARGETDIR/403-bypass-output.txt
+  if [ -s $TARGETDIR/4xx-all-subdomain-live-scheme.txt ]; then
+    # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/4xx-all-subdomain-live-scheme.txt"
+    interlace --silent -tL "$TARGETDIR/4xx-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" | tee $TARGETDIR/4xx-bypass-output.txt
   fi
   echo "[$(date | awk '{ print $4}')] [bypass403] done."
 }
