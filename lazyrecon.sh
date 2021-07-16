@@ -149,7 +149,7 @@ checkwaybackurls(){
   echo
   echo "[$(date | awk '{ print $4}')] get wayback machine stuff..."
   GREPSCOPE=
-  if [[ -n "$single"]]; then
+  if [[ -n "$single" ]]; then
       GREPSCOPE="https?://(w{3}.)?[.]?$1"
   else
       GREPSCOPE="https?://(([[:alnum:][:punct:]]+)+)?[.]?$1"
@@ -318,7 +318,6 @@ bypass403test(){
 
 gospidertest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
-    SCOPE=$1
     echo
     echo "[$(date | awk '{ print $4}')] [gospider] Web crawling..."
     gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt --timeout 7 -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
@@ -327,12 +326,12 @@ gospidertest(){
     cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
-    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
+    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | sort -u >> $TARGETDIR/gospider/gospider_out.txt
 
     if [[ -z "$single" ]]; then
         # extract domains
-        < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+        < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" | sort -u | \
                       $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
     fi
     echo "[$(date | awk '{ print $4}')] [gospider] done."
@@ -345,11 +344,11 @@ pagefetcher(){
     echo
     echo "[$(date | awk '{ print $4}')] [page-fetch] Fetch page's DOM..."
     < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
-    grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
+    grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | sort -u > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     if [[ -z "$single" ]]; then
         # extract domains
-        < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+        < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" | sort -u | \
                       $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
         # sort new assets
@@ -422,22 +421,27 @@ nucleitest(){
 # ssrf test --mad only mode
 # directory bruteforce using --mad and --brute mode only
 custompathlist(){
-  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' > $TARGETDIR/3-all-subdomain-live-socket.txt
+  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' | tee $TARGETDIR/3-all-subdomain-live-socket.txt | sed "s/:[[:digit:]]*//" | sort -u > $TARGETDIR/3-all-subdomain-live.txt
   chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-scheme.txt
+  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-socket.txt
+  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live.txt
+
   echo
-  echo "[$(date | awk '{ print $4}')] Prepare custom queryList"
+  echo "[$(date | awk '{ print $4}')] Prepare custom lists"
   if [[ -n "$mad" ]]; then
-    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
+    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
     # rm -rf $TARGETDIR/wayback/wayback_output.txt
   else
-    sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $queryList
+    sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
+
+  xargs -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
     # filter first and first-second paths from full paths remove empty lines
     < $queryList unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
-                                                     tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
+                                                   tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
     sort -u $customFfufWordList -o $customFfufWordList
     chown $HOMEUSER: $customFfufWordList
   fi
@@ -445,7 +449,6 @@ custompathlist(){
   if [[ -n "$fuzz" ]]; then
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    # sudo -u $HOMEUSER helpers/gf-filter.sh ssrf $queryList $customSsrfQueryList &
     xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
 
@@ -768,6 +771,9 @@ main(){
   # merges gospider and page-fetch outputs
   queryList=$TARGETDIR/query_list.txt
   touch $queryList
+  # scope filtered list
+  rawList=$TARGETDIR/custom_list.txt
+  touch $rawList
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     mkdir $TARGETDIR/ffuf/
