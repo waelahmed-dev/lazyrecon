@@ -30,7 +30,7 @@ if [ -s "${1}" ]; then
         ITERATOR=$((ITERATOR+1))
 
         if [ $((ITERATOR % THREADS)) -eq 0 ]; then
-          sleep 25
+          sleep 10
             for PID_TMP in "${!PID_CHROMIUM[@]}"; do
                 echo "#PID_CHROMIUM=${#PID_CHROMIUM[@]}"
                 echo "killing ${PID_CHROMIUM[$PID_TMP]}"
