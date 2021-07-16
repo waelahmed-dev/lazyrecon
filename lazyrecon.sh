@@ -435,7 +435,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList
+  xargs -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -447,6 +447,27 @@ custompathlist(){
   fi
 
   if [[ -n "$fuzz" ]]; then
+    # linkfinder & secretfinder
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList > $TARGETDIR/js-list.txt || true
+
+    if [ -s $TARGETDIR/js-list.txt ]; then
+        echo "linkfinder"
+        xargs -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt | sort -u > $TARGETDIR/tmp/linkfinder-list.txt
+
+        if [ -s $TARGETDIR/tmp/linkfinder-list.txt ]; then
+          echo "[debug-1] linkfinder"
+            grep -ioE "https?://(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-list.txt > $TARGETDIR/tmp/js-tmp-list.txt || true
+            if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
+              echo "[debug-2] linkfinder"
+                xargs -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt >> $TARGETDIR/js-list.txt || true
+                sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
+            fi
+        fi
+
+        echo "secretfinder"
+        xargs -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+    fi
+
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
     xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
@@ -475,6 +496,7 @@ custompathlist(){
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
     sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
 
+    chown $HOMEUSER: $rawList
     chown $HOMEUSER: $queryList
     chown $HOMEUSER: $customSsrfQueryList
     chown $HOMEUSER: $customLfiQueryList
@@ -524,7 +546,7 @@ ssrftest(){
           ffuf -timeout 1 -ignore-body -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
-      echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz mixed headers with original endpoints from wayback and fetched data"
+      echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz using X-headers with original endpoints from wayback and fetched data"
           ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-4] done."
       echo
@@ -654,7 +676,7 @@ recon(){
   echo "wait PID_HTTPX=$PID_HTTPX"
   wait $PID_HTTPX
 
-  bypass403test $1
+  # bypass403test $1
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     gospidertest $1
@@ -1046,8 +1068,8 @@ error_exit(){
   jobs -l
   jobs -l | awk '{print $2}' | xargs kill -9 &>/dev/null || true
   kill -- -${PID_EXIT} &>/dev/null || true
-  rm -rf $TARGETDIR/tmp
-  find . -type f -empty -delete
+  # rm -rf $TARGETDIR/tmp
+  # find . -type f -empty -delete
   echo "[EXIT] done."
 }
 
