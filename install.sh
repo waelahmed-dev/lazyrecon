@@ -10,6 +10,10 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   MACOS="1"
 fi
 
+# sqlmap and linkfinder needs
+if ! /usr/bin/env python -h; then
+    sudo ln -s /usr/bin/python3 /usr/bin/python
+fi
 
 # CI/CD dependencies
 third_party_go_dependencies(){
@@ -119,8 +123,15 @@ third_party_dependencies(){
     if ! type sqlmap; then
         git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev
         ln -s $PWD/sqlmap-dev/sqlmap.py /usr/local/bin/sqlmap
-        if ! /usr/bin/env python -h; then
-            sudo ln -s /usr/bin/python3 /usr/bin/python
+    fi
+
+    if ! type linkfinder; then
+        git clone --depth 1 https://github.com/GerbenJavado/LinkFinder.git
+        if cd LinkFinder; then
+            python3 setup.py install
+            pip3 install -r requirements.txt
+            ln -s $PWD/linkfinder.py /usr/local/bin/linkfinder
+            cd -
         fi
     fi
 }
