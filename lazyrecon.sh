@@ -174,8 +174,10 @@ checkwaybackurls(){
 }
 
 sortsubdomains(){
-  sort -u $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/wayback-subdomains-list.txt -o $TARGETDIR/1-real-subdomains.txt
-  cp $TARGETDIR/1-real-subdomains.txt $TARGETDIR/2-all-subdomains.txt
+  if [ "$wildcard" = "1" ]; then
+    sort -u $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/wayback-subdomains-list.txt -o $TARGETDIR/1-real-subdomains.txt
+    cp $TARGETDIR/1-real-subdomains.txt $TARGETDIR/2-all-subdomains.txt
+  fi
 }
 
 dnsbruteforcing(){
@@ -323,9 +325,11 @@ gospidertest(){
     grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]'  $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | grep "${SCOPE}" | sort | uniq > $TARGETDIR/gospider/gospider_out.txt
     grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | grep "${SCOPE}" | sort | uniq >> $TARGETDIR/gospider/gospider_out.txt
 
-    # extract domains
-    < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
-                  $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    if [[ -z "$single" ]]; then
+        # extract domains
+        < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+                      $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    fi
     echo "[$(date | awk '{ print $4}')] [gospider] done."
   fi
 }
@@ -338,11 +342,14 @@ pagefetcher(){
     < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
     grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | grep "${SCOPE}" | sort | uniq | qsreplace -a > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
-    < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
-                  $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    if [[ -z "$single" ]]; then
+        # extract domains
+        < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep "${SCOPE}" | sort | uniq | \
+                      $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
-    # sort new assets
-    sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+        # sort new assets
+        sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+    fi
     echo "[$(date | awk '{ print $4}')] [page-fetch] done."
   fi
 }
