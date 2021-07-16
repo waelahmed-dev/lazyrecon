@@ -126,7 +126,7 @@ enumeratesubdomains(){
 
 getwaybackurl(){
   echo "waybackurls..."
-  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/waybackurls_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/waybackurls_output.txt
   echo "waybackurls done."
 }
 getgau(){
@@ -136,27 +136,32 @@ getgau(){
     SUBS="-subs"
   fi
   # gau -subs mean include subdomains
-  < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/gau_output.txt
+  < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/gau_output.txt
   echo "gau done."
 }
 getgithubendpoints(){
   echo "github-endpoints.py..."
-  github-endpoints -d $1 -t $GITHUBTOKEN | sort | uniq | grep "[.]${1}" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt || true
+  github-endpoints -d $1 -t $GITHUBTOKEN | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt || true
   echo "github-endpoints done."
 }
 
 checkwaybackurls(){
   echo
   echo "[$(date | awk '{ print $4}')] get wayback machine stuff..."
-  SCOPE=$1
+  GREPSCOPE=
+  if [[ -n "$single"]]; then
+      GREPSCOPE="https?://(w{3}.)?[.]?$1"
+  else
+      GREPSCOPE="https?://(([[:alnum:][:punct:]]+)+)?[.]?$1"
+  fi
 
-  getgau $1 &
+  getgau $1 $GREPSCOPE &
   PID_GAU=$!
 
-  getwaybackurl $1 &
+  getwaybackurl $1 $GREPSCOPE &
   PID_WAYBACK=$!
 
-  getgithubendpoints $1
+  getgithubendpoints $1 $GREPSCOPE
 
   wait $PID_GAU $PID_WAYBACK
 
