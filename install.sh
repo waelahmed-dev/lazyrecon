@@ -134,6 +134,15 @@ third_party_dependencies(){
             cd -
         fi
     fi
+
+    if ! type secretfinder; then
+        git clone --depth 1 https://github.com/m4ll0k/SecretFinder.git
+        if cd SecretFinder; then
+            pip3 install -r requirements.txt
+            ln -s $PWD/SecretFinder.py /usr/local/bin/secretfinder
+            cd -
+        fi
+    fi
 }
 
 # need to be in $PATH in case no chrome installed: ./chromium-latest-linux/latest/chrome
