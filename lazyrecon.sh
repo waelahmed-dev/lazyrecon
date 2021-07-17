@@ -435,7 +435,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -P 20 -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
+  xargs -P 20 -n1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -451,17 +451,22 @@ custompathlist(){
     grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList > $TARGETDIR/js-list.txt || true
 
     if [ -s $TARGETDIR/js-list.txt ]; then
+        chown $HOMEUSER: $TARGETDIR/js-list.txt
         sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
+
         echo "linkfinder"
         xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-list.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-list.txt ]; then
+        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-list.txt
         sort -u $TARGETDIR/tmp/linkfinder-list.txt -o $TARGETDIR/tmp/linkfinder-list.txt
           echo "[debug-1] linkfinder"
-            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-list.txt | grep -ioE "https?://(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
+            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-list.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
             if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
+              sort -u $TARGETDIR/tmp/js-tmp-list.txt | -o $TARGETDIR/tmp/js-tmp-list.txt
               echo "[debug-2] linkfinder"
-                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt >> $TARGETDIR/js-list.txt || true
+              # filter out in scope
+                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
                 sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
             fi
         fi
@@ -704,7 +709,7 @@ recon(){
   fi
 
   # bypass403test $1
-  masscantest $1
+  # masscantest $1
 
   if [[ -n "$brute" ]]; then
     ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
