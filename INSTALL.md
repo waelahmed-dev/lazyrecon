@@ -51,7 +51,7 @@ go >= 1.14
 29. [gowitness](https://github.com/sensepost/gowitness)
 30. [bypass-403](https://github.com/storenth/bypass-403)
 31. [linkfinder](https://github.com/storenth/LinkFinder.git)
-32. [secretfinder](https://github.com/m4ll0k/SecretFinder.git)
+32. [secretfinder](https://github.com/storenth/SecretFinder.git)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
 

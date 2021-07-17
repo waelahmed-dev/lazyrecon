@@ -136,7 +136,7 @@ third_party_dependencies(){
     fi
 
     if ! type secretfinder; then
-        git clone --depth 1 https://github.com/m4ll0k/SecretFinder.git
+        git clone --depth 1 https://github.com/storenth/SecretFinder.git
         if cd SecretFinder; then
             pip3 install -r requirements.txt
             chmod +x $PWD/SecretFinder.py
