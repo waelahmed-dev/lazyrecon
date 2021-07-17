@@ -126,7 +126,7 @@ third_party_dependencies(){
     fi
 
     if ! type linkfinder; then
-        git clone --depth 1 https://github.com/GerbenJavado/LinkFinder.git
+        git clone --depth 1 https://github.com/storenth/LinkFinder.git
         if cd LinkFinder; then
             python3 setup.py install
             pip3 install -r requirements.txt
@@ -139,6 +139,7 @@ third_party_dependencies(){
         git clone --depth 1 https://github.com/m4ll0k/SecretFinder.git
         if cd SecretFinder; then
             pip3 install -r requirements.txt
+            chmod +x $PWD/SecretFinder.py
             ln -s $PWD/SecretFinder.py /usr/local/bin/secretfinder
             cd -
         fi
