@@ -453,11 +453,12 @@ custompathlist(){
     if [ -s $TARGETDIR/js-list.txt ]; then
         sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
         echo "linkfinder"
-        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt | sort -u > $TARGETDIR/tmp/linkfinder-list.txt
+        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-list.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-list.txt ]; then
+        sort -u $TARGETDIR/tmp/linkfinder-list.txt -o $TARGETDIR/tmp/linkfinder-list.txt
           echo "[debug-1] linkfinder"
-            grep -ioE "https?://(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-list.txt > $TARGETDIR/tmp/js-tmp-list.txt || true
+            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-list.txt | grep -ioE "https?://(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
             if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
               echo "[debug-2] linkfinder"
                 xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt >> $TARGETDIR/js-list.txt || true
@@ -465,8 +466,11 @@ custompathlist(){
             fi
         fi
 
-        echo "secretfinder"
-        xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+        # test means if linkfinder did not provide any output secretfinder testing makes no sense
+        if [[ -s $TARGETDIR/tmp/linkfinder-list.txt && $TARGETDIR/js-list.txt ]]; then
+            echo "secretfinder"
+            xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+        fi
     fi
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
