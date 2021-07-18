@@ -455,16 +455,16 @@ custompathlist(){
         sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
 
         echo "linkfinder"
-        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-list.txt
+        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
 
-        if [ -s $TARGETDIR/tmp/linkfinder-list.txt ]; then
-        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-list.txt
-        sort -u $TARGETDIR/tmp/linkfinder-list.txt -o $TARGETDIR/tmp/linkfinder-list.txt
-          echo "[debug-1] linkfinder"
-            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-list.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
+        if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
+        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-output.txt
+        sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
+          echo "[debug-1] linkfinder: serach for js|json"
+            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
             if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
               sort -u $TARGETDIR/tmp/js-tmp-list.txt | -o $TARGETDIR/tmp/js-tmp-list.txt
-              echo "[debug-2] linkfinder"
+              echo "[debug-2] linkfinder: filter out scope"
               # filter out in scope
                 xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
                 sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
@@ -472,7 +472,7 @@ custompathlist(){
         fi
 
         # test means if linkfinder did not provide any output secretfinder testing makes no sense
-        if [[ -s $TARGETDIR/tmp/linkfinder-list.txt && $TARGETDIR/js-list.txt ]]; then
+        if [[ -s $TARGETDIR/tmp/linkfinder-output.txt && $TARGETDIR/js-list.txt ]]; then
             echo "secretfinder"
             xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
         fi
