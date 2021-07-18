@@ -461,12 +461,22 @@ custompathlist(){
         chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-output.txt
         sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
           echo "[debug-1] linkfinder: serach for js|json"
-            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/js-tmp-list.txt || true
-            if [ -s $TARGETDIR/tmp/js-tmp-list.txt ]; then
-              sort -u $TARGETDIR/tmp/js-tmp-list.txt | -o $TARGETDIR/tmp/js-tmp-list.txt
+            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
+
+            while read line; do
+                url=$(echo $line | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format %s://%d)
+                path2=$(echo $line | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)")
+                if [[ -n "$path2" ]]; then
+                  echo "$url$path2" >> $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+                fi
+            done < $TARGETDIR/tmp/linkfinder-output.txt
+
+            if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
+              grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt
+              sort -u $TARGETDIR/tmp/linkfinder-js-list.txt | -o $TARGETDIR/tmp/linkfinder-js-list.txt
               echo "[debug-2] linkfinder: filter out scope"
               # filter out in scope
-                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/js-tmp-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
+                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
                 sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
             fi
         fi
