@@ -458,7 +458,7 @@ custompathlist(){
 
         if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
           sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
-          sed "${SEDOPTION[@]}" 's/\\//g' > $TARGETDIR/tmp/linkfinder-output.txt
+          sed "${SEDOPTION[@]}" 's/\\//g' $TARGETDIR/tmp/linkfinder-output.txt
 
           echo "[debug-1] linkfinder: search for js|json"
             cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
