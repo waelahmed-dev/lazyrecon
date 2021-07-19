@@ -323,11 +323,11 @@ gospidertest(){
     gospider -q -r -S $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
 
     # combine the results and filter out of scope
-    cat $TARGETDIR/gospider/* > $TARGETDIR/gospider_raw_out.txt
+    cat $TARGETDIR/gospider/* > $TARGETDIR/tmp/gospider_raw_out.txt
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' $TARGETDIR/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
-    grep '\[url\]' $TARGETDIR/gospider_raw_out.txt | cut -f5 -d ' ' | sort -u >> $TARGETDIR/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
+    grep '\[url\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f5 -d ' ' | sort -u >> $TARGETDIR/gospider/gospider_out.txt
 
     if [[ -z "$single" ]]; then
         # extract domains
