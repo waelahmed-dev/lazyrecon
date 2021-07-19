@@ -435,7 +435,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -P 20 -n1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt > $queryList || true
+  xargs -P 20 -n1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed '/;/d' > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
