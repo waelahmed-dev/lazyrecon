@@ -487,6 +487,7 @@ custompathlist(){
             if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
               if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
                 grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
+                httpx -silent -no-color -random-agent -status-code -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
               fi
               sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
               echo "[debug-3] linkfinder: filter out scope"
