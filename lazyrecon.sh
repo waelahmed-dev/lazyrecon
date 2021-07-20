@@ -310,7 +310,7 @@ bypass403test(){
   echo
   echo "[$(date | awk '{ print $4}')] [bypass403] Try bypass 4xx..."
   if [ -s $TARGETDIR/4xx-all-subdomain-live-scheme.txt ]; then
-    # xargs -n1 -I {} bypass-403 "{}" "" < "$TARGETDIR/4xx-all-subdomain-live-scheme.txt"
+    # xargs -n 1 -I {} bypass-403 "{}" "" < "$TARGETDIR/4xx-all-subdomain-live-scheme.txt"
     interlace --silent -tL "$TARGETDIR/4xx-all-subdomain-live-scheme.txt" -threads 50 -c "bypass-403 _target_ ''" | grep -E "\[2[0-9]{2}\]" | tee $TARGETDIR/4xx-bypass-output.txt
   fi
   echo "[$(date | awk '{ print $4}')] [bypass403] done."
@@ -431,7 +431,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -P 20 -n1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed '/;/d' > $queryList || true
+  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed '/;/d' > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -449,7 +449,7 @@ custompathlist(){
         sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
 
         echo "linkfinder"
-        xargs -P 20 -n1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
+        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
           sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
@@ -489,7 +489,7 @@ custompathlist(){
               sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
-                  xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
+                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
                   sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
               fi
         fi
@@ -497,7 +497,7 @@ custompathlist(){
         # test means if linkfinder did not provide any output secretfinder testing makes no sense
         if [ -s $TARGETDIR/js-list.txt ]; then
             echo "secretfinder"
-            xargs -P 20 -n1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+            xargs -P 20 -n 1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
         fi
         chmod 660 $TARGETDIR/js-list.txt
         chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
@@ -505,7 +505,7 @@ custompathlist(){
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
