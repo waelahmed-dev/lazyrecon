@@ -579,9 +579,6 @@ ssrftest(){
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
       done < $TARGETDIR/ssrf-path-list.txt
 
-      chown $HOMEUSER: $TARGETDIR/ssrf-original-list.txt
-      chown $HOMEUSER: $TARGETDIR/ssrf-list.txt
-
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
@@ -603,6 +600,7 @@ ssrftest(){
           ffuf -s -timeout 1 -ignore-body -t 750 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+
       echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
     fi
   fi
