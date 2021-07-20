@@ -24,7 +24,7 @@ nmap_nse(){
 
     # grep smtp /usr/local/Cellar/nmap/7.91/share/nmap/scripts/script.db
     # grep "intrusive" /usr/share/nmap/scripts/script.db
-    nmap -vv --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -f -p$PORT -oG ./nmap-test/$FILENAME $IP
+    nmap -vv --spoof-mac 0 -n -sV --version-intensity 9 --script=default,http-headers -sS -Pn -T4 -f -p$PORT -oG ./nmap/$FILENAME $IP
     echo
     echo
     sleep 1
