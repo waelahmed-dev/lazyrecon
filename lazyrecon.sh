@@ -484,18 +484,19 @@ custompathlist(){
                 fi
             done < $TARGETDIR/tmp/linkfinder-output.txt
 
-            if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
               if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
               sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
                 grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
                 httpx -silent -no-color -random-agent -status-code -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
               fi
+
+              if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
               sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
-              echo "[debug-3] linkfinder: filter out scope"
-              # filter out in scope
-                xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
-                sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
-            fi
+                echo "[debug-3] linkfinder: filter out scope"
+                # filter out in scope
+                  xargs -P 20 -n1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
+                  sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
+              fi
         fi
 
         # test means if linkfinder did not provide any output secretfinder testing makes no sense
