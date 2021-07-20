@@ -51,6 +51,8 @@ PARAMSLIST=./wordlist/params-list.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
 httpxcall='httpx -silent -no-color -threads 250 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent'
+# used in sed to cut
+unwantedpaths='/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
 
 # definitions
 enumeratesubdomains(){
@@ -431,7 +433,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed '/;/d' > $queryList || true
+  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed $unwantedpaths > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -480,7 +482,10 @@ custompathlist(){
             done < $TARGETDIR/tmp/linkfinder-output.txt
 
               if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
-              sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+
+                sed "${SEDOPTION[@]}" $unwantedpaths $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+                sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+
                 grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
                 httpx -silent -no-color -random-agent -status-code -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
               fi
@@ -507,12 +512,12 @@ custompathlist(){
     # https://github.com/tomnomnom/gf/issues/55
     xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
+    wait $pid_01
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
     grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
     pid_02=$!
-    echo "wait $pid_01 $pid_02" 
-    wait $pid_01 $pid_02
+    wait $pid_02
 
     sort -u $customSsrfQueryList -o $customSsrfQueryList
     sort -u $customSqliQueryList -o $customSqliQueryList
