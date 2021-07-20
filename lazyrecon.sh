@@ -364,7 +364,6 @@ screenshots(){
     echo "[$(date | awk '{ print $4}')] [screenshot] starts..."
     mkdir "$TARGETDIR"/screenshots
     ./helpers/gowitness.sh "$TARGETDIR/3-all-subdomain-live-scheme.txt"
-    chown -R $HOMEUSER: $TARGETDIR/screenshots/
     echo "[$(date | awk '{ print $4}')] [screenshot] done."
   fi
 }
@@ -422,9 +421,6 @@ nucleitest(){
 # directory bruteforce using --mad and --brute mode only
 custompathlist(){
   < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' | tee $TARGETDIR/3-all-subdomain-live-socket.txt | sed "s/:[[:digit:]]*//" | sort -u > $TARGETDIR/3-all-subdomain-live.txt
-  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-scheme.txt
-  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live-socket.txt
-  chown $HOMEUSER: $TARGETDIR/3-all-subdomain-live.txt
 
   echo
   echo "[$(date | awk '{ print $4}')] Prepare custom lists"
@@ -443,7 +439,6 @@ custompathlist(){
     < $queryList unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
                                                    tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
     sort -u $customFfufWordList -o $customFfufWordList
-    chown $HOMEUSER: $customFfufWordList
   fi
 
   if [[ -n "$fuzz" ]]; then
@@ -506,8 +501,6 @@ custompathlist(){
         fi
         chmod 660 $TARGETDIR/js-list.txt
         chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
-        chown $HOMEUSER: $TARGETDIR/js-list.txt
-        chown $HOMEUSER: $TARGETDIR/tmp/linkfinder-output.txt
     fi
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
@@ -537,12 +530,6 @@ custompathlist(){
 
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
     sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
-
-    chown $HOMEUSER: $rawList
-    chown $HOMEUSER: $queryList
-    chown $HOMEUSER: $customSsrfQueryList
-    chown $HOMEUSER: $customLfiQueryList
-    chown $HOMEUSER: $customSqliQueryList
     echo "[$(date | awk '{ print $4}')] Custom queryList done."
   fi
 }
@@ -695,7 +682,6 @@ ffufbrute(){
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
       # ffuf -c stands for colorized, -s for silent mode
       interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -timeout 7 -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
-      chown -R $HOMEUSER: $TARGETDIR/ffuf
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
@@ -752,7 +738,6 @@ report(){
   echo "Generating HTML-report here..."
   ./helpers/report.sh $1 $TARGETDIR > $TARGETDIR/report.html
   /usr/local/bin/chromium --headless --no-sandbox --print-to-pdf=${TARGETDIR}/report.pdf file://${TARGETDIR}/report.html
-  chown $HOMEUSER: $TARGETDIR/report.pdf
   echo "Report done!"
 }
 
