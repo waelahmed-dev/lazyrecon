@@ -43,6 +43,7 @@ quiet= # quiet mode
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
+APIWORDLIST=./wordlist/api.txt
 # https://github.com/storenth/LFI-Payload-List
 LFIPAYLOAD=./wordlist/lfi-payload.txt
 # https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params
@@ -574,7 +575,7 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -t 750 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
+          ffuf -s -timeout 1 -ignore-body -t 500 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
       # echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz using X-headers with original endpoints from wayback and fetched data"
@@ -589,7 +590,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -s -timeout 1 -ignore-body -t 750 -u HOSTPATH \
+          ffuf -s -timeout 1 -ignore-body -t 500 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
 
@@ -609,12 +610,12 @@ lfitest(){
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-        ffuf -s -timeout 5 -t 1550 -u HOSTPATH \
+        ffuf -s -timeout 5 -t 500 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-             -o $TARGETDIR/ffuf/lfi-matched-url.txt > /dev/null
+             -o $TARGETDIR/ffuf/lfi-matched-url.txt -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
   fi
 }
@@ -681,12 +682,21 @@ nmap_nse(){
 
 # directory bruteforce
 ffufbrute(){
+    # ffuf -c stands for colorized, -s for silent mode
     echo
-    echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
+    echo "[$(date | awk '{ print $4}')] Start API endpoints bruteforce using ffuf..."
+    ffuf -s -timeout 5 -u HOSTPATH -mc 200,201,202,401 \
+         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+         -w $APIWORDLIST:PATH \
+         -t $dirsearchThreads \
+         -H "X-Custom-IP-Authorization: 127.0.0.1" \
+         -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+         -o $TARGETDIR/ffuf/api-brute.html -of html -or true
+
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
-      # ffuf -c stands for colorized, -s for silent mode
-      interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 20 -c "ffuf -timeout 7 -u _target_/FUZZ -mc all -fc 300,301,302,303,304,400,403,404,406,500,501,502,503 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.1-2.0 -recursion -recursion-depth 2 -H \"X-Original-URL: /admin\" -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html"
+    echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
+    interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
@@ -723,6 +733,10 @@ recon(){
   echo "Waiting for nucleitest ${PID_NUCLEI}..."
   wait $PID_NUCLEI
 
+  if [[ -n "$brute" ]]; then
+    ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
+  fi
+
   if [[ -n "$fuzz" ]]; then
     ssrftest $1
     lfitest $1
@@ -730,11 +744,7 @@ recon(){
   fi
 
   # bypass403test $1
-  # masscantest $1
-
-  if [[ -n "$brute" ]]; then
-    ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
-  fi
+  masscantest $1
 
   echo "Recon done!"
 }
