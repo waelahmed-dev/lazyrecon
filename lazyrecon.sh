@@ -446,13 +446,14 @@ custompathlist(){
 
   if [[ -n "$fuzz" ]]; then
     # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList > $TARGETDIR/js-list.txt || true
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList | httpx -silent -mc 200,201,202 > $TARGETDIR/tmp/js-list.txt || true
 
-    if [ -s $TARGETDIR/js-list.txt ]; then
-        sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
+    if [ -s $TARGETDIR/tmp/js-list.txt ]; then
+
+        sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
 
         echo "linkfinder"
-        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
+        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
           sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
@@ -495,17 +496,17 @@ custompathlist(){
               sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
-                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent >> $TARGETDIR/js-list.txt || true
-                  sort -u $TARGETDIR/js-list.txt -o $TARGETDIR/js-list.txt
+                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent -mc 200,201,202 >> $TARGETDIR/tmp/js-list.txt || true
+                  sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
               fi
         fi
 
         # test means if linkfinder did not provide any output secretfinder testing makes no sense
-        if [ -s $TARGETDIR/js-list.txt ]; then
+        if [ -s $TARGETDIR/tmp/js-list.txt ]; then
             echo "secretfinder"
-            xargs -P 20 -n 1 -I {} secretfinder -i {} -o cli < $TARGETDIR/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+            xargs -P 20 -n 1 -I {} secretfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
         fi
-        chmod 660 $TARGETDIR/js-list.txt
+        chmod 660 $TARGETDIR/tmp/js-list.txt
         chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
     fi
 
