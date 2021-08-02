@@ -173,6 +173,11 @@ third_party_wordlists(){
     else
         exit 1
     fi
+    if wget -nc https://raw.githubusercontent.com/storenth/bruteforce-lists/master/api.txt; then
+        mv -f $PWD/lfi-payload.txt $PWD/wordlist/api.txt
+    else
+        exit 1
+    fi
 }
 
 notification(){
