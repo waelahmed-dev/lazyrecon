@@ -40,6 +40,7 @@ discord= # send notifications
 vps= # tune async jobs to reduce stuff like concurrent headless chromium but increase bruteforce list and enable DNS bruteforce
 quiet= # quiet mode
 
+DIRSEARCHTHREADS=50
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
@@ -690,7 +691,7 @@ ffufbrute(){
     ffuf -s -timeout 5 -u HOSTPATH -mc 200,201,202,401 \
          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
          -w $APIWORDLIST:PATH \
-         -t $dirsearchThreads \
+         -t $DIRSEARCHTHREADS \
          -H "X-Custom-IP-Authorization: 127.0.0.1" \
          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
          -o $TARGETDIR/ffuf/api-brute.html -of html -or true
@@ -698,8 +699,8 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
-    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
-    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST -w $customFfufWordList:PATH -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
+    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $DIRSEARCHTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
+    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST -w $customFfufWordList:PATH -t $DIRSEARCHTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
