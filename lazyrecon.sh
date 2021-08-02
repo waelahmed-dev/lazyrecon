@@ -44,6 +44,7 @@ MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
 APIWORDLIST=./wordlist/api.txt
+DIRSEARCHWORDLIST=./wordlist/top1000.txt
 # https://github.com/storenth/LFI-Payload-List
 LFIPAYLOAD=./wordlist/lfi-payload.txt
 # https://raw.githubusercontent.com/PortSwigger/param-miner/master/resources/params
@@ -697,7 +698,8 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
-    interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
+    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
+    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST -w $customFfufWordList:PATH -t $dirsearchThreads -p 0.5-2.5 -recursion -recursion-depth 2 -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
@@ -758,14 +760,6 @@ report(){
 }
 
 main(){
-  # VPS used with max wordlist size
-  if [[ -n "$vps" ]]; then
-    dirsearchWordlist=./wordlist/top10000.txt # used in directory bruteforcing (--brute option)
-    dirsearchThreads=10 # to avoid blocking of waf
-  else
-    dirsearchWordlist=./wordlist/top1000.txt
-    dirsearchThreads=20 
-  fi
   # collect wildcard and single targets statistic to retest later (optional)
   if [[ -n "$wildcard" ]]; then
     if [ -s $STORAGEDIR/wildcard.txt ]; then
@@ -860,7 +854,7 @@ main(){
   if [[ -n "$brute" ]]; then
     customFfufWordList=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
     touch $customFfufWordList
-    cp $dirsearchWordlist $customFfufWordList
+    cp $DIRSEARCHWORDLIST $customFfufWordList
   fi
 
   # used to save target specific list for alterations (shuffledns, altdns)
