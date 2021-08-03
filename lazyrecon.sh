@@ -491,7 +491,7 @@ custompathlist(){
                 sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
 
                 grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
-                httpx -silent -no-color -random-agent -status-code -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
+                httpx -silent -no-color -random-agent -status-code -content-length -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
               fi
 
               if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
