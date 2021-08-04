@@ -22,7 +22,7 @@ if [ -s "${1}" ]; then
       else
         SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
       fi
-        
+
       gowitness single "$line" --delay 5 -o "${SCOPE}".png -X 1280 -Y 720 --disable-logging --disable-db --chrome-path /usr/local/bin/chromium -P "${DIRNAMEPATH}"/screenshots &
 
         PID_CHROMIUM[$ITERATOR]=$!
