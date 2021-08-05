@@ -55,7 +55,8 @@ PARAMSLIST=./wordlist/params-list.txt
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
 httpxcall='httpx -silent -no-color -threads 250 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent'
 # used in sed to cut
-unwantedpaths='/^[^h]/d;/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
+UNWANTEDPATHS='/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
+UNWANTEDQUERIES='/^[^h]/d;/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
 
 # definitions
 enumeratesubdomains(){
@@ -298,7 +299,7 @@ checkhttprobe(){
             mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
                 puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
                 dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
-                $httpxcall | tee $TARGETDIR/httpx_ip_mode.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+                $httpxcall | tee $TARGETDIR/httpx_ip_mode.txt | tee -a $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
             sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
@@ -436,7 +437,7 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
   fi
 
-  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed $unwantedpaths > $queryList || true
+  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -455,7 +456,7 @@ custompathlist(){
         sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
 
         echo "linkfinder"
-        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt > $TARGETDIR/tmp/linkfinder-output.txt
+        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt | sed $UNWANTEDPATHS > $TARGETDIR/tmp/linkfinder-output.txt
 
         if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
           sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
@@ -487,7 +488,7 @@ custompathlist(){
 
               if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
 
-                sed "${SEDOPTION[@]}" $unwantedpaths $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+                sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
                 sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
 
                 grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
