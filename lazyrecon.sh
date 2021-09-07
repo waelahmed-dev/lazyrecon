@@ -296,10 +296,10 @@ checkhttprobe(){
             echo "[math Mode] found: $CIDR1"
             echo "[math Mode] resolve PTR of the IP numbers"
             # look at https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | grep $1 | sort | uniq | tee $TARGETDIR/dnsprobe_ptr.txt | \
+            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | tee $TARGETDIR/tmp/dnsprobe_all_ptr.txt | grep $1 | sort | uniq | tee $TARGETDIR/tmp/dnsprobe_ptr.txt | \
                 puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
-                dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/dnsprobe_ip_mode.txt | \
-                $httpxcall | tee $TARGETDIR/httpx_ip_mode.txt | tee -a $TARGETDIR/3-all-subdomain-live-scheme.txt
+                dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/tmp/dnsprobe_ip_mode.txt | \
+                $httpxcall | tee $TARGETDIR/tmp/httpx_ip_mode.txt | tee -a $TARGETDIR/3-all-subdomain-live-scheme.txt
 
             # sort new assets
             sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
