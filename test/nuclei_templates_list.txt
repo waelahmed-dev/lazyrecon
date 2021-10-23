@@ -1,4 +1,6 @@
 nuclei-templates/vulnerabilities/
+nuclei-templates/cnvd/
+nuclei-templates/iot/
 nuclei-templates/cves/2014/
 nuclei-templates/cves/2015/
 nuclei-templates/cves/2016/
