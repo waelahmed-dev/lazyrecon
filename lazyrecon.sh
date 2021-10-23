@@ -384,6 +384,8 @@ nucleitest(){
     nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
+                    -t $HOMEDIR/nuclei-templates/cnvd/ \
+                    -t $HOMEDIR/nuclei-templates/iot/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
                     -t $HOMEDIR/nuclei-templates/cves/2015/ \
                     -t $HOMEDIR/nuclei-templates/cves/2016/ \
@@ -395,6 +397,7 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/misconfiguration/ \
                     -t $HOMEDIR/nuclei-templates/network/ \
                     -t $HOMEDIR/nuclei-templates/miscellaneous/ \
+                    -exclude $HOMEDIR/nuclei-templates/misconfiguration/misconfiguration/http-missing-security-headers.yaml \
                     -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
                     -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
                     -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
