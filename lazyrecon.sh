@@ -518,7 +518,7 @@ custompathlist(){
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)\?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
     wait $pid_01
 
