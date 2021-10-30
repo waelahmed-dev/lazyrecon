@@ -383,6 +383,11 @@ nucleitest(){
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
     nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+                    -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/misconfiguration/http-missing-security-headers.yaml \
+                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
+                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
+                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
+                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cnvd/ \
                     -t $HOMEDIR/nuclei-templates/iot/ \
@@ -397,11 +402,6 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/misconfiguration/ \
                     -t $HOMEDIR/nuclei-templates/network/ \
                     -t $HOMEDIR/nuclei-templates/miscellaneous/ \
-                    -exclude $HOMEDIR/nuclei-templates/misconfiguration/misconfiguration/http-missing-security-headers.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
-                    -exclude $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
                     -t $HOMEDIR/nuclei-templates/takeovers/ \
                     -t $HOMEDIR/nuclei-templates/default-logins/ \
                     -t $HOMEDIR/nuclei-templates/exposures/ \
