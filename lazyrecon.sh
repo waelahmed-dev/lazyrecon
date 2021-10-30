@@ -173,6 +173,8 @@ checkwaybackurls(){
 
   sort -u $TARGETDIR/tmp/gau_output.txt $TARGETDIR/tmp/waybackurls_output.txt $TARGETDIR/tmp/github-endpoints_out.txt -o $TARGETDIR/wayback/wayback_output.txt
 
+  sed "${SEDOPTION[@]}" '/:80/d' $TARGETDIR/wayback/wayback_output.txt
+
   # need to get some extras subdomains
   < $TARGETDIR/wayback/wayback_output.txt unfurl --unique domains | sed '/web.archive.org/d;/*.${1}/d' > $TARGETDIR/wayback-subdomains-list.txt
 
