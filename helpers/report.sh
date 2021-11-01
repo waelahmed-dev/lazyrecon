@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script create HTML report
+# Script creates HTML report
 # invokation: ./report.sh "my.games" "/Users/storenth/lazytargets/my.games/recon-21-04-18_23-16-43"
 
 
@@ -39,7 +39,7 @@ images() {
 serverlogs(){
     if [ -s ${TARGETDIR}/_listen_server.log ]; then
         echo '<div>'
-        awk 'NR>11' $TARGETDIR/_listen_server.log
+        awk 'NR>11' ${TARGETDIR}/_listen_server.log
         echo '</div>'
     fi
 }
