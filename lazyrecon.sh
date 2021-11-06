@@ -236,7 +236,7 @@ dnsprobing(){
   elif [[ -n "$list" ]]; then
       echo "[$(date | awk '{ print $4}')] [massdns] probing and wildcard sieving..."
       # shuffledns -silent -list $TARGETDIR/2-all-subdomains.txt -retries 1 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
-      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
+      puredns -r $MINIRESOLVERS resolve $TARGETDIR/enumerated-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # # additional resolving because shuffledns/pureDNS missing IP on output
       echo
       echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
