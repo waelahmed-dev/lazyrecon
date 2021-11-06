@@ -270,7 +270,7 @@ checkhttprobe(){
   echo
   echo "[$(date | awk '{ print $4}')] [httpx] Starting http probe testing..."
   # resolve IP and hosts using socket address style for chromium, nuclei, gospider, ssrf, lfi and bruteforce
-  if [[ -n "$ip" || -n "$cidr" ]]; then
+  if [[ -n "$ip" || -n "$cidr" || -n "$list" ]]; then
     echo "[httpx] IP probe testing..."
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     $httpxcall -status-code -l $TARGETDIR/dnsprobe_subdomains.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
