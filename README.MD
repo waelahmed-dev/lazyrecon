@@ -171,7 +171,9 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
 
-# Support to the moon road
-You can help me maintain this project by [swapping](https://pancakeswap.finance/swap) `BNB`/`LAZY`: https://bscscan.com/token/0xd913937cd3a7b3d23c6da56dbb3b57c9fe4ff733
-Track the token activity on [poocoin](https://poocoin.app/tokens/0xd913937cd3a7b3d23c6da56dbb3b57c9fe4ff733)
+# 🚀 Join to the moon road 🚀
+- I created a verified legal crypto token ⚡ [1A3Y](https://bscscan.com/token/0xb9a36d01577d82909ca01e20db58293a6baa5ddd) ⚡ to help startup this BlackHat Arsenal tool
+- You can [swap](https://pancakeswap.finance/swap) this token as `BNB`/`1A3Y` to receive all its features and participate in this project as a holder.
+- Track the token activity on [poocoin](https://poocoin.app/tokens/0xb9a36d01577d82909ca01e20db58293a6baa5ddd)
+- 💬 Join official 1A3Y's [telegram](https://t.me/lazyrecontoken)
 
