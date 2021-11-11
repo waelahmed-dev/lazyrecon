@@ -171,6 +171,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
 
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
 
-# Support
-You can help me maintain this project using ETH: 0x974E4B3D8c61CcFCd157A86640dA0012e1e794ea
+# Support to the moon road
+You can help me maintain this project by [swapping](https://pancakeswap.finance/swap) `BNB`/`LAZY`: https://bscscan.com/token/0xd913937cd3a7b3d23c6da56dbb3b57c9fe4ff733
+Track the token activity on [poocoin](https://poocoin.app/tokens/0xd913937cd3a7b3d23c6da56dbb3b57c9fe4ff733)
 
