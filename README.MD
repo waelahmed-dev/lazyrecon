@@ -11,7 +11,7 @@
 <a href="https://twitter.com/storenth"><img src="https://img.shields.io/twitter/follow/storenth.svg?style=flat-square&logo=twitter"></a>
 <a href="https://www.blackhat.com/us-21/arsenal/schedule/#lazyrecon-v-24051"><img src="https://img.shields.io/static/v1?label=Black%20Hat%20Arsenal&style=flat-square&message=USA%202021&color=1C7EBE"></a>
 <a href="https://discord.gg/fR2QVrWBTq"><img src="https://img.shields.io/discord/823151725686554665.svg?style=flat-square&color=97ca00&logo=discord"></a>
-<a href="https://bscscan.com/address/0xd913937cd3A7B3d23C6Da56dBB3B57C9Fe4FF733"><img src="https://img.shields.io/badge/Token-LAZY-brightgreen?style=flat-square&color=ca00c7&logo=binance"></a>
+<a href="https://bscscan.com/address/0xb9a36d01577d82909cA01e20dB58293A6baa5dDD"><img src="https://img.shields.io/badge/Token-1A3Y-brightgreen?style=flat-square&color=ca00c7&logo=binance"></a>
 </p>
 
 Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing, brute-force and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
