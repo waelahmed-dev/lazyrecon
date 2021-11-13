@@ -418,7 +418,9 @@ plugins/
 podpiska/login.pl
 profiles/
 registration-login/
+register.php
 remote-login.php
+rene-magritte.php
 reset-password
 reset-password/
 reset_password/
@@ -429,6 +431,7 @@ search/
 search/?
 search/users
 shop/securelogin
+show-log.php
 site/login
 site/wp-admin/
 siteadmin/
@@ -551,6 +554,7 @@ users/signup/admin/
 users/signup/login/?
 users/signup/signup/?
 userupload.html
+user-info.php
 verify-user
 web.config
 webadmin/
