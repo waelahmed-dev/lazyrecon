@@ -6,7 +6,7 @@
                 {
                     "enabled": true,
                     "file": "^/.*",
-                    "host": "^portal-pre\\.saas\\.inspectorio\\.com$",
+                    "host": "^*\\.example\\.com$",
                     "port": "^443$",
                     "protocol": "https"
                 }
@@ -15,28 +15,35 @@
                 {
                     "enabled": true,
                     "file": "^/.*",
-                    "host": "^dev\\.gamma\\.be$",
+                    "host": "^*\\.example\\.com$",
                     "port": "^80$",
                     "protocol": "http"
                 },
                 {
                     "enabled": true,
                     "file": "^/.*",
-                    "host": "^pre\\.saas\\.inspectorio\\.com$",
+                    "host": "^*\\.example\\.com$",
                     "port": "^443$",
                     "protocol": "https"
                 },
                 {
                     "enabled": true,
                     "file": "^/.*",
-                    "host": "^10\\.10\\.77\\.20$",
+                    "host": "^pre\\.subs\\.example\\.com$",
                     "port": "^443$",
                     "protocol": "https"
                 },
                 {
                     "enabled": true,
                     "file": "^/.*",
-                    "host": "10.10.77.20",
+                    "host": "^10\\.10\\.10\\.10$",
+                    "port": "^443$",
+                    "protocol": "https"
+                },
+                {
+                    "enabled": true,
+                    "file": "^/.*",
+                    "host": "10.10.10.10",
                     "port": "80",
                     "protocol": "http"
                 }
