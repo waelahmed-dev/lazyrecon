@@ -33,3 +33,11 @@ attacker.txt
 ffuf_idomain.html
 discord-test.sh
 helpers/old-report.sh
+methodology.md
+nostarch-proposal.md
+replit-proposal.md
+wordlist/api.txt
+wordlist/fuzz-Bo0oM.txt
+wordlist/lfi-payload.txt
+wordlist/portswigger-params
+wordlist/assetnote/best-dns-wordlist.txt
