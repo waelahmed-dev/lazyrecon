@@ -6,5 +6,5 @@ export GITHUBTOKEN=
 export DISCORDWEBHOOKURL=
 
 export GOPATH=$HOMEDIR/go
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin
 export GO111MODULE=on
