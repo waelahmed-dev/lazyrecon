@@ -71,7 +71,7 @@ python >= 3.7
 pip3 >= 19.0
 go >= 1.14
 ```
-All installation methods [can be found here](INSTALL.MD).
+All installation methods [can be found here](INSTALL.md).
 You can check if the dependencies are installed correctly on your machine by running the following tests:
 ```bash
 ./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
