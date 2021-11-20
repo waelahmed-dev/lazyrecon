@@ -1,15 +1,48 @@
 # Installing
-Tested on `MacOS` and `Linux`
-
+- `Linux` & `Mac` tested
 ## Prerequirements
 ```bash
 python >= 3.7
 pip3 >= 19.0
 go >= 1.14
 ```
+### CI/CD way
+You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
+It may look tricky cause masscan/nmap/naabu root user required.
+1. Fill in these required environment variables inside: `./lazyconfig`:
+```bash
+export HOMEUSER= # your normal, non root user: e.g.: kali
+export HOMEDIR= # user's home dir e.g.: /home/kali
+export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
+export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
+export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+export GOPATH=$HOMEDIR/go
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
+export GO111MODULE=on
+```
+2. Enable new environment `source ./lazyconfig`
+3. Call `sudo -E ./install.sh`
+4. Execute `sudo -E ./lazyrecon.sh "hackerone.com"`
 
-## Dependencies
-- To start using lazyrecon script, please clone and setup the dependencies bellow
+### Github Actions way
+Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` and `GITHUBTOKEN` [secrets](https://docs.github.com/en/actions/reference/encrypted-secrets), enable `--discord` to receive a report:
+```yaml
+  - name: Install & Recon
+    env:
+      GO111MODULE: on
+      DISCORDWEBHOOKURL: ${{ secrets.DISCORDWEBHOOKURL }}
+      GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
+    run: |
+      export HOMEDIR=$HOME
+      export HOMEUSER=$RUNNER_USER
+      export STORAGEDIR="${HOMEDIR}"/lazytargets
+      sudo -E ./install.sh
+      sudo -E ./lazyrecon.sh "hackerone.com" --quiet --discord
+```
+### Hard way
+You can configure environment variables and dependencies by hand without using the `install.sh` script, but keep in mind the following:
+
+- To start using lazyrecon script, please clone and setup the [dependencies bellow](#dependencies_anchor)
 - Note that many dependencies are tuned for recon needs and differ from the original ones
 - Make sure environment variables are filled in `./lazyconfig`
 - If you operate under VPS: first call `./helpers/linux-apt-install.sh`
@@ -19,6 +52,9 @@ go >= 1.14
 - Make sure all tools correctly installed and enabled with execute permissions: `chmod +x`
 - Take care about appropriate tokens and API keys
 - Don't forget that the script act as a root user
+
+<a id="dependencies_anchor"></a>
+## Dependencies
 1. [subfinder](https://github.com/projectdiscovery/subfinder)
 2. [interactsh](https://github.com/projectdiscovery/interactsh)
 3. [assetfinder](https://github.com/tomnomnom/assetfinder)
@@ -54,10 +90,3 @@ go >= 1.14
 32. [secretfinder](https://github.com/storenth/SecretFinder.git)
 
 > (You may copy each executable dependency to `/usr/local/bin/`, create symlinc like: `ln -s $HOME/github-subdomains.py /usr/local/bin/github-subdomains`, or just export it to the PATH `export PATH=~/masscan/bin/masscan:$PATH`)
-
-## Testing
-You can check if the dependencies are installed correctly on your machine by running the following tests:
-```bash
-./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
-./test/test_install.sh "./test/dependencies_list.txt"
-```

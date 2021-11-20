@@ -25,9 +25,23 @@ Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains
 - Domain name, list of domains, IP, CIDR input - notations support
 - Teardown and program exit housekeeping
 ## Workflow
-<h3 align="center">
-  <img src="readme_img/ci-cd-flow-interactsh.png" alt="lazyrecon-flow" width="700px"></a>
-</h3>
+You can use a stateful/stateless build agent (worker). There is no additional time is required for provisioning.
+It may seem tricky because some of the tools require a root user.
+1. Fill in these required environment variables inside: `./lazyconfig`:
+```bash
+export HOMEUSER= # your user: e.g.: kali
+export HOMEDIR= # user's home dir e.g.: /home/kali
+export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
+export GITHUBTOKEN= # a personal access token (git PAT)
+export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+export GOPATH=$HOMEDIR/go
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
+export GO111MODULE=on
+```
+2. Enable new environment `source ./lazyconfig`
+3. Call `sudo -E ./install.sh`
+4. Execute `sudo -E ./lazyrecon.sh "hackerone.com"`
+
 
 # About
 
@@ -49,7 +63,7 @@ This script is intended to automate your reconnaissance process in an organized 
 
 The point is to get a list of live IPs (in form of socket addresses), attack available network protocols, check for common CVEs, perform very simple directory bruteforce then use provided reports for manual research.
 
-# Installing
+# Installing & Testing
 - `Linux` & `Mac` tested
 ## Prerequirements
 ```bash
@@ -57,51 +71,13 @@ python >= 3.7
 pip3 >= 19.0
 go >= 1.14
 ```
-### CI/CD way
-You can use stateful/stateless build agent (worker). There is no additional time is required for provisioning.
-It may look tricky cause masscan/nmap/naabu root user required.
-1. Fill in these required environment variables inside: `./lazyconfig`:
-```bash
-export HOMEUSER= # your normal, non root user: e.g.: kali
-export HOMEDIR= # user's home dir e.g.: /home/kali
-export STORAGEDIR= # where output saved, e.g.: ${HOMEDIR}/lazytargets
-export GITHUBTOKEN=XXXXXXXXXXXXXXXXXX # a personal access token here
-export DISCORDWEBHOOKURL= # https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
-export GOPATH=$HOMEDIR/go
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
-export GO111MODULE=on
-```
-2. Enable new environment `source ./lazyconfig`
-3. Call `sudo -E ./install.sh`
-4. Execute `sudo -E ./lazyrecon.sh "hackerone.com"`
-
-### Github Actions way
-Customize `.github/workflows/test-recon-action.yaml` using `DISCORDWEBHOOKURL` and `GITHUBTOKEN` [secrets](https://docs.github.com/en/actions/reference/encrypted-secrets), enable `--discord` to receive a report:
-```yaml
-  - name: Install & Recon
-    env:
-      GO111MODULE: on
-      DISCORDWEBHOOKURL: ${{ secrets.DISCORDWEBHOOKURL }}
-      GITHUBTOKEN: ${{ secrets.GITHUBTOKEN }}
-    run: |
-      export HOMEDIR=$HOME
-      export HOMEUSER=$RUNNER_USER
-      export STORAGEDIR="${HOMEDIR}"/lazytargets
-      sudo -E ./install.sh
-      sudo -E ./lazyrecon.sh "hackerone.com" --quiet --discord
-```
-### Hard way
-Config your environment variables and dependencies using [INSTALL.MD](https://github.com/storenth/lazyrecon/blob/ci-cd-feature/INSTALL.md)
-
-
-If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
-
-# Testing
+All installation methods [can be found here](INSTALL.MD).
 You can check if the dependencies are installed correctly on your machine by running the following tests:
 ```bash
 ./test/test_nuclei_templates.sh "./test/nuclei_templates_list.txt"
 ./test/test_install.sh "./test/dependencies_list.txt"
 ```
+If you faced with some issues, feel free to join [Discord](https://discord.gg/fR2QVrWBTq), open PR or file the bug.
 
 # Usage
 Execute with `sudo` because of `masscan`:
@@ -138,8 +114,8 @@ Execute with `sudo` because of `masscan`:
 10. GET/POST Bruteforce for directories: fuzbo0oM-top10000 --> raft --> target specific
 11. Continue bruteforcing using custom Headers (X-Custom-IP-Authorization: 127.0.0.1; X-Original-URL:)
 12. Try bypass 401/403 errors using [notable](https://github.com/filedescriptor/Unicode-Mapping-on-Domain-names) methods (`%23`, `/%2e/`, `admin.php%2500.md` etc)
-13. Look for XSS [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
-Try XSS:
+13. Use XSS automation [xsscrapy.py](https://github.com/DanMcInerney/xsscrapy) or [XSSTRON](https://github.com/RenwaX23/XSSTRON)
+14. Try another XSS:
 ```
 Referer: javascript:alert('XSS');
 https://www.twitterflightschool.com/student/award/████████?referer=javascript:alert(document.domain)
@@ -148,32 +124,20 @@ https://www.twitterflightschool.com/student/award/████████?refer
 
 # Origin
 This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/nahamsec/lazyrecon) and aimed to implement some of the best practices like [Mechanizing the Methodology](https://www.youtube.com/watch?v=L_qoz2_Qyhk), [TBHM](https://docs.google.com/presentation/d/1MWWXXRvvesWL8V-GiwGssvg4iDM58_RMeI_SZ65VXwQ), [Subdomain Takeovers](https://www.hackerone.com/blog/Guide-Subdomain-Takeovers), [Request Smuggling](https://portswigger.net/web-security/request-smuggling), [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF), [LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/) and [Bruteforce](https://danielmiessler.com/blog/the-most-interesting-disallowed-directories/) based on [Custom wordlist](https://www.youtube.com/watch?v=W4_QCSIujQ4&t=1237s&ab_channel=Nahamsec).
-# Notable articles
-1. IDOR: https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17
-2. SSRF: https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68 and https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html
-3. Enumeration guide: https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing
+## Notable articles
+1. [IDOR](https://www.aon.com/cyber-solutions/aon_cyber_labs/finding-more-idors-tips-and-tricks/?utm_source=newsletter&utm_medium=email&utm_campaign=bug_bytes_110_scope_based_recon_finding_more_idors_how_to_hack_sharepoint&utm_term=2021-02-17)
+2. [SSRF automation](https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68) and [SSRF RCE](https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html)
+3. [Enumeration guide](https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing)
+## BlackHat USA
+Lazyrecon was invited and presented at the [BlackHat USA 2021](https://www.blackhat.com/us-21/arsenal/schedule/#lazyrecon-v-24051). Now it is officially on the [BlackHat Arsenal track](https://github.com/toolswatch/blackhat-arsenal-tools/blob/master/exploitation/lazyrecon.md).
 
-### Notes
- - `aquatone` replaced by [headless chromium async script](https://github.com/storenth/lazyrecon/compare/0a9c4c586ee4...24c35f9cadd0) based on performance
- - `Sublist3r` replaced with `subfinder` based on Twitter [discussion](https://twitter.com/Jhaddix/status/1293118260808843264)
- - `nmap` replaced with `masscan` based on its features and Twitter [duscussion](https://twitter.com/DanielMiessler/status/1286721113343447040), use `helpers/nmap_nse_ifile.sh` by hands using `masscan_output.gnmap` as input
- - `smuggler` forked from its [original](https://github.com/gwen001/pentest-tools/blob/master/smuggler.py) aimed to get lightweight solution included this [PR](https://github.com/gwen001/pentest-tools/pull/10)
- - ~~`grep` `meg`'s output for [Location](https://twitter.com/hunter0x7/status/1293168500672954368) in order to exclude 301/302 status codes~~
- (replaced with `httpx -fc 301,302` approach)
- - ~~`httpx -ip` used without `dnsprobe` based on @pdiscoveryio Twitter [answer](https://twitter.com/pdiscoveryio/status/1338163970557894656)~~
- - `altdns` used based on [Scrutiny on the bug bounty](https://docs.google.com/presentation/d/1PCnjzCeklOeGMoWiE2IUzlRGOBxNp8K5hLQuvBNzrFY/)
- - ~~`massdns` fully replaced with `shuffledns` because of [issue](https://github.com/blechschmidt/massdns/issues/73)~~
- - `shuffledns` replaced with `puredns` based on performance
- - [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data)
- - local listen server approach replaced with [interactsh](https://github.com/projectdiscovery/interactsh)
- - LFI payload now handled and fully featured by [LFI-Payload-List](https://github.com/storenth/LFI-Payload-List) caused outdated [LFI-Payload-List](https://github.com/emadshanab/LFI-Payload-List)
- - WIP: you can track activity in Projects To Do board
-
+## Notes
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
 
-# 🚀 Join to the moon road 🚀
-- I created a verified legal crypto token ⚡ [1A3Y](https://bscscan.com/token/0xb9a36d01577d82909ca01e20db58293a6baa5ddd) ⚡ to help startup this BlackHat Arsenal tool
-- You can [swap](https://pancakeswap.finance/swap) this token as `BNB`/`1A3Y` to receive all its features and participate in this project as a holder.
+[See release notes](misc/NOTES.MD)
+
+# Crypto token
+- [1A3Y](https://bscscan.com/token/0xb9a36d01577d82909ca01e20db58293a6baa5ddd) helps Lazyrecon create new features.
 - Track the token activity on [poocoin](https://poocoin.app/tokens/0xb9a36d01577d82909ca01e20db58293a6baa5ddd)
-- 💬 Join official 1A3Y's [telegram](https://t.me/lazyrecontoken)
+- 💬 Join 1A3Y's [telegram](https://t.me/lazyrecontoken)
 
