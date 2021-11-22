@@ -441,19 +441,19 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $RAWFETCHEDLIST
   fi
 
-  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $RAWFETCHEDLIST < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $queryList || true
+  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $RAWFETCHEDLIST < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $FILTEREDFETCHEDLIST || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
     # filter first and first-second paths from full paths remove empty lines
-    < $queryList unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
+    < $FILTEREDFETCHEDLIST unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
                                                    tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
     sort -u $customFfufWordList -o $customFfufWordList
   fi
 
   if [[ -n "$fuzz" ]]; then
     # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $queryList | httpx -silent -mc 200,201,202 > $TARGETDIR/tmp/js-list.txt || true
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | httpx -silent -mc 200,201,202 > $TARGETDIR/tmp/js-list.txt || true
 
     if [ -s $TARGETDIR/tmp/js-list.txt ]; then
 
@@ -519,12 +519,12 @@ custompathlist(){
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $queryList < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $FILTEREDFETCHEDLIST < $PARAMSLIST >> $customSsrfQueryList || true &
     pid_01=$!
     wait $pid_01
 
     echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
-    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList > $customSqliQueryList || true &
+    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST > $customSqliQueryList || true &
     pid_02=$!
     wait $pid_02
 
@@ -538,13 +538,13 @@ custompathlist(){
     grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $customSsrfQueryList | qsreplace -a > $customLfiQueryList || true
     # 2 limited to [:alnum:]=file.ext pattern
     grep -oiaE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
-               -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $queryList | \
+               -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST | \
                grep -oiaE -e "(([[:alnum:][:punct:]]+)+)=" -e "(([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $customLfiQueryList || true
     sort -u $customLfiQueryList -o $customLfiQueryList
 
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
     sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
-    echo "[$(date | awk '{ print $4}')] Custom queryList done."
+    echo "[$(date | awk '{ print $4}')] Custom done."
   fi
 }
 
@@ -835,9 +835,9 @@ main(){
   echo "$@" >> ./_call.log
 
 
-  # merges gospider and page-fetch outputs
-  queryList=$TARGETDIR/tmp/query_list.txt
-  touch $queryList
+  # merged and filtered from unwanted paths from gospider and page-fetch list
+  FILTEREDFETCHEDLIST=$TARGETDIR/tmp/filtered_fetched_list.txt
+  touch $FILTEREDFETCHEDLIST
   # scope filtered list
   RAWFETCHEDLIST=$TARGETDIR/tmp/raw_fetched_list.txt
   touch $RAWFETCHEDLIST
