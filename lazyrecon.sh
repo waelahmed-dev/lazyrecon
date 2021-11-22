@@ -388,14 +388,12 @@ nucleitest(){
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
     nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
-                    -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/misconfiguration/http-missing-security-headers.yaml \
+                    -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
                     -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
-                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-x-frame-options.yaml \
-                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-hsts.yaml \
-                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/missing-csp.yaml \
                     -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
                     -t $HOMEDIR/nuclei-templates/cnvd/ \
                     -t $HOMEDIR/nuclei-templates/iot/ \
+                    -t $HOMEDIR/nuclei-templates/cves/2013/ \
                     -t $HOMEDIR/nuclei-templates/cves/2014/ \
                     -t $HOMEDIR/nuclei-templates/cves/2015/ \
                     -t $HOMEDIR/nuclei-templates/cves/2016/ \
@@ -411,8 +409,6 @@ nucleitest(){
                     -t $HOMEDIR/nuclei-templates/default-logins/ \
                     -t $HOMEDIR/nuclei-templates/exposures/ \
                     -t $HOMEDIR/nuclei-templates/exposed-panels/ \
-                    -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/credentials-disclosure.yaml \
-                    -t $HOMEDIR/nuclei-templates/exposures/tokens/generic/general-tokens.yaml \
                     -t $HOMEDIR/nuclei-templates/fuzzing/
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing done."
 
