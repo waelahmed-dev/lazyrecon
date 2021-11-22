@@ -469,7 +469,7 @@ custompathlist(){
           echo "[debug-1] linkfinder: search for js|json"
             cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
 
-            echo "[debug-2] linkfinder: concat urlpath2"
+            echo "[debug-2] linkfinder: concat source URL with found path from this URL"
             # dynamic sensor
             BAR='##############################'
             FILL='------------------------------'
@@ -491,16 +491,20 @@ custompathlist(){
             done < $TARGETDIR/tmp/linkfinder-output.txt
 
               if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
+                  sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+                  sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+                  # prepare additional js/json queries
+                  grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
+                  # prepare additional path for bruteforce
+                  if [[ -n "$brute" ]]; then
+                      grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
+                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$DIRSEARCHTHREADS" -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
+                  fi
 
-                sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
-                sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
-
-                grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
-                httpx -silent -no-color -random-agent -status-code -content-length -threads 250 -l $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/httpx-concatenated-path-output.txt
               fi
 
               if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
-              sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
+                sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
                   xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent -mc 200,201,202 >> $TARGETDIR/tmp/js-list.txt || true
