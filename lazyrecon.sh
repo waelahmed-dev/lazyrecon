@@ -9,6 +9,9 @@ export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HO
 
 # custom header to track traffic if needs
 CUSTOMHEADER='X-HackerOne-Research:storenth'
+# number of concurrent directory bruteforce threads
+NUMBEROFTHREADS=100
+
 
 # background PID's control
 PID_SUBFINDER_FIRST=
@@ -43,7 +46,6 @@ discord= # send notifications
 vps= # tune async jobs to reduce stuff like concurrent headless chromium but increase bruteforce list and enable DNS bruteforce
 quiet= # quiet mode
 
-DIRSEARCHTHREADS=50
 MINIRESOLVERS=./resolvers/mini_resolvers.txt
 ALTDNSWORDLIST=./lazyWordLists/altdns_wordlist_uniq.txt
 BRUTEDNSWORDLIST=./wordlist/six2dez_wordlist.txt
@@ -498,7 +500,7 @@ custompathlist(){
                   # prepare additional path for bruteforce
                   if [[ -n "$brute" ]]; then
                       grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
-                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$DIRSEARCHTHREADS" -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
+                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$NUMBEROFTHREADS" -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
                   fi
 
               fi
@@ -565,9 +567,10 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -t 100 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
+    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
+                         -t 1 \ # number of cuncurrent thread = 1 because same host each request
                          -H "$CUSTOMHEADER" \
                          -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0" \
                          -mode pitchfork < $PARAMSLIST > /dev/null
@@ -577,7 +580,8 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -t 100 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST \
+          ffuf -s -timeout 1 -ignore-body -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST \
+               -t "$NUMBEROFTHREADS" \
                -H "$CUSTOMHEADER" \
                -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50" \
                > /dev/null
@@ -600,9 +604,10 @@ ssrftest(){
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
 
-          ffuf -s -timeout 1 -ignore-body -t 100 -u HOSTPATH \
+          ffuf -s -timeout 1 -ignore-body -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+              -t "$NUMBEROFTHREADS" \
               -H "$CUSTOMHEADER" \
               -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
 
@@ -622,11 +627,12 @@ lfitest(){
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-        ffuf -s -timeout 5 -t 100 -u HOSTPATH \
+        ffuf -s -timeout 5 -u HOSTPATH \
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "$CUSTOMHEADER" \
+             -t "$NUMBEROFTHREADS" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
              -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
@@ -701,7 +707,7 @@ ffufbrute(){
     ffuf -s -timeout 5 -u HOSTPATH -mc 200,201,202,401 \
          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
          -w $APIWORDLIST:PATH \
-         -t $DIRSEARCHTHREADS \
+         -t $NUMBEROFTHREADS \
          -H "$CUSTOMHEADER" \
          -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4" \
          -o $TARGETDIR/ffuf/api-brute.html -of html -or true
@@ -709,10 +715,10 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
-    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $DIRSEARCHTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
+    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $NUMBEROFTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
     ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
           -w $customFfufWordList:PATH \
-          -t $DIRSEARCHTHREADS \ 
+          -t $NUMBEROFTHREADS \ 
           -p 0.5-2.5 \
           -H "$CUSTOMHEADER" \
           -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
