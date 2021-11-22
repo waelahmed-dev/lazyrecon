@@ -69,7 +69,7 @@ The point is to get a list of live IPs (in form of socket addresses), attack ava
 ```bash
 python >= 3.7
 pip3 >= 19.0
-go >= 1.14
+go >= 1.17
 ```
 All installation methods [can be found here](INSTALL.md).
 You can check if the dependencies are installed correctly on your machine by running the following tests:
