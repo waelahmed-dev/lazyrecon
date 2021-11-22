@@ -564,7 +564,8 @@ ssrftest(){
     xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -t 100 -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
-                         -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+                         -H "$CUSTOMHEADER" \
+                         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0" \
                          -mode pitchfork < $PARAMSLIST > /dev/null
     echo "[$(date | awk '{ print $4}')] [SSRF-2] done."
     echo
@@ -572,7 +573,10 @@ ssrftest(){
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -t 100 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST > /dev/null
+          ffuf -s -timeout 1 -ignore-body -t 100 -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST \
+               -H "$CUSTOMHEADER" \
+               -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50" \
+               > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
       echo
     fi
@@ -595,6 +599,8 @@ ssrftest(){
           ffuf -s -timeout 1 -ignore-body -t 100 -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+              -H "$CUSTOMHEADER" \
+              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
 
       echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
     fi
@@ -616,6 +622,7 @@ lfitest(){
              -w $customLfiQueryList:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
+             -H "$CUSTOMHEADER" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
              -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
@@ -691,14 +698,21 @@ ffufbrute(){
          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
          -w $APIWORDLIST:PATH \
          -t $DIRSEARCHTHREADS \
-         -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+         -H "$CUSTOMHEADER" \
+         -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4" \
          -o $TARGETDIR/ffuf/api-brute.html -of html -or true
 
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
     # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $DIRSEARCHTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
-    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST -w $customFfufWordList:PATH -t $DIRSEARCHTHREADS -p 0.5-2.5 -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
+    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+          -w $customFfufWordList:PATH \
+          -t $DIRSEARCHTHREADS \ 
+          -p 0.5-2.5 \
+          -H "$CUSTOMHEADER" \
+          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+          -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
 }
 
