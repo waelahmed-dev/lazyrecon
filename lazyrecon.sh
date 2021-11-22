@@ -384,9 +384,9 @@ nucleitest(){
     echo
     echo "[$(date | awk '{ print $4}')] [nuclei] technologies testing..."
     # use -c for maximum templates processed in parallel
-    nuclei -silent -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
+    nuclei -silent -H "$CUSTOMHEADER" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
-    nuclei -silent -o $TARGETDIR/nuclei/nuclei_output.txt \
+    nuclei -silent -H "$CUSTOMHEADER" -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
                     -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
