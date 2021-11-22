@@ -7,6 +7,9 @@ set -m
 # https://golang.org/doc/install#install
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 
+# custom header to track traffic if needs
+CUSTOMHEADER='X-HackerOne-Research:storenth'
+
 # background PID's control
 PID_SUBFINDER_FIRST=
 PID_ASSETFINDER=
@@ -53,7 +56,7 @@ LFIPAYLOAD=./wordlist/lfi-payload.txt
 PARAMSLIST=./wordlist/params-list.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
-httpxcall='httpx -silent -no-color -threads 250 -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent'
+httpxcall="httpx -silent -no-color -threads 250 -H $CUSTOMHEADER -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent"
 # used in sed to cut
 UNWANTEDPATHS='/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
 UNWANTEDQUERIES="/^[^h]/d;/;/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d;/\'/d;/[()]/d;/[{}]/d;/\`/d;/\$/d"
