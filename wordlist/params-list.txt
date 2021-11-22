@@ -86,6 +86,7 @@ confirm
 width
 w
 callback
+callbackUrl
 size
 date
 source
