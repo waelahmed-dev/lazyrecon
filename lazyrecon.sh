@@ -435,13 +435,13 @@ custompathlist(){
   echo
   echo "[$(date | awk '{ print $4}')] Prepare custom lists"
   if [[ -n "$mad" ]]; then
-    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
+    sort -u $TARGETDIR/wayback/wayback_output.txt $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $RAWFETCHEDLIST
     # rm -rf $TARGETDIR/wayback/wayback_output.txt
   else
-    sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $rawList
+    sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $RAWFETCHEDLIST
   fi
 
-  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $rawList < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $queryList || true
+  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $RAWFETCHEDLIST < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $queryList || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom customFfufWordList"
@@ -839,8 +839,8 @@ main(){
   queryList=$TARGETDIR/tmp/query_list.txt
   touch $queryList
   # scope filtered list
-  rawList=$TARGETDIR/tmp/custom_list.txt
-  touch $rawList
+  RAWFETCHEDLIST=$TARGETDIR/tmp/raw_fetched_list.txt
+  touch $RAWFETCHEDLIST
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     mkdir $TARGETDIR/ffuf/
