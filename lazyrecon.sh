@@ -10,7 +10,9 @@ export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HO
 # custom header to track traffic if needs
 CUSTOMHEADER='X-HackerOne-Research:storenth'
 # number of concurrent directory bruteforce threads
-NUMBEROFTHREADS=100
+NUMBEROFTHREADS=20
+# rate-limit: requests per second
+REQUESTSPERSECOND=5
 
 
 # background PID's control
@@ -59,6 +61,7 @@ PARAMSLIST=./wordlist/params-list.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
 httpxcall="httpx -silent -no-color -threads 250 -H $CUSTOMHEADER -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent"
+CHECKHTTPX2XX="httpx -silent -no-color -mc 200,201,202 -threads $NUMBEROFTHREADS -rate-limit $REQUESTSPERSECOND -H $CUSTOMHEADER -random-agent"
 # used in sed to cut
 UNWANTEDPATHS='/[;]/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
 UNWANTEDQUERIES="/^$/d;/^[^h]/d;/[;]/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d;/[()]/d;/[{}]/d;/[\`]/d;/[$]/d"
@@ -386,9 +389,9 @@ nucleitest(){
     echo
     echo "[$(date | awk '{ print $4}')] [nuclei] technologies testing..."
     # use -c for maximum templates processed in parallel
-    nuclei -silent -H "$CUSTOMHEADER" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
+    nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
-    nuclei -silent -H "$CUSTOMHEADER" -o $TARGETDIR/nuclei/nuclei_output.txt \
+    nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
                     -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
@@ -455,7 +458,7 @@ custompathlist(){
 
   if [[ -n "$fuzz" ]]; then
     # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | httpx -silent -mc 200,201,202 > $TARGETDIR/tmp/js-list.txt || true
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | "$CHECKHTTPX2XX" > $TARGETDIR/tmp/js-list.txt || true
 
     if [ -s $TARGETDIR/tmp/js-list.txt ]; then
 
@@ -500,7 +503,7 @@ custompathlist(){
                   # prepare additional path for bruteforce
                   if [[ -n "$brute" ]]; then
                       grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
-                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$NUMBEROFTHREADS" -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
+                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$NUMBEROFTHREADS" -rate-limit $REQUESTSPERSECOND -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
                   fi
 
               fi
@@ -509,7 +512,7 @@ custompathlist(){
                 sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
-                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | httpx -silent -mc 200,201,202 >> $TARGETDIR/tmp/js-list.txt || true
+                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | "$CHECKHTTPX2XX" >> $TARGETDIR/tmp/js-list.txt || true
                   sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
               fi
         fi
@@ -571,6 +574,7 @@ ssrftest(){
                          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
                          -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
                          -t 1 \ # number of cuncurrent thread = 1 because same host each request
+                         -rate "$REQUESTSPERSECOND" \
                          -H "$CUSTOMHEADER" \
                          -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0" \
                          -mode pitchfork < $PARAMSLIST > /dev/null
@@ -581,7 +585,8 @@ ssrftest(){
       ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
       echo "requests count = $ENDPOINTCOUNT"
           ffuf -s -timeout 1 -ignore-body -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST \
-               -t "$NUMBEROFTHREADS" \
+               -t 1 \ # number of cuncurrent thread = 1 because same host each request
+               -rate "$REQUESTSPERSECOND" \
                -H "$CUSTOMHEADER" \
                -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50" \
                > /dev/null
@@ -608,6 +613,7 @@ ssrftest(){
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
               -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
               -t "$NUMBEROFTHREADS" \
+              -rate "$REQUESTSPERSECOND" \
               -H "$CUSTOMHEADER" \
               -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
 
@@ -633,6 +639,7 @@ lfitest(){
              -mr "root:[x*]:0:0:" \
              -H "$CUSTOMHEADER" \
              -t "$NUMBEROFTHREADS" \
+             -rate "$REQUESTSPERSECOND" \
              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
              -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
@@ -708,6 +715,7 @@ ffufbrute(){
          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
          -w $APIWORDLIST:PATH \
          -t $NUMBEROFTHREADS \
+         -rate "$REQUESTSPERSECOND" \
          -H "$CUSTOMHEADER" \
          -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4" \
          -o $TARGETDIR/ffuf/api-brute.html -of html -or true
@@ -720,6 +728,7 @@ ffufbrute(){
           -w $customFfufWordList:PATH \
           -t $NUMBEROFTHREADS \ 
           -p 0.5-2.5 \
+          -rate "$REQUESTSPERSECOND" \
           -H "$CUSTOMHEADER" \
           -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
           -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
