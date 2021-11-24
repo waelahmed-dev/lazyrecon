@@ -132,7 +132,7 @@ enumeratesubdomains(){
         sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
 
         < $TARGETDIR/enumerated-subdomains.txt unfurl format %S | sort | uniq > $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt
-        sort -u $ALTDNSWORDLIST $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt -o $customSubdomainsWordList
+        sort -u $ALTDNSWORDLIST $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt -o $CUSTOMSUBDOMAINSWORDLIST
       fi
     else 
       echo "No target was found!"
@@ -193,7 +193,7 @@ checkwaybackurls(){
   if [[ -n "$alt" && -n "$wildcard" ]]; then
     # prepare target specific subdomains wordlist to gain more subdomains using --mad mode
     < $TARGETDIR/wayback/wayback_output.txt unfurl format %S | sort | uniq > $TARGETDIR/wayback-subdomains-wordlist.txt
-    sort -u $customSubdomainsWordList $TARGETDIR/wayback-subdomains-wordlist.txt -o $customSubdomainsWordList
+    sort -u $CUSTOMSUBDOMAINSWORDLIST $TARGETDIR/wayback-subdomains-wordlist.txt -o $CUSTOMSUBDOMAINSWORDLIST
   fi
   echo "[$(date | awk '{ print $4}')] wayback machine done."
 }
@@ -218,7 +218,7 @@ dnsbruteforcing(){
 permutatesubdomains(){
   if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
     echo "[$(date | awk '{ print $4}')] dnsgen..."
-    dnsgen $TARGETDIR/1-real-subdomains.txt -w $customSubdomainsWordList > $TARGETDIR/tmp/dnsgen_out.txt
+    dnsgen $TARGETDIR/1-real-subdomains.txt -w $CUSTOMSUBDOMAINSWORDLIST > $TARGETDIR/tmp/dnsgen_out.txt
     sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/tmp/dnsgen_out.txt
 
     sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/tmp/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
@@ -455,11 +455,11 @@ custompathlist(){
   xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $RAWFETCHEDLIST < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $FILTEREDFETCHEDLIST || true
 
   if [[ -n "$brute" ]]; then
-    echo "Prepare custom customFfufWordList"
+    echo "Prepare custom CUSTOMFFUFWORDLIST"
     # filter first and first-second paths from full paths remove empty lines
     < $FILTEREDFETCHEDLIST unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
-                                                   tee -a $customFfufWordList | cut -f1 -d '/' | sort | uniq >> $customFfufWordList
-    sort -u $customFfufWordList -o $customFfufWordList
+                                                   tee -a $CUSTOMFFUFWORDLIST | cut -f1 -d '/' | sort | uniq >> $CUSTOMFFUFWORDLIST
+    sort -u $CUSTOMFFUFWORDLIST -o $CUSTOMFFUFWORDLIST
   fi
 
   if [[ -n "$fuzz" ]]; then
@@ -533,32 +533,32 @@ custompathlist(){
         chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
     fi
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom customSsrfQueryList"
+    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMSSRFQUERYLIST"
     # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $FILTEREDFETCHEDLIST < $PARAMSLIST >> $customSsrfQueryList || true &
+    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $FILTEREDFETCHEDLIST < $PARAMSLIST >> $CUSTOMSSRFQUERYLIST || true &
     pid_01=$!
     wait $pid_01
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom customSqliQueryList"
-    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST > $customSqliQueryList || true &
+    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMSQLIQUERYLIST"
+    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST > $CUSTOMSQLIQUERYLIST || true &
     pid_02=$!
     wait $pid_02
 
-    sort -u $customSsrfQueryList -o $customSsrfQueryList
-    sort -u $customSqliQueryList -o $customSqliQueryList
+    sort -u $CUSTOMSSRFQUERYLIST -o $CUSTOMSSRFQUERYLIST
+    sort -u $CUSTOMSQLIQUERYLIST -o $CUSTOMSQLIQUERYLIST
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom customLfiQueryList"
+    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMLFIQUERYLIST"
     # rabbit hole
-    # grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $customSsrfQueryList > $customLfiQueryList || true
+    # grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $CUSTOMSSRFQUERYLIST > $CUSTOMLFIQUERYLIST || true
     # 1 limited to lfi pattern
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $customSsrfQueryList | qsreplace -a > $customLfiQueryList || true
+    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $CUSTOMSSRFQUERYLIST | qsreplace -a > $CUSTOMLFIQUERYLIST || true
     # 2 limited to [:alnum:]=file.ext pattern
     grep -oiaE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
                -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST | \
-               grep -oiaE -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)=" -e "((https?:\/\/)|www\.) (([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $customLfiQueryList || true
-    sort -u $customLfiQueryList -o $customLfiQueryList
+               grep -oiaE -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)=" -e "((https?:\/\/)|www\.) (([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $CUSTOMLFIQUERYLIST || true
+    sort -u $CUSTOMLFIQUERYLIST -o $CUSTOMLFIQUERYLIST
 
-    < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
+    < $CUSTOMSSRFQUERYLIST unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
     sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
     echo "[$(date | awk '{ print $4}')] Custom done."
   fi
@@ -587,12 +587,12 @@ ssrftest(){
             -mode pitchfork > /dev/null
     echo "[$(date | awk '{ print $4}')] [SSRF-2] done."
     echo
-    if [[ -s "$customSsrfQueryList" ]]; then
+    if [[ -s "$CUSTOMSSRFQUERYLIST" ]]; then
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
-      ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
+      ENDPOINTCOUNT=$(< $CUSTOMSSRFQUERYLIST wc -l)
       echo "requests count = $ENDPOINTCOUNT"
           ffuf -s -timeout 1 -ignore-body -u HOST${LISTENSERVER} \
-               -w $customSsrfQueryList:HOST \
+               -w $CUSTOMSSRFQUERYLIST:HOST \
                -t 1 \
                -p 0.5 \
                -H "$CUSTOMHEADER" \
@@ -634,16 +634,16 @@ ssrftest(){
 # https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/
 # https://blog.cobalt.io/a-pentesters-guide-to-file-inclusion-8fdfc30275da
 lfitest(){
-  if [[ -s "$customLfiQueryList" ]]; then
+  if [[ -s "$CUSTOMLFIQUERYLIST" ]]; then
     echo
     echo "[$(date | awk '{ print $4}')] [LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
       # simple math to watch progress
-      HOSTCOUNT=$(< $customLfiQueryList wc -l)
+      HOSTCOUNT=$(< $CUSTOMLFIQUERYLIST wc -l)
       ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
       echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
       echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
         ffuf -s -timeout 5 -u HOSTPATH \
-             -w $customLfiQueryList:HOST \
+             -w $CUSTOMLFIQUERYLIST:HOST \
              -w $LFIPAYLOAD:PATH \
              -mr "root:[x*]:0:0:" \
              -H "$CUSTOMHEADER" \
@@ -656,12 +656,12 @@ lfitest(){
 }
 
 sqlmaptest(){
-  if [[ -s "$customSqliQueryList" ]]; then
+  if [[ -s "$CUSTOMSQLIQUERYLIST" ]]; then
     # perform the sqlmap
     echo
     echo "[$(date | awk '{ print $4}')] [sqlmap] SQLi testing..."
     # turn on more tests by swithing: --risk=3 --level=5
-    sqlmap -m $customSqliQueryList --batch --random-agent -f --banner --ignore-code=404 --output-dir=$TARGETDIR/sqlmap/
+    sqlmap -m $CUSTOMSQLIQUERYLIST --batch --random-agent -f --banner --ignore-code=404 --output-dir=$TARGETDIR/sqlmap/
     echo "[$(date | awk '{ print $4}')] [sqlmap] done."
   fi
 }
@@ -732,9 +732,9 @@ ffufbrute(){
       # gobuster -x append to each word in the selected wordlist
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
-    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $NUMBEROFTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
+    # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $CUSTOMFFUFWORDLIST -t $NUMBEROFTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
     ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-          -w $customFfufWordList:PATH \
+          -w $CUSTOMFFUFWORDLIST:PATH \
           -t 2 \
           -p 0.5 \
           -H "$CUSTOMHEADER" \
@@ -879,28 +879,28 @@ main(){
   # used for fuzz and bruteforce
   if [[ -n "$fuzz" ]]; then
     # to work with gf ssrf output
-    customSsrfQueryList=$TARGETDIR/tmp/custom_ssrf_list.txt
-    touch $customSsrfQueryList
+    CUSTOMSSRFQUERYLIST=$TARGETDIR/tmp/custom_ssrf_list.txt
+    touch $CUSTOMSSRFQUERYLIST
     # to work with gf lfi output
-    customLfiQueryList=$TARGETDIR/tmp/custom_lfi_list.txt
-    touch $customLfiQueryList
+    CUSTOMLFIQUERYLIST=$TARGETDIR/tmp/custom_lfi_list.txt
+    touch $CUSTOMLFIQUERYLIST
     # to work with gf ssrf output
-    customSqliQueryList=$TARGETDIR/tmp/custom_sqli_list.txt
-    touch $customSqliQueryList
+    CUSTOMSQLIQUERYLIST=$TARGETDIR/tmp/custom_sqli_list.txt
+    touch $CUSTOMSQLIQUERYLIST
   fi
 
   # ffuf dir uses to store brute output
   if [[ -n "$brute" ]]; then
-    customFfufWordList=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
-    touch $customFfufWordList
-    cp $DIRSEARCHWORDLIST $customFfufWordList
+    CUSTOMFFUFWORDLIST=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
+    touch $CUSTOMFFUFWORDLIST
+    cp $DIRSEARCHWORDLIST $CUSTOMFFUFWORDLIST
   fi
 
   # used to save target specific list for alterations (shuffledns, altdns)
   if [ "$alt" = "1" ]; then
-    customSubdomainsWordList=$TARGETDIR/tmp/custom_subdomains_wordlist.txt
-    touch $customSubdomainsWordList
-    cp $ALTDNSWORDLIST $customSubdomainsWordList
+    CUSTOMSUBDOMAINSWORDLIST=$TARGETDIR/tmp/custom_subdomains_wordlist.txt
+    touch $CUSTOMSUBDOMAINSWORDLIST
+    cp $ALTDNSWORDLIST $CUSTOMSUBDOMAINSWORDLIST
   fi
 
   # nuclei output
