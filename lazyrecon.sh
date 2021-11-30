@@ -510,7 +510,7 @@ custompathlist(){
                   if [[ -n "$brute" ]]; then
                       echo "[debug-2] linkfinder: bruteforce collected paths"
                       grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
-                      httpx -silent -no-color -random-agent -status-code -content-length -threads "$NUMBEROFTHREADS" -rate-limit $REQUESTSPERSECOND -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
+                      httpx -silent -no-color -random-agent -status-code -content-length -nfs -threads "$NUMBEROFTHREADS" -rate-limit $REQUESTSPERSECOND -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
                   fi
 
               fi
