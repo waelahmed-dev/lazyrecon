@@ -464,7 +464,7 @@ custompathlist(){
 
   if [[ -n "$fuzz" ]]; then
     # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | $CHECKHTTPX2XX > $TARGETDIR/tmp/js-list.txt || true
+    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | $CHECKHTTPX2XX -nfs > $TARGETDIR/tmp/js-list.txt || true
 
     if [ -s $TARGETDIR/tmp/js-list.txt ]; then
 
@@ -519,7 +519,7 @@ custompathlist(){
                 sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
                 echo "[debug-3] linkfinder: filter out scope"
                 # filter out in scope
-                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | $CHECKHTTPX2XX >> $TARGETDIR/tmp/js-list.txt || true
+                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | $CHECKHTTPX2XX -nfs >> $TARGETDIR/tmp/js-list.txt || true
                   sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
               fi
         fi
