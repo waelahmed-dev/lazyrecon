@@ -14,7 +14,7 @@
 <a href="https://bscscan.com/address/0xb9a36d01577d82909cA01e20dB58293A6baa5dDD"><img src="https://img.shields.io/badge/Token-1A3Y-brightgreen?style=flat-square&color=ca00c7&logo=data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9JzMwMHB4JyB3aWR0aD0nMzAwcHgnICBmaWxsPSIjRTZEQTAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMTAwIDEwMCIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PHBhdGggZD0iTTMzLjk1NiwxNS4yMzhWOS44OThoMzIuMDg4djUuMzM5SDMzLjk1NnogTTMzLjk1NiwxNS4yMzhoLTUuMzR2NS4zNWg1LjM0VjE1LjIzOHogTTcxLjM4MywyMC41ODd2LTUuMzVoLTUuMzM5djUuMzUgIEg3MS4zODN6IE0yOC42MTYsNTIuNjY2aDEwLjY4OXYtNS4zNWg1LjM1di01LjM0SDI4LjYxNlY1Mi42NjZ6IE01NS4zNDUsNDEuOTc2djUuMzRoNS4zNXY1LjM1aDEwLjY4OFY0MS45NzZINTUuMzQ1eiAgIE02Ni4wNDQsNjMuMzY1aC01LjM1di01LjM1aC01LjM1di01LjM1SDQ0LjY1NXY1LjM1aC01LjM1djUuMzVoLTUuMzV2NS4zMzloMzIuMDg4VjYzLjM2NXogTTI4LjYxNiw2My4zNjV2LTUuMzVoLTUuMzVWNDEuOTc2ICBoLTUuMzV2MjEuMzg5SDI4LjYxNnogTTI4LjYxNiwzNi42MjZoNDIuNzY3djUuMzVoNS4zNVYyMC41ODdoLTUuMzV2MTAuNjg5SDI4LjYxNlYyMC41ODdoLTUuMzV2MTYuMDM5djUuMzVoNS4zNVYzNi42MjZ6ICAgTTY2LjA0NCw3OS40MDNoNS4zMzl2LTUuMzVoLTUuMzM5Vjc5LjQwM3ogTTI4LjYxNiw3OS40MDNoNS4zNHYtNS4zNWgtNS4zNFY3OS40MDN6IE03Ni43MzIsNTguMDE1aC01LjM1djUuMzVoMTAuNjk5VjQxLjk3NiAgaC01LjM1VjU4LjAxNXogTTgyLjA4Miw2My4zNjV2MTYuMDM5aDUuMzRWNjMuMzY1SDgyLjA4MnogTTc2LjczMiw4NC43NDNoNS4zNXYtNS4zNGgtNS4zNVY4NC43NDN6IE02MC42OTQsODQuNzQzdi01LjM0aC01LjM1ICB2LTUuMzVINDQuNjU1djUuMzVoLTUuMzV2NS4zNEgyMy4yNjd2NS4zNWgyMS4zODl2LTUuMzVoMTAuNjg5djUuMzVoMjEuMzg4di01LjM1SDYwLjY5NHogTTE3LjkxNyw3OS40MDN2NS4zNGg1LjM1di01LjM0SDE3LjkxN3ogICBNMTcuOTE3LDYzLjM2NWgtNS4zNHYxNi4wMzloNS4zNFY2My4zNjV6Ij48L3BhdGg+PC9zdmc+"></a>
 </p>
 
-Lazyrecon is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing, brute-force and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
+Lazyrecon v2 is a subdomain discovery tool that finds and resolves valid subdomains then performs SSRF/LFI/SQLi fuzzing, brute-force and port scanning. It has a simple modular architecture and is optimized for speed while working with github and wayback machine.
 
 # Features
 - Super fast asynchronous execution
@@ -129,7 +129,7 @@ This project was inspired by original v1.0 [Ben Sadeghipour](https://github.com/
 2. [SSRF automation](https://notifybugme.medium.com/finding-ssrf-by-full-automation-7d2680091d68) and [SSRF RCE](https://rez0.blog/hacking/2019/11/29/rce-via-imagetragick.html)
 3. [Enumeration guide](https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing)
 ## BlackHat USA
-Lazyrecon was invited and presented at the [BlackHat USA 2021](https://www.blackhat.com/us-21/arsenal/schedule/#lazyrecon-v-24051). Now it is officially on the [BlackHat Arsenal track](https://github.com/toolswatch/blackhat-arsenal-tools/blob/master/exploitation/lazyrecon.md).
+Lazyrecon v2 was invited and presented at the [BlackHat USA 2021](https://www.blackhat.com/us-21/arsenal/schedule/#lazyrecon-v-24051). Now it is officially on the [BlackHat Arsenal track](https://github.com/toolswatch/blackhat-arsenal-tools/blob/master/exploitation/lazyrecon.md).
 
 ## Notes
 **Acknowledgement:** This code was created for personal use with hosts you able to hack/explore by any of the known bug bounty program. Use it at your own risk.
@@ -137,7 +137,7 @@ Lazyrecon was invited and presented at the [BlackHat USA 2021](https://www.black
 [See release notes](misc/NOTES.MD)
 
 # Crypto token
-- [1A3Y](https://bscscan.com/token/0xb9a36d01577d82909ca01e20db58293a6baa5ddd) helps Lazyrecon create new features.
+- [1A3Y](https://bscscan.com/token/0xb9a36d01577d82909ca01e20db58293a6baa5ddd) helps Lazyrecon v2 create new features.
 - Track the token activity on [poocoin](https://poocoin.app/tokens/0xb9a36d01577d82909ca01e20db58293a6baa5ddd)
 - 💬 Join 1A3Y's [telegram](https://t.me/lazyrecontoken)
 
