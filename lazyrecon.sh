@@ -7,12 +7,6 @@ set -m
 # https://golang.org/doc/install#install
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin:$HOMEDIR/go/bin
 
-# custom header to track traffic if needs
-CUSTOMHEADER='X-HackerOne-Research:storenth'
-# number of concurrent directory bruteforce threads
-NUMBEROFTHREADS=20
-# rate-limit: requests per second
-REQUESTSPERSECOND=5
 #-------- ffuf note ---------
 # default rate-limit is 2 req/sec
 # based on @joohoi discussion about internal ffuf stuff: 1 thread with `-p 0.5` sec pause results in to max 2 req/sec anyway
