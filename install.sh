@@ -19,7 +19,7 @@ fi
 third_party_go_dependencies(){
     # Third-party tools
     gotools[0]="go get -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
-    gotools[1]="go get -v github.com/projectdiscovery/interactsh/cmd/interactsh-client"
+    gotools[1]="go install -v github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest"
     gotools[2]="go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest"
     gotools[3]="go get -v github.com/projectdiscovery/mapcidr/cmd/mapcidr"
     gotools[4]="go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest"
