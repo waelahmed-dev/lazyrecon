@@ -340,7 +340,7 @@ gospidertest(){
     cat $TARGETDIR/gospider/* > $TARGETDIR/tmp/gospider_raw_out.txt
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' -e '\[href\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
     grep '\[url\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f5 -d ' ' | sort -u >> $TARGETDIR/gospider/gospider_out.txt
 
     if [[ -z "$single" ]]; then
