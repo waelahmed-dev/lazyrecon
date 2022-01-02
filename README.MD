@@ -46,15 +46,15 @@ export GO111MODULE=on
 
 This script is intended to automate your reconnaissance process in an organized fashion by performing the following:
 
-- Creates a dated folder with recon notes for a target
+- Manages a folder with timestamps and details for a target
 - Grabs subdomains using `subfinder`, `assetfinder`, `gau`, `waybackurls`, `github-subdomains`
 - Additionally finds new subdomains through alterations and permutations using `dnsgen`
 - Searches subnets and new assets using math `Mode`
 - Filters out live subdomains from a list of hosts using `puredns`
-- Checks 1-200,8000-10000 for http(s) probes using `httpx`
+- Checks all known ports for http(s) probes using `httpx`
 - Gets visual part using `headless chromium`
 - Performs `masscan` on live servers
-- Scanns for known paths and CVEs using `nuclei`
+- Scans for known paths and CVEs using `nuclei`
 - Shots for [SSRF](https://www.hackerone.com/blog-How-To-Server-Side-Request-Forgery-SSRF)/[LFI](https://www.allysonomalley.com/2021/02/11/burpparamflagger-identifying-possible-ssrf-lfi-insertion-points/)/SQLi based on fetched DOM's and Wayback machine's data
 - Checks for 401/403 bypass using [bypass-403](https://github.com/storenth/bypass-403/)
 - Performs `ffuf` supercharged by `interlace` using custom WordList based on the [top10000.txt](https://github.com/danielmiessler/RobotsDisallowed/blob/master/top10000.txt)
