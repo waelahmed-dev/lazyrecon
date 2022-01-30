@@ -136,11 +136,7 @@ enumeratesubdomains(){
   echo "[$(date | awk '{ print $4}')] enumeration done."
 }
 
-getwaybackurl(){
-  echo "waybackurls..."
-  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/waybackurls_output.txt
-  echo "waybackurls done."
-}
+
 getgau(){
   echo "gau..."
   SUBS=""
@@ -151,6 +147,13 @@ getgau(){
   < $TARGETDIR/enumerated-subdomains.txt gau $SUBS | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/gau_output.txt
   echo "gau done."
 }
+
+getwaybackurl(){
+  echo "waybackurls..."
+  < $TARGETDIR/enumerated-subdomains.txt waybackurls | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/waybackurls_output.txt
+  echo "waybackurls done."
+}
+
 getgithubendpoints(){
   echo "github-endpoints.py..."
   github-endpoints -d $1 -t $GITHUBTOKEN | sort -u | grep -E "$2" | qsreplace -a > $TARGETDIR/tmp/github-endpoints_out.txt || true
