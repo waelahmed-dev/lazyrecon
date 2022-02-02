@@ -255,7 +255,7 @@ dnsprobing(){
       dnsx -silent -retry 2 -t 150 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
 
       # clear file from [ and ] symbols
-      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt | tr -d ''sed "/8.8.8.8/d;/1.1.1.1/d" > $TARGETDIR/dnsprobe_output_tmp.txt
+      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt | sed "/8.8.8.8/d;/1.1.1.1/d" > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
