@@ -14,7 +14,7 @@ PUBLICIP=$(curl -s https://api.ipify.org)
 # Images
 images() {
     echo '<div>'
-    for line in ${TARGETDIR}/screenshots/merge/*; do
+    for line in ${TARGETDIR}/screenshots/*; do
         # remove http(s) and .png file extension
         FILENAME=$(basename $line | sed -E 's/https?-//;s/[.]png//')
         # replace - with : if line contains a port
