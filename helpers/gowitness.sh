@@ -18,9 +18,9 @@ if [ -s "${1}" ]; then
       # check if target is IP address
       ISIP=$(echo "$line" | grep -oE "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])")
       if [[ -n "$ISIP" ]]; then
-        SCOPE=$(echo "$line" | grep -oiahE "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
+        SCOPE=$(echo "$line" | grep -oiahE "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])([:][[:digit:]]{2,4})?" | sed "s/:/_/g")
       else
-        SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/;s/[.]/_/g")
+        SCOPE=$(echo "$line" | grep -oiahE "(([[:alpha:][:digit:]-]+\.)+)?[[:alpha:][:digit:]-]+\.[[:alpha:]]{2,5}([:][[:digit:]]{2,4})?" | sed "s/:/_/g")
       fi
 
       gowitness single "$line" --delay 5 -o "${SCOPE}".png -X 1280 -Y 720 --disable-logging --disable-db --chrome-path /usr/local/bin/chromium -P "${DIRNAMEPATH}"/screenshots &

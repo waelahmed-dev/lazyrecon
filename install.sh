@@ -49,7 +49,11 @@ custom_origin_dependencies() {
     if ! type bypass-403; then
         git clone https://github.com/storenth/bypass-403.git
         ln -s $PWD/bypass-403/bypass-403.sh /usr/local/bin/bypass-403
-        ln -s $PWD/bypass-403/bypass-403.sh /usr/local/bin/bypass-403
+    fi
+
+    if ! type getsecrets; then
+      git clone https://github.com/storenth/getsecrets.git
+      ln -s $PWD/getsecrets/getsecrets.sh /usr/local/bin/getsecrets
     fi
 
     if ! type github-endpoints; then
@@ -63,8 +67,9 @@ custom_origin_dependencies() {
         ln -s $PWD/Bug-Bounty-Toolz/ssrf.py /usr/local/bin/ssrf-headers-tool
     fi
 
-    wget -nc https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
-    mv -f $PWD/storenth-lfi.yaml $HOMEDIR/nuclei-templates/vulnerabilities/other
+    if wget -nc -O $PWD/wordlist/storenth-lfi.yaml https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml; then
+    else exit 1
+    fi
 
     find . -name "requirements.txt" -type f -exec pip3 install -r '{}' ';'
 }

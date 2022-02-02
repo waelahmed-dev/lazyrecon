@@ -14,20 +14,29 @@ PUBLICIP=$(curl -s https://api.ipify.org)
 # Images
 images() {
     echo '<div>'
-    for line in ${TARGETDIR}/screenshots/*; do
-        FILENAME=$(basename $line | sed 's/[.]png//')
-        URL=$(echo "${FILENAME}" | sed -E 's/^(.*)_/\1\:/; s/_/./g')
-        echo "<p><a href=$URL>${URL}</a></p>"
+    for line in ${TARGETDIR}/screenshots/merge/*; do
+        # remove http(s) and .png file extension
+        FILENAME=$(basename $line | sed -E 's/https?-//;s/[.]png//')
+        # replace - with : if line contains a port
+        # HERE
+        URLWITHPORT=$(echo ${FILENAME} | grep -E "\-[[:digit:]]{2,}$")
+        if [ -n "${URLWITHPORT}" ]; then
+            URL=$(echo ${URLWITHPORT} | sed -E 's/^(.*)-/\1\:/')
+        else
+            URL=${FILENAME}
+        fi
+
+        echo "<p><a href=${URL}>${URL}</a></p>"
         echo "<img src=${line} width=400px height=auto alt=${URL}>"
         # get nuclei's output
-        if [ -s ${TARGETDIR}/nuclei/nuclei_output_technology.txt ]; then
-        technote="$(grep $URL ${TARGETDIR}/nuclei/nuclei_output_technology.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1 $3}')"
+        if [ -s ${TARGETDIR}/tmp/nuclei_technology_out.txt ]; then
+        technote="$(grep ${URL} ${TARGETDIR}/tmp/nuclei_technology_out.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1" "$3}')"
             for tech in $technote; do
                 echo "<p style='color: #404040; font-size: 10px;'>${tech}</p>"
             done
         fi
-        if [ -s ${TARGETDIR}/nuclei/nuclei_output.txt ]; then
-            techissue="$(grep $URL ${TARGETDIR}/nuclei/nuclei_output.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1 $3}')"
+        if [ -s $TARGETDIR/nuclei/nuclei_out.txt ]; then
+            techissue="$(grep ${URL} $TARGETDIR/nuclei/nuclei_out.txt | cut -d ' ' -f 3,5,6 | awk '{ print $2 $1" "$3}')"
             for issue in $techissue; do
                 echo "<p style='color: #AD3F60; font-size: 10px;'>${issue}</p>"
             done
@@ -36,11 +45,25 @@ images() {
     echo '</div>'
 }
 
-serverlogs(){
-    if [ -s ${TARGETDIR}/_listen_server.log ]; then
+openports(){
+    # add open ports
+    if [ -s ${TARGETDIR}/naabu_out ]; then
         echo '<div>'
-        awk 'NR>11' ${TARGETDIR}/_listen_server.log
+            echo "<h4>Open ports found:</h4>"
+            ports=$(cat $TARGETDIR/naabu_out)
+            echo "<pre style='font-size: 10px;'><code>""${ports}""</code></pre>"
         echo '</div>'
+    else
+        echo "<h3>There are no open ports found.</h3>"
+    fi
+}
+
+listenserverlogs(){
+    # add listen server logs
+    if [ -s ${TARGETDIR}/_listen_server_out.log ]; then
+        echo "<h4>Listen server out</h4>"
+        srvlogs=$(< $TARGETDIR/_listen_server_out.log jq -r '.protocol,."remote-address",."raw-request"' | grep -A 11 -F "http")
+        echo "<pre style='font-size: 9px;'><code>""${srvlogs}""</code></pre>"
     fi
 }
 
@@ -54,14 +77,15 @@ echo "<!DOCTYPE html>
 <TITLE>$TITLE</TITLE>
 </HEAD>
 <BODY>
-<p>Invoked by <a href=https://github.com/storenth/lazyrecon>lazyrecon v2.0</a> with next parameters: $INVOKATION</p>
+<p>Powered by $ 1a3y.sh with the next parameters: $INVOKATION</p>
 <p>$TIME_STAMP</p>
 <p>Public IP=$PUBLICIP</p>
 <H1>Security report for $1</H1>
 "
 
+openports
 images
-serverlogs
+listenserverlogs
 
 echo "</BODY>
 </HTML>
