@@ -363,7 +363,7 @@ pagefetcher(){
     SCOPE=$1
     echo
     echo "[$(date | awk '{ print $4}')] [page-fetch] Fetch page's DOM..."
-    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch -o $TARGETDIR/page-fetched --no-third-party --exclude image/ --exclude css/ 1> /dev/null
+    < $TARGETDIR/3-all-subdomain-live-scheme.txt page-fetch --no-third-party --exclude image/ --exclude css/ -o $TARGETDIR/page-fetched 1> /dev/null
     grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | sort -u > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     if [[ -z "$single" ]]; then
