@@ -58,11 +58,12 @@ LFIPAYLOAD=./wordlist/lfi-payload.txt
 PARAMSLIST=./wordlist/params-list.txt
 
 # https://sidxparab.gitbook.io/subdomain-enumeration-guide/automation
-HTTPXCALL="httpx -silent -no-color -threads 250 -H $CUSTOMHEADER -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672 -random-agent"
-CHECKHTTPX2XX="httpx -silent -no-color -mc 200,201,202 -threads $NUMBEROFTHREADS -rate-limit $REQUESTSPERSECOND -H $CUSTOMHEADER -random-agent"
+HTTPXCALL="httpx -silent -no-color -random-agent -rate-limit $REQUESTSPERSECOND -H $CUSTOMHEADER -ports 80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672"
+CHECKHTTPX2XX="httpx -silent -no-color -random-agent -mc 200,201,202 -rate-limit $REQUESTSPERSECOND -H $CUSTOMHEADER"
 # used in sed to cut
 UNWANTEDPATHS='/[;]/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d'
-UNWANTEDQUERIES="/^$/d;/^[^h]/d;/[;]/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d;/[()]/d;/[{}]/d;/[\`]/d;/[$]/d"
+UNWANTEDQUERIES="/^$/d;/^[^h]/d;/[;]/d;/[.]css$/d;/[.]png$/d;/[.]svg$/d;/[.]jpg$/d;/[.]jpeg$/d;/[.]webp$/d;/[.]gif$/d;/[.]woff$/d;/[.]html$/d;/[()]/d;/[{}]/d;/[\`]/d;/[\']/d;/[$]/d"
+JUICYFILETYPES="txt|log|yaml|env|gz|config|sql|xml|xlsx|doc|bak|old|src|jar|jsp|zip|tar"
 
 # definitions
 enumeratesubdomains(){
@@ -77,7 +78,6 @@ enumeratesubdomains(){
 
     # Passive subdomain enumeration
     echo "subfinder..."
-    echo $1 >> $TARGETDIR/subfinder-list.txt # to be sure main domain added in case of one domain scope
     subfinder -all -d $1 -silent -o $TARGETDIR/subfinder-list.txt &
     PID_SUBFINDER_FIRST=$!
 
@@ -100,32 +100,13 @@ enumeratesubdomains(){
     sed "${SEDOPTION[@]}" '/^*/d' $TARGETDIR/assetfinder-list.txt
     # sort enumerated subdomains
     sort -u "$TARGETDIR"/subfinder-list.txt $TARGETDIR/assetfinder-list.txt "$TARGETDIR"/github-subdomains-list.txt -o "$TARGETDIR"/enumerated-subdomains.txt
+    echo $1 >> "${TARGETDIR}/enumerated-subdomains.txt" # to be sure main domain added in case of wildcard
 
     if [[ -s "$TARGETDIR"/enumerated-subdomains.txt ]]; then
       sed "${SEDOPTION[@]}" '/^[.]/d' $TARGETDIR/enumerated-subdomains.txt
       if [[ -n "$alt" ]]; then
         echo
-        echo "[subfinder] second try..."
-        # dynamic sensor
-        BAR='##############################'
-        FILL='------------------------------'
-        totalLines=$(wc -l "$TARGETDIR"/enumerated-subdomains.txt | awk '{print $1}')  # num. lines in file
-        barLen=30
-        count=0
-
-          # --- iterate over lines in file ---
-          while read line; do
-              # update progress bar
-              count=$(($count + 1))
-              percent=$((($count * 100 / $totalLines * 100) / 100))
-              i=$(($percent * $barLen / 100))
-              echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
-              subfinder -silent -d $line >> "${TARGETDIR}"/subfinder-list-2.txt
-          done < "${TARGETDIR}"/enumerated-subdomains.txt
-
-        sort -u "$TARGETDIR"/enumerated-subdomains.txt "$TARGETDIR"/subfinder-list-2.txt -o "$TARGETDIR"/enumerated-subdomains.txt
-
-        < $TARGETDIR/enumerated-subdomains.txt unfurl format %S | sort | uniq > $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt
+        < $TARGETDIR/enumerated-subdomains.txt unfurl format %S | sort -u > $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt
         sort -u $ALTDNSWORDLIST $TARGETDIR/tmp/enumerated-subdomains-wordlist.txt -o $CUSTOMSUBDOMAINSWORDLIST
       fi
     else 
@@ -196,7 +177,7 @@ checkwaybackurls(){
 }
 
 sortsubdomains(){
-  if [ "$wildcard" = "1" ]; then
+  if [[ -n "$wildcard" ]]; then
     sort -u $TARGETDIR/enumerated-subdomains.txt $TARGETDIR/wayback-subdomains-list.txt -o $TARGETDIR/1-real-subdomains.txt
     cp $TARGETDIR/1-real-subdomains.txt $TARGETDIR/2-all-subdomains.txt
   fi
@@ -206,7 +187,7 @@ dnsbruteforcing(){
   if [[  -n "$wildcard" && -n "$vps" ]]; then
     echo "[$(date | awk '{ print $4}')] puredns bruteforce..."
     # https://sidxparab.gitbook.io/subdomain-enumeration-guide/active-enumeration/dns-bruteforcing
-    puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 100000 -l 5000 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
+    puredns bruteforce $BRUTEDNSWORDLIST $1 -r $MINIRESOLVERS --wildcard-batch 500000 -l 500 --wildcard-tests 20 -q | tee $TARGETDIR/purebruteforce.txt >> $TARGETDIR/1-real-subdomains.txt
     sort -u $TARGETDIR/1-real-subdomains.txt -o $TARGETDIR/1-real-subdomains.txt
     echo "[$(date | awk '{ print $4}')] puredns bruteforce done."
   fi
@@ -215,11 +196,18 @@ dnsbruteforcing(){
 permutatesubdomains(){
   if [[ -n "$alt" && -n "$wildcard" && -n "$vps" ]]; then
     echo "[$(date | awk '{ print $4}')] dnsgen..."
-    dnsgen $TARGETDIR/1-real-subdomains.txt -w $CUSTOMSUBDOMAINSWORDLIST > $TARGETDIR/tmp/dnsgen_out.txt
-    sed "${SEDOPTION[@]}" '/^[.]/d;/^[-]/d;/\.\./d' $TARGETDIR/tmp/dnsgen_out.txt
+    dnsgen $TARGETDIR/1-real-subdomains.txt -w $CUSTOMSUBDOMAINSWORDLIST \
+      | puredns -r $MINIRESOLVERS resolve -q --wildcard-batch 500000 --wildcard-tests 20 -l 500 \
+      | tee $TARGETDIR/resolved_dnsgen_out.txt
 
-    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/tmp/dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
+    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/resolved_dnsgen_out.txt -o $TARGETDIR/2-all-subdomains.txt
     echo "[$(date | awk '{ print $4}')] dnsgen done"
+
+    echo "[$(date +%H:%M:%S)] alterate.sh fuzz..."
+    ./helpers/alterate.sh "$TARGETDIR/1-real-subdomains.txt" > $TARGETDIR/tmp/alterate_out.txt
+    echo "[$(date +%H:%M:%S)] alterate.sh done"
+
+    sort -u $TARGETDIR/1-real-subdomains.txt $TARGETDIR/tmp/alterate_out.txt -o $TARGETDIR/2-all-subdomains.txt
   fi
 }
 
@@ -258,16 +246,16 @@ dnsprobing(){
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
   else
       echo "[$(date | awk '{ print $4}')] [puredns] massdns probing with wildcard sieving..."
-      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 100000 -l 5000 -w $TARGETDIR/resolved-list.txt
+      puredns -r $MINIRESOLVERS resolve $TARGETDIR/2-all-subdomains.txt --wildcard-batch 500000 -l 500 --wildcard-tests 20 -w $TARGETDIR/resolved-list.txt
       # shuffledns -silent -d $1 -list $TARGETDIR/2-all-subdomains.txt -retries 5 -r $MINIRESOLVERS -o $TARGETDIR/shuffledns-list.txt
       # additional resolving because shuffledns missing IP on output
       echo
       echo "[$(date | awk '{ print $4}')] [dnsx] getting hostnames and its A records..."
       # -t mean cuncurrency
-      dnsx -silent -retry 2 -t 250 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
+      dnsx -silent -retry 2 -t 150 -a -resp -r $MINIRESOLVERS -l $TARGETDIR/resolved-list.txt -o $TARGETDIR/dnsprobe_out.txt
 
       # clear file from [ and ] symbols
-      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt > $TARGETDIR/dnsprobe_output_tmp.txt
+      tr -d '\[\]' < $TARGETDIR/dnsprobe_out.txt | tr -d ''sed "/8.8.8.8/d;/1.1.1.1/d" > $TARGETDIR/dnsprobe_output_tmp.txt
       # split resolved hosts ans its IP (for masscan)
       cut -f1 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_subdomains.txt
       cut -f2 -d ' ' $TARGETDIR/dnsprobe_output_tmp.txt | sort | uniq > $TARGETDIR/dnsprobe_ip.txt
@@ -286,39 +274,46 @@ checkhttprobe(){
     cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
     grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/4xx-all-subdomain-live-scheme.txt
   else
+    echo "[httpx] Domain probe testing..."
     $HTTPXCALL -status-code -l $TARGETDIR/dnsprobe_subdomains.txt -o $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     $HTTPXCALL -status-code -l $TARGETDIR/dnsprobe_ip.txt >> $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt
     cut -f1 -d ' ' $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt >> $TARGETDIR/3-all-subdomain-live-scheme.txt
     grep -E "\[4([0-9]){2}\]" $TARGETDIR/tmp/subdomain-live-status-code-scheme.txt | cut -f1 -d ' ' > $TARGETDIR/4xx-all-subdomain-live-scheme.txt
+    if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
+      echo
+      echo "[$(date +%H:%M:%S)] [math Mode] finding math Mode of the IP numbers"
+      ./helpers/modefinder.sh "$TARGETDIR/dnsprobe_ip.txt" 24  > $TARGETDIR/tmp/modefinder_out.txt
 
-      if [[ ( -n "$alt" || -n "$vps" ) && -s "$TARGETDIR"/dnsprobe_ip.txt ]]; then
-        echo
-        echo "[$(date | awk '{ print $4}')] [math Mode] finding math Mode of the IP numbers"
-        MODEOCTET=$(cut -f1 -d '.' $TARGETDIR/dnsprobe_ip.txt | sort -n | uniq -c | sort | tail -n1 | xargs)
-        ISMODEOCTET1=$(echo $MODEOCTET | awk '{ print $1 }')
-        if ((ISMODEOCTET1 > 1)); then
-          MODEOCTET1=$(echo $MODEOCTET | awk '{ print $2 }')
+      if [[ -s $TARGETDIR/tmp/modefinder_out.txt ]]; then
+        axiom-scan $TARGETDIR/tmp/modefinder_out.txt -m dnsx -silent -resp-only -ptr -retry 2 -rl $REQUESTSPERSECOND -r $AXIOMRESOLVERS -o $TARGETDIR/tmp/ptr_all_1.txt
+        [[ -s "$TARGETDIR"/tmp/ptr_all_1.txt ]] && grep "$1" $TARGETDIR/tmp/ptr_all_1.txt | sort -u | tee $TARGETDIR/tmp/ptr_scope_2.txt \
+          | puredns -q -r $MINIRESOLVERS resolve --skip-wildcard-filter | tee $TARGETDIR/tmp/ptr_resolved_3.txt \
+          | dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/tmp/ptr_ip_4.txt
 
-          MODEOCTET=$(grep "^${MODEOCTET1}" $TARGETDIR/dnsprobe_ip.txt | cut -f2 -d '.' | sort -n | uniq -c | sort | tail -n1 | xargs)
-          ISMODEOCTET2=$(echo $MODEOCTET | awk '{ print $1 }')
-          if ((ISMODEOCTET2 > 1)); then
-            MODEOCTET2=$(echo $MODEOCTET | awk '{ print $2 }')
-            CIDR1="${MODEOCTET1}.${MODEOCTET2}.0.0/16"
-            echo "[math Mode] found: $CIDR1"
-            echo "[math Mode] resolve PTR of the IP numbers"
-            # look at https://github.com/projectdiscovery/dnsx/issues/34 to add `-wd` support here
-            mapcidr -silent -cidr $CIDR1 | dnsx -silent -resp-only -ptr | tee $TARGETDIR/tmp/dnsprobe_all_ptr.txt | grep $1 | sort | uniq | tee $TARGETDIR/tmp/dnsprobe_ptr.txt | \
-                puredns -q -r $MINIRESOLVERS resolve --wildcard-batch 100000 -l 5000 | \
-                dnsx -silent -r $MINIRESOLVERS -a -resp-only | tee -a $TARGETDIR/dnsprobe_ip.txt | tee $TARGETDIR/tmp/dnsprobe_ip_mode.txt | \
-                $HTTPXCALL | tee $TARGETDIR/tmp/httpx_ip_mode.txt | tee -a $TARGETDIR/3-all-subdomain-live-scheme.txt
+        [[ -s "$TARGETDIR"/tmp/ptr_ip_4.txt ]] && axiom-scan $TARGETDIR/tmp/ptr_ip_4.txt -m $HTTPXCALL -o $TARGETDIR/tmp/ptr_http_5.txt
 
-            # sort new assets
-            sort -u $TARGETDIR/dnsprobe_ip.txt  -o $TARGETDIR/dnsprobe_ip.txt 
+        # sort new assets
+        [[ -s "$TARGETDIR"/tmp/ptr_http_5.txt ]] && sort -u $TARGETDIR/tmp/ptr_http_5.txt $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
+        sort -u $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/dnsprobe_ip.txt
 
-          fi
+        #######################################
+        # TEST all IP to verify scope visually
+        if [[ -n "$night" ]]; then
+          echo "[$(date +%H:%M:%S)] [math Mode] TEST httpx probes of all finded Modes of IPs"
+          axiom-scan $TARGETDIR/tmp/modefinder_out.txt -m $HTTPXCALL -o $TARGETDIR/http_modefinder_out.txt
+
+          echo "$(date +%H:%M:%S)] secretfinder"
+          mkdir -p $TARGETDIR/tmp/secretfinder/modefinder
+          # https://github.com/m4ll0k/SecretFinder/issues/20
+          axiom-scan $TARGETDIR/http_modefinder_out.txt -m secretfinder -o $TARGETDIR/tmp/secretfinder/modefinder
+          cat $TARGETDIR/tmp/secretfinder/modefinder/merge/* > $TARGETDIR/secretfinder_modefinder_out.txt
+          echo "$(date +%H:%M:%S)] secretfinder done"
         fi
-        echo "[$(date | awk '{ print $4}')] [math Mode] done."
+        #######################################
+
       fi
+      echo "[$(date +%H:%M:%S)] [math Mode] done."
+    fi
   fi
   echo "[$(date | awk '{ print $4}')] [httpx] done."
 }
@@ -337,26 +332,34 @@ gospidertest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
     echo "[$(date | awk '{ print $4}')] [gospider] Web crawling..."
-    gospider -q -r -H "$CUSTOMHEADER" -S $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/gospider -c 40 -t 40 1> /dev/null
+    gospider -q --no-redirect -H "$CUSTOMHEADER" -S $TARGETDIR/3-all-subdomain-live-scheme.txt -o $TARGETDIR/gospider -t 2 1> /dev/null
 
     # combine the results and filter out of scope
     cat $TARGETDIR/gospider/* > $TARGETDIR/tmp/gospider_raw_out.txt
 
     # prepare paths list
-    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' -e '\[href\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f3 -d ' ' | sort -u > $TARGETDIR/gospider/gospider_out.txt
+    grep -e '\[form\]' -e '\[javascript\]' -e '\[linkfinder\]' -e '\[robots\]' -e '\[href\]' $TARGETDIR/tmp/gospider_raw_out.txt \
+      | cut -f3 -d ' ' \
+      | sort -u > $TARGETDIR/gospider/gospider_out.txt
+
     grep '\[url\]' $TARGETDIR/tmp/gospider_raw_out.txt | cut -f5 -d ' ' | sort -u >> $TARGETDIR/gospider/gospider_out.txt
 
-    if [[ -z "$single" ]]; then
-        # extract domains
-        < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" | sort -u | \
-                      $HTTPXCALL >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+    if [[  -z "$single" && -z "$list" ]]; then
+      # extract domains
+      < $TARGETDIR/gospider/gospider_out.txt unfurl --unique domains \
+        | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" \
+        | sort -u \
+        | $HTTPXCALL \
+        | tee $TARGETDIR/gospider-subdomain-live-scheme.txt
+
+      [[ -s $TARGETDIR/gospider-subdomain-live-scheme.txt ]] && sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt $TARGETDIR/gospider-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
     fi
     echo "[$(date | awk '{ print $4}')] [gospider] done."
   fi
 }
 
 pagefetcher(){
-  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+  if [[ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]]; then
     SCOPE=$1
     echo
     echo "[$(date | awk '{ print $4}')] [page-fetch] Fetch page's DOM..."
@@ -364,9 +367,14 @@ pagefetcher(){
     grep -horE "https?:[^\"\\'> ]+|www[.][^\"\\'> ]+" $TARGETDIR/page-fetched | sort -u > $TARGETDIR/page-fetched/pagefetcher_output.txt
 
     if [[ -z "$single" ]]; then
-        # extract domains
-        < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" | sort -u | \
-                      $HTTPXCALL >> $TARGETDIR/3-all-subdomain-live-scheme.txt
+      # extract domains
+      < $TARGETDIR/page-fetched/pagefetcher_output.txt unfurl --unique domains \
+        | grep -E "(([[:alnum:][:punct:]]+)+)?[.]?$1" \
+        | sort -u \
+        | $HTTPXCALL \
+        | tee $TARGETDIR/pagefetcher-subdomain-live-scheme.txt
+
+      [[ -s $TARGETDIR/pagefetcher-subdomain-live-scheme.txt ]] && sort -u $TARGETDIR/3-all-subdomain-live-scheme.txt $TARGETDIR/pagefetcher-subdomain-live-scheme.txt -o $TARGETDIR/3-all-subdomain-live-scheme.txt
     fi
     echo "[$(date | awk '{ print $4}')] [page-fetch] done."
   fi
@@ -385,36 +393,36 @@ screenshots(){
 nucleitest(){
   if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
     echo
-    echo "[$(date | awk '{ print $4}')] [nuclei] technologies testing..."
+    # echo "[$(date | awk '{ print $4}')] [nuclei] technologies testing..."
     # use -c for maximum templates processed in parallel
-    nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
+    # nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" -l $TARGETDIR/3-all-subdomain-live-scheme.txt -t $HOMEDIR/nuclei-templates/technologies/ -o $TARGETDIR/nuclei/nuclei_output_technology.txt
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing..."
     nuclei -silent -iserver "https://$LISTENSERVER" \
-          -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" \
-          -o $TARGETDIR/nuclei/nuclei_output.txt \
-                    -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
-                    -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
-                    -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
-                    -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
-                    -t $HOMEDIR/nuclei-templates/cnvd/ \
-                    -t $HOMEDIR/nuclei-templates/iot/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2013/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2014/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2015/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2016/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2017/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2018/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2019/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2020/ \
-                    -t $HOMEDIR/nuclei-templates/cves/2021/ \
-                    -t $HOMEDIR/nuclei-templates/misconfiguration/ \
-                    -t $HOMEDIR/nuclei-templates/network/ \
-                    -t $HOMEDIR/nuclei-templates/miscellaneous/ \
-                    -t $HOMEDIR/nuclei-templates/takeovers/ \
-                    -t $HOMEDIR/nuclei-templates/default-logins/ \
-                    -t $HOMEDIR/nuclei-templates/exposures/ \
-                    -t $HOMEDIR/nuclei-templates/exposed-panels/ \
-                    -t $HOMEDIR/nuclei-templates/fuzzing/
+      -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" \
+      -o $TARGETDIR/nuclei/nuclei_output.txt \
+      -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+      -exclude-templates $HOMEDIR/nuclei-templates/misconfiguration/http-missing-security-headers.yaml \
+      -exclude-templates $HOMEDIR/nuclei-templates/miscellaneous/old-copyright.yaml \
+      -t $HOMEDIR/nuclei-templates/vulnerabilities/ \
+      -t $HOMEDIR/nuclei-templates/cnvd/ \
+      -t $HOMEDIR/nuclei-templates/iot/ \
+      -t $HOMEDIR/nuclei-templates/cves/2013/ \
+      -t $HOMEDIR/nuclei-templates/cves/2014/ \
+      -t $HOMEDIR/nuclei-templates/cves/2015/ \
+      -t $HOMEDIR/nuclei-templates/cves/2016/ \
+      -t $HOMEDIR/nuclei-templates/cves/2017/ \
+      -t $HOMEDIR/nuclei-templates/cves/2018/ \
+      -t $HOMEDIR/nuclei-templates/cves/2019/ \
+      -t $HOMEDIR/nuclei-templates/cves/2020/ \
+      -t $HOMEDIR/nuclei-templates/cves/2021/ \
+      -t $HOMEDIR/nuclei-templates/misconfiguration/ \
+      -t $HOMEDIR/nuclei-templates/network/ \
+      -t $HOMEDIR/nuclei-templates/miscellaneous/ \
+      -t $HOMEDIR/nuclei-templates/takeovers/ \
+      -t $HOMEDIR/nuclei-templates/default-logins/ \
+      -t $HOMEDIR/nuclei-templates/exposures/ \
+      -t $HOMEDIR/nuclei-templates/exposed-panels/ \
+      -t $HOMEDIR/nuclei-templates/fuzzing/
     echo "[$(date | awk '{ print $4}')] [nuclei] CVE testing done."
 
     if [ -s $TARGETDIR/nuclei/nuclei_output.txt ]; then
@@ -449,115 +457,168 @@ custompathlist(){
     sort -u $TARGETDIR/gospider/gospider_out.txt $TARGETDIR/page-fetched/pagefetcher_output.txt -o $RAWFETCHEDLIST
   fi
 
-  xargs -P 20 -n 1 -I {} grep -iE "^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}" $RAWFETCHEDLIST < $TARGETDIR/3-all-subdomain-live.txt | sed $UNWANTEDQUERIES > $FILTEREDFETCHEDLIST || true
+  xargs -I '{}' echo '^https?://(w{3}.)?([[:alnum:]_\-]+)?[.]?{}' < $TARGETDIR/3-all-subdomain-live.txt | grep -iEf - $RAWFETCHEDLIST | sed $UNWANTEDQUERIES > $FILTEREDFETCHEDLIST || true
 
   if [[ -n "$brute" ]]; then
     echo "Prepare custom CUSTOMFFUFWORDLIST"
-    # filter first and first-second paths from full paths remove empty lines
-    < $FILTEREDFETCHEDLIST unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' | cut -f1-2 -d '/' | sort | uniq | sed 's/\/$//' | \
-                                                   tee -a $CUSTOMFFUFWORDLIST | cut -f1 -d '/' | sort | uniq >> $CUSTOMFFUFWORDLIST
-    sort -u $CUSTOMFFUFWORDLIST -o $CUSTOMFFUFWORDLIST
+    # filter first and first-second paths from full paths
+    # remove empty lines
+    # remove js|json|etc entries
+    < $FILTEREDFETCHEDLIST unfurl paths | sed 's/^\///;/^$/d;/web.archive.org/d;/@/d' \
+      | cut -f1-2 -d '/' \
+      | sort -u \
+      | sed 's/\/$//' \
+      | grep -viE -e "(([[:alnum:][:punct:]]+)+)[.](js|json)" -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" > $CUSTOMFFUFWORDLIST || true
+
+     sort -u $CUSTOMFFUFWORDLIST -o $CUSTOMFFUFWORDLIST
   fi
 
-  if [[ -n "$fuzz" ]]; then
-    # linkfinder & secretfinder
-    grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | $CHECKHTTPX2XX -nfs > $TARGETDIR/tmp/js-list.txt || true
+  # js & json
+  grep -ioE "(([[:alnum:][:punct:]]+)+)[.](js|json)" $FILTEREDFETCHEDLIST | $CHECKHTTPX2XX -nfs > $TARGETDIR/tmp/js-list.txt || true
+  # txt, log & other stuff
+  grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" $FILTEREDFETCHEDLIST > $TARGETDIR/tmp/juicy-files-list.txt || true
 
-    if [ -s $TARGETDIR/tmp/js-list.txt ]; then
+  # SSRF list
+  # https://github.com/tomnomnom/gf/issues/55
+  # https://savannah.gnu.org/bugs/?61664
+  xargs -I '{}' echo '^https?://(([[:alnum:][:punct:]]+)+)?{}=' < $PARAMSLIST | grep -oiEf - $FILTEREDFETCHEDLIST >> $CUSTOMSSRFQUERYLIST || true
 
-        sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
+  # SQLi list
+  grep -oiE "(([[:alnum:][:punct:]]+)+)?(php3?|aspx)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST > $CUSTOMSQLIQUERYLIST || true
 
-        echo "linkfinder"
-        xargs -P 20 -n 1 -I {} linkfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt | sed $UNWANTEDPATHS > $TARGETDIR/tmp/linkfinder-output.txt
+  sort -u $CUSTOMSSRFQUERYLIST -o $CUSTOMSSRFQUERYLIST
+  sort -u $CUSTOMSQLIQUERYLIST -o $CUSTOMSQLIQUERYLIST
 
-        if [ -s $TARGETDIR/tmp/linkfinder-output.txt ]; then
-          sort -u $TARGETDIR/tmp/linkfinder-output.txt -o $TARGETDIR/tmp/linkfinder-output.txt
-          sed "${SEDOPTION[@]}" 's/\\//g' $TARGETDIR/tmp/linkfinder-output.txt
+  # LFI list
+  ### rabbit hole start
+  # grep -oiE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $CUSTOMSSRFQUERYLIST > $CUSTOMLFIQUERYLIST || true
+  ### rabbit hole end
+  # 1 limited to lfi pattern
+  grep -oiE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|include_once|require|require_once|document|root|php_path|admin|debug|log)=" $CUSTOMSSRFQUERYLIST \
+    | qsreplace -a > $CUSTOMLFIQUERYLIST || true
+  # 2 limited to [:alnum:]=file.ext pattern
+  grep -oiE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
+    -e "(([[:alnum:][:punct:]]+)+)?(php3?|aspx)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST \
+    | grep -oiE -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)=" -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" \
+    | qsreplace -a  >> $CUSTOMLFIQUERYLIST || true
 
-          echo "[debug-1] linkfinder: search for js|json"
-            cut -f2 -d ' ' $TARGETDIR/tmp/linkfinder-output.txt | grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
+  sort -u $CUSTOMLFIQUERYLIST -o $CUSTOMLFIQUERYLIST
 
-            echo "[debug-2] linkfinder: concat source URL with found path from this URL"
-            # dynamic sensor
-            BAR='##############################'
-            FILL='------------------------------'
-            totalLines=$(wc -l "$TARGETDIR"/tmp/linkfinder-output.txt | awk '{print $1}')  # num. lines in file
-            barLen=30
-            count=0
+  < $CUSTOMSSRFQUERYLIST unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
+  sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
+  echo "[$(date +%H:%M:%S)] Custom done."
+}
+
+linkfindercrawling(){
+  if [ -s $TARGETDIR/tmp/js-list.txt ]; then
+    echo "[$(date +%H:%M:%S)] linkfinder crawling"
+    sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
+
+    echo "[$(date +%H:%M:%S)] linkfinder"
+    interlace --silent -tL "$TARGETDIR/tmp/js-list.txt" -threads 10 -c "linkfinder -i _target_ -o cli" | tee $TARGETDIR/linkfinder/linkfinder_out.txt
+    echo "[$(date +%H:%M:%S)] linkfinder done"
+
+    if [ -s $TARGETDIR/linkfinder/linkfinder_out.txt ]; then
+      sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/linkfinder/linkfinder_out.txt
+      sort -u $TARGETDIR/linkfinder/linkfinder_out.txt -o $TARGETDIR/linkfinder/linkfinder_out.txt
+      sed "${SEDOPTION[@]}" 's/\\//g' $TARGETDIR/linkfinder/linkfinder_out.txt
+
+      echo "[debug] linkfinder: search for js|json"
+      cut -f2 -d ' ' $TARGETDIR/linkfinder/linkfinder_out.txt | grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder-js-list.txt || true
+      echo "[debug] linkfinder: search for juicy files"
+      cut -f2 -d ' ' $TARGETDIR/linkfinder/linkfinder_out.txt | grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" >> $TARGETDIR/tmp/juicy-files-list.txt || true
+
+      echo "[debug] linkfinder: concat source URL with found path from this URL"
+      # [https://54.68.201.132/static/main.js] /api/widget_settings/metadata --> https://54.68.201.132/api/widget_settings/metadata
+      while read line; do
+        url=$(echo "$line" | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format '%s://%d')
+        path2=$(echo "$line" | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)" || true)
+        if [[ -n "$path2" ]]; then
+          echo "$url$path2" >> $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+        fi
+      done < $TARGETDIR/linkfinder/linkfinder_out.txt
+
+      if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
+        sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+        sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+        # prepare additional js/json queries
+        grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
+        grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/juicy-files-list.txt || true
+      fi
+
+      if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
+        sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
+        # filter out in scope
+        xargs -I '{}' echo {} < $TARGETDIR/3-all-subdomain-live.txt | grep -iEf - $TARGETDIR/tmp/linkfinder-js-list.txt | $CHECKHTTPX2XX -nfs > $TARGETDIR/tmp/js-list-2.txt || true
+
+        if [ -s "$TARGETDIR"/tmp/js-list-2.txt ]; then
+          sort -u $TARGETDIR/tmp/js-list-2.txt -o $TARGETDIR/tmp/js-list-2.txt
+          # call linkfinder with new js-list-2
+          echo "[$(date +%H:%M:%S)] linkfinder-2"
+          interlace --silent -tL "$TARGETDIR/tmp/js-list-2.txt" -threads 10 -c "linkfinder -i _target_ -o cli" | tee $TARGETDIR/linkfinder_2/linkfinder_out.txt
+
+          if [ -s $TARGETDIR/linkfinder_2/linkfinder_out.txt ]; then
+            sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/linkfinder_2/linkfinder_out.txt
+            echo "[$(date +%H:%M:%S)] linkfinder-2 done"
+
+            cut -f2 -d ' ' $TARGETDIR/linkfinder_2/linkfinder_out.txt | grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" > $TARGETDIR/tmp/linkfinder_2_js_list.txt || true
+            cut -f2 -d ' ' $TARGETDIR/linkfinder_2/linkfinder_out.txt | grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" >> $TARGETDIR/tmp/juicy-files-list.txt || true
+
             while read line; do
-              # update progress bar
-              count=$(($count + 1))
-              percent=$((($count * 100 / $totalLines * 100) / 100))
-              i=$(($percent * $barLen / 100))
-              echo -ne "\r[${BAR:0:$i}${FILL:$i:barLen}] $count/$totalLines ($percent%)"
-
-                url=$(echo "$line" | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format '%s://%d')
-                path2=$(echo "$line" | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)" || true)
-                if [[ -n "$path2" ]]; then
-                  echo "$url$path2" >> $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
-                fi
-            done < $TARGETDIR/tmp/linkfinder-output.txt
-
-              if [ -s $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt ]; then
-                  sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
-                  sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
-                  # prepare additional js/json queries
-                  grep -ioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt >> $TARGETDIR/tmp/linkfinder-js-list.txt || true
-                  # prepare additional path for bruteforce
-                  if [[ -n "$brute" ]]; then
-                      echo "[debug-2] linkfinder: bruteforce collected paths"
-                      grep -vioE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
-                      httpx -silent -no-color -random-agent -status-code -content-length -nfs -threads "$NUMBEROFTHREADS" -rate-limit $REQUESTSPERSECOND -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/tmp/linkfinder-path-list-brute-output.txt
-                  fi
-
+              url=$(echo "$line" | sed 's/[[]//;s/[]]//' | awk '{ print $1 }' | unfurl format '%s://%d')
+              path2=$(echo "$line" | awk '{ print $2 }' | grep -oE "^/{1}[[:alpha:]]+[.]?(([[:alnum:][:punct:]]+)+)" || true)
+              if [[ -n "$path2" ]]; then
+                echo "$url$path2" >> $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt
               fi
+            done < $TARGETDIR/linkfinder_2/linkfinder_out.txt
 
-              if [ -s $TARGETDIR/tmp/linkfinder-js-list.txt ]; then
-                sort -u $TARGETDIR/tmp/linkfinder-js-list.txt -o $TARGETDIR/tmp/linkfinder-js-list.txt
-                echo "[debug-3] linkfinder: filter out scope"
-                # filter out in scope
-                  xargs -P 20 -n 1 -I {} grep "{}" $TARGETDIR/tmp/linkfinder-js-list.txt < $TARGETDIR/3-all-subdomain-live.txt | $CHECKHTTPX2XX -nfs >> $TARGETDIR/tmp/js-list.txt || true
-                  sort -u $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
-              fi
-        fi
+            if [ -s $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt ]; then
+              sed "${SEDOPTION[@]}" $UNWANTEDPATHS $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt
+              sort -u $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt -o $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt
+              # prepare additional js/json queries
+              grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json)" $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt >> $TARGETDIR/tmp/linkfinder_2_js_list.txt || true
+              grep -iE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](${JUICYFILETYPES})" $TARGETDIR/tmp/linkfinder_2_concatenated_path_list.txt >> $TARGETDIR/tmp/juicy-files-list.txt || true
+            fi
 
-        # test means if linkfinder did not provide any output secretfinder testing makes no sense
-        if [ -s $TARGETDIR/tmp/js-list.txt ]; then
-            echo "secretfinder"
-            xargs -P 20 -n 1 -I {} secretfinder -i {} -o cli < $TARGETDIR/tmp/js-list.txt > $TARGETDIR/tmp/secretfinder-list.txt
+            if [ -s $TARGETDIR/tmp/linkfinder_2_js_list.txt ]; then
+              xargs -I '{}' echo {} < $TARGETDIR/3-all-subdomain-live.txt | grep -iEf - $TARGETDIR/tmp/linkfinder_2_js_list.txt | $CHECKHTTPX2XX -nfs >> $TARGETDIR/tmp/js-list-2.txt || true
+              # final js list after 2 recursion of linkfinder
+              [[ -s $TARGETDIR/tmp/js-list-2.txt ]] && sort -u $TARGETDIR/tmp/js-list-2.txt $TARGETDIR/tmp/js-list.txt -o $TARGETDIR/tmp/js-list.txt
+            fi
+          fi
         fi
-        chmod 660 $TARGETDIR/tmp/js-list.txt
-        chmod 660 $TARGETDIR/tmp/linkfinder-output.txt
+      fi
     fi
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMSSRFQUERYLIST"
-    # https://github.com/tomnomnom/gf/issues/55
-    xargs -P 20 -n 1 -I {} grep -oiaE "(([[:alnum:][:punct:]]+)+)?{}=" $FILTEREDFETCHEDLIST < $PARAMSLIST >> $CUSTOMSSRFQUERYLIST || true &
-    pid_01=$!
-    wait $pid_01
+    # prepare additional path for bruteforce
+    if [[ -n "$brute" && -s "${TARGETDIR}/tmp/linkfinder-concatenated-path-list.txt" ]]; then
+      echo "[$(date +%H:%M:%S)] bruteforce collected paths"
+      grep -viE "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)?[.]?(([[:alnum:][:punct:]]+)+)[.](js|json|${JUICYFILETYPES})" $TARGETDIR/tmp/linkfinder-concatenated-path-list.txt > $TARGETDIR/tmp/linkfinder-path-list.txt || true
+      [[ -s $TARGETDIR/tmp/linkfinder-path-list.txt ]] && $CHECKHTTPX2XX -nfs -content-length -l $TARGETDIR/tmp/linkfinder-path-list.txt -o $TARGETDIR/bruteforce_out.txt
+      echo "[$(date +%H:%M:%S)] bruteforce done"
+    fi
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMSQLIQUERYLIST"
-    grep -oaiE "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST > $CUSTOMSQLIQUERYLIST || true &
-    pid_02=$!
-    wait $pid_02
+    # probe for 2xx juicy files
+    if [[ -s $TARGETDIR/tmp/juicy-files-list.txt ]]; then
+      echo "$(date +%H:%M:%S)] juicy files probe"
+      $CHECKHTTPX2XX -nfs -content-length -l $TARGETDIR/tmp/juicy-files-list.txt -o $TARGETDIR/juicy_out.txt
+      echo "$(date +%H:%M:%S)] juicy done"
+    fi
+  fi
+}
 
-    sort -u $CUSTOMSSRFQUERYLIST -o $CUSTOMSSRFQUERYLIST
-    sort -u $CUSTOMSQLIQUERYLIST -o $CUSTOMSQLIQUERYLIST
+secretfinder(){
+  # test means if linkfinder did not provide any output secretfinder testing makes no sense
+  if [ -s $TARGETDIR/tmp/js-list.txt ]; then
+    echo "$(date +%H:%M:%S)] secretfinder"
+    # https://github.com/m4ll0k/SecretFinder/issues/20
+    interlace --silent -tL "$TARGETDIR/tmp/js-list.txt" -threads 10 -c "secretfinder -i _target_ -o cli" | tee $TARGETDIR/secretfinder/secretfinder_out.txt
+    echo "$(date +%H:%M:%S)] secretfinder done"
 
-    echo "[$(date | awk '{ print $4}')] Prepare custom CUSTOMLFIQUERYLIST"
-    # rabbit hole
-    # grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|source|attach|cmd|action|board|detail|location|file|download|path|folder|prefix|include|inc|locate|site|show|doc|view|content|con|document|layout|mod|root|pg|style|template|php_path|admin)=" $CUSTOMSSRFQUERYLIST > $CUSTOMLFIQUERYLIST || true
-    # 1 limited to lfi pattern
-    grep -oiaE "(([[:alnum:][:punct:]]+)+)?(cat|dir|doc|attach|cmd|location|file|download|path|include|document|root|php_path|admin|debug|log)=" $CUSTOMSSRFQUERYLIST | qsreplace -a > $CUSTOMLFIQUERYLIST || true
-    # 2 limited to [:alnum:]=file.ext pattern
-    grep -oiaE -e "(([[:alnum:][:punct:]]+)+)?=(([[:alnum:][:punct:]]+)+)\.(pdf|txt|log|md|php|json|csv|src|bak|old|jsp|sql|zip|xls|dll)" \
-               -e "(([[:alnum:][:punct:]]+)+)?(php3?)\?[[:alnum:]]+=([[:alnum:][:punct:]]+)?" $FILTEREDFETCHEDLIST | \
-               grep -oiaE -e "((https?:\/\/)|www\.)(([[:alnum:][:punct:]]+)+)=" -e "((https?:\/\/)|www\.) (([[:alnum:][:punct:]]+)+)\?[[:alnum:]]+=" | qsreplace -a  >> $CUSTOMLFIQUERYLIST || true
-    sort -u $CUSTOMLFIQUERYLIST -o $CUSTOMLFIQUERYLIST
-
-    < $CUSTOMSSRFQUERYLIST unfurl format '%p%?%q' | sed "/^\/\;/d;/^\/\:/d;/^\/\'/d;/^\/\,/d;/^\/\./d" | qsreplace -a > $TARGETDIR/ssrf-path-list.txt
-    sort -u $TARGETDIR/ssrf-path-list.txt -o $TARGETDIR/ssrf-path-list.txt
-    echo "[$(date | awk '{ print $4}')] Custom done."
+    # https://github.com/storenth/getsecrets
+    echo "$(date +%H:%M:%S)] getsecrets"
+    getsecrets "$TARGETDIR/tmp/js-list.txt" > $TARGETDIR/getsecrets_out.txt
+    echo "$(date +%H:%M:%S)] getsecrets done"
   fi
 }
 
@@ -596,34 +657,6 @@ ssrftest(){
                -H "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50" \
                > /dev/null
       echo "[$(date | awk '{ print $4}')] [SSRF-3] done."
-      echo
-    fi
-
-    if [ -s "$TARGETDIR/ssrf-path-list.txt" ]; then
-      # similar to paramspider but all wayback without limits
-      echo "[$(date | awk '{ print $4}')] [SSRF-3] prepare ssrf-list: concat .com?params= with listen server..."
-
-      while read line; do
-        echo "${line}${LISTENSERVER}" >> $TARGETDIR/ssrf-list.txt
-      done < $TARGETDIR/ssrf-path-list.txt
-
-      echo "[$(date | awk '{ print $4}')] [SSRF-5] fuzz all live servers with ssrf-list"
-      # simple math to watch progress
-      ENDPOINTCOUNT=$(< $TARGETDIR/ssrf-list.txt wc -l)
-      HOSTCOUNT=$(< $TARGETDIR/3-all-subdomain-live-scheme.txt wc -l)
-      echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
-      echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-
-          ffuf -s -timeout 1 -ignore-body -u HOSTPATH \
-              -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-              -w $TARGETDIR/ssrf-list.txt:PATH \
-              -t "$NUMBEROFTHREADS" \
-              -rate "$REQUESTSPERSECOND" \
-              -H "$CUSTOMHEADER" \
-              -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36" \
-              > /dev/null
-
-      echo "[$(date | awk '{ print $4}')] [SSRF-5] done."
     fi
   fi
 }
@@ -634,21 +667,25 @@ lfitest(){
   if [[ -s "$CUSTOMLFIQUERYLIST" ]]; then
     echo
     echo "[$(date | awk '{ print $4}')] [LFI] ffuf with all live servers with lfi-path-list using wordlist/LFI-payload.txt..."
-      # simple math to watch progress
-      HOSTCOUNT=$(< $CUSTOMLFIQUERYLIST wc -l)
-      ENDPOINTCOUNT=$(< $LFIPAYLOAD wc -l)
-      echo "HOSTCOUNT=$HOSTCOUNT \t ENDPOINTCOUNT=$ENDPOINTCOUNT"
-      echo $(($HOSTCOUNT*$ENDPOINTCOUNT))
-        ffuf -s -timeout 5 -u HOSTPATH \
-             -w $CUSTOMLFIQUERYLIST:HOST \
-             -w $LFIPAYLOAD:PATH \
-             -mr "root:[x*]:0:0:" \
-             -H "$CUSTOMHEADER" \
-             -t "$NUMBEROFTHREADS" \
-             -rate "$REQUESTSPERSECOND" \
-             -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-             -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
+    ffuf -s -timeout 5 -u HOSTPATH \
+      -w $CUSTOMLFIQUERYLIST:HOST \
+      -w $LFIPAYLOAD:PATH \
+      -mr "root:[x*]|admin|password|localhost|PRIVATE|ssh-rsa|mysql|BASH|credentials" \
+      -H "$CUSTOMHEADER" \
+      -t "$NUMBEROFTHREADS" \
+      -rate "$REQUESTSPERSECOND" \
+      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+      -o $TARGETDIR/ffuf/lfi-matched-url.html -of html -or true > /dev/null
     echo "[$(date | awk '{ print $4}')] [LFI] done."
+  fi
+  if [ -s $TARGETDIR/3-all-subdomain-live-scheme.txt ]; then
+    # https://raw.githubusercontent.com/storenth/nuclei-templates/master/vulnerabilities/other/storenth-lfi.yaml
+    echo "[$(date +%H:%M:%S)] [LFI] nuclei fuzz for LFI"
+    nuclei -silent -H "$CUSTOMHEADER" -rl "$REQUESTSPERSECOND" \
+      -l $TARGETDIR/3-all-subdomain-live-scheme.txt \
+      -t "${PWD}/wordlist/storenth-lfi.yaml" \
+      -o $TARGETDIR/nuclei/nuclei_lfi_out.txt \
+    echo "[$(date +%H:%M:%S)] [LFI] done."
   fi
 }
 
@@ -673,9 +710,9 @@ masscantest(){
     # max-rate for accuracy
     # 25/587-smtp, 110/995-pop3, 143/993-imap, 445-smb, 3306-mysql, 3389-rdp, 5432-postgres, 5900/5901-vnc, 27017-mongodb
     # masscan -p0-65535 | -p0-1000,2375,3306,3389,4990,5432,5900,6379,6066,8080,8383,8500,8880,8983,9000,27017 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 --open-only -oG $TARGETDIR/masscan_output.gnmap
-    masscan -p1-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 -oG $TARGETDIR/masscan_output.gnmap
-    sleep 1
-    sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
+    # masscan -p1-65535 -iL $TARGETDIR/dnsprobe_ip.txt --rate 1000 -oG $TARGETDIR/masscan_output.gnmap
+    naabu -silent -rate 900 -p - -l $TARGETDIR/dnsprobe_ip.txt -o $TARGETDIR/naabu_out
+    # sed "${SEDOPTION[@]}" '1d;2d;$d' $TARGETDIR/masscan_output.gnmap # remove 1,2 and last lines from masscan out file
     echo "[$(date | awk '{ print $4}')] [masscan] done."
   fi
 }
@@ -730,14 +767,32 @@ ffufbrute(){
       # gobuster dir -u https://target.com -w ~/wordlist.txt -t 100 -x php,cgi,sh,txt,log,py,jpeg,jpg,png
     echo "[$(date | awk '{ print $4}')] Start directory bruteforce using ffuf..."
     # interlace --silent -tL $TARGETDIR/3-all-subdomain-live-scheme.txt -threads 10 -c "ffuf -timeout 7 -u _target_/FUZZ -mc 200,201,202,401 -fs 0 \-w $CUSTOMFFUFWORDLIST -t $NUMBEROFTHREADS -p 0.5-2.5 -recursion -recursion-depth 2 -H \"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36\" \-o $TARGETDIR/ffuf/_cleantarget_.html -of html -or true"
-    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
-          -w $CUSTOMFFUFWORDLIST:PATH \
-          -t 2 \
-          -p 0.5 \
-          -H "$CUSTOMHEADER" \
-          -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
-          -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
+    ffuf -timeout 7 -u HOST/PATH -mc 200,201,202,401 -fs 0 \
+      -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+      -w $CUSTOMFFUFWORDLIST:PATH \
+      -t 2 \
+      -p 0.5 \
+      -H "$CUSTOMHEADER" \
+      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36" \
+      -o $TARGETDIR/ffuf/directory-brute.html -of html -or true
     echo "[$(date | awk '{ print $4}')] directory bruteforce done."
+}
+
+apibruteforce(){
+    echo
+    echo "[$(date +%H:%M:%S)] Start API endpoints bruteforce using ffuf..."
+    # API bruteforce
+    ffuf -s -u HOSTPATH \
+      -w $TARGETDIR/3-all-subdomain-live-scheme.txt:HOST \
+      -w $APIWORDLIST:PATH
+      -timeout 5 \
+      -mc 200,201,202 \
+      -t 2 \
+      -p 0.5 \
+      -H "$CUSTOMHEADER" \
+      -o $TARGETDIR/ffuf/api-brute.html -of html -or true
+
+    echo "[$(date +%H:%M:%S)] API bruteforce done"
 }
 
 recon(){
@@ -759,8 +814,9 @@ recon(){
 
   if [[ -n "$fuzz" || -n "$brute" ]]; then
     gospidertest $1
-    pagefetcher $1
     custompathlist $1
+    linkfindercrawling $1
+    secretfinder $1
   fi
 
   screenshots $1 &
@@ -773,9 +829,6 @@ recon(){
   echo "Waiting for nucleitest ${PID_NUCLEI}..."
   wait $PID_NUCLEI
 
-  if [[ -n "$brute" ]]; then
-    ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
-  fi
 
   if [[ -n "$fuzz" ]]; then
     ssrftest $1
@@ -783,6 +836,9 @@ recon(){
     sqlmaptest $1
   fi
 
+  if [[ -n "$brute" ]]; then
+    ffufbrute $1 # disable/enable yourself (--single preferred) because manually work need on targets without WAF
+  fi
   # bypass403test $1
   masscantest $1
 
@@ -844,13 +900,31 @@ main(){
   echo "target dir created: $TARGETDIR"
 
   if [[ -n "$fuzz" ]]; then
+    echo "Starting up listen server..."
     # Listen server
-    interactsh-client -v &> $TARGETDIR/_listen_server.log &
+    interactsh-client -v -json -o $TARGETDIR/_listen_server_out.log &> $TARGETDIR/_listen_server.log &
     SERVER_PID=$!
-    sleep 5 # to properly start listen server
-    LISTENSERVER=$(tail -n 1 $TARGETDIR/_listen_server.log)
-    LISTENSERVER=$(echo $LISTENSERVER | cut -f2 -d ' ')
-    echo "Listen server is up $LISTENSERVER with PID=$SERVER_PID"
+    sleep 2
+
+    MAXCOUNT=0
+    while [ $MAXCOUNT -le 10 ]; do
+      X=$((X+1))
+      LISTENSERVER=$(tail -n1 $TARGETDIR/_listen_server.log)
+      if [[ -n "$LISTENSERVER" ]]; then
+          LISTENSERVER=$(echo $LISTENSERVER | cut -f2 -d ' ')
+          break
+      fi
+      sleep 5
+    done
+
+    if echo "$LISTENSERVER" | grep -e ".interactsh.com" -e "interact.sh"; then
+      echo "Listen server is up $LISTENSERVER with PID=$SERVER_PID"
+      echo $LISTENSERVER > $TARGETDIR/_listen_server_file
+    else
+    # try to use alternative interactsh-client -v -json -server https://interact.sh
+      echo "Listen server failed to start"
+      exit 1
+    fi
     echo
   fi
 
@@ -890,7 +964,6 @@ main(){
   if [[ -n "$brute" ]]; then
     CUSTOMFFUFWORDLIST=$TARGETDIR/tmp/custom_ffuf_wordlist.txt
     touch $CUSTOMFFUFWORDLIST
-    cp $DIRSEARCHWORDLIST $CUSTOMFFUFWORDLIST
   fi
 
   # used to save target specific list for alterations (shuffledns, altdns)
@@ -1152,17 +1225,17 @@ jobs -l
 
 if [[ -n "$discord" ]]; then
   ./helpers/discord-hook.sh "[info] $1 done"
-    if [[ -s $TARGETDIR/report.pdf ]]; then
-      # check then file more then maximum of 8MB to pass the discord
-      if (($(ls -l $TARGETDIR/report.pdf | awk '{print $5}') > 8000000)); then
-            split -b 8m $TARGETDIR/report.pdf $TARGETDIR/tmp/_report_
-            for file in $TARGETDIR/tmp/_report_*; do
-                ./helpers/discord-file-hook.sh "$file"
-            done
-      else 
-          ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
-      fi
+  if [[ -s $TARGETDIR/report.pdf ]]; then
+    # check then file more then maximum of 8MB to pass the discord
+    if (($(ls -l $TARGETDIR/report.pdf | awk '{print $5}') > 8000000)); then
+      split -b 7m $TARGETDIR/report.pdf $TARGETDIR/tmp/_report_
+      for file in $TARGETDIR/tmp/_report_*; do
+          ./helpers/discord-file-hook.sh "${file}"
+      done
+    else 
+      ./helpers/discord-file-hook.sh $TARGETDIR/report.pdf
     fi
+  fi
 fi
 kill_listen_server
 
