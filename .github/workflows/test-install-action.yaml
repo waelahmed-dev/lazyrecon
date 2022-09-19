@@ -40,6 +40,7 @@ jobs:
         env:
           GO111MODULE: on
         run: |
+          go version
           export HOMEDIR=$HOME
           export HOMEUSER=$RUNNER_USER
           echo $HOMEDIR
