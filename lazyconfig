@@ -9,6 +9,7 @@ export CUSTOMHEADER=''
 export NUMBEROFTHREADS=20
 export REQUESTSPERSECOND=5
 
+export GOROOT=/usr/local/go
 export GOPATH=$HOMEDIR/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 export GO111MODULE=on
