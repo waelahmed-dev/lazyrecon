@@ -35,7 +35,7 @@ jobs:
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.0
         with:
-            go-version: 1.19
+            go-version: 1.18
 
       # Runs a set of commands using the runners shell
       - name: Test for install.sh
@@ -44,7 +44,6 @@ jobs:
         run: |
           go version
           unset GOROOT_1_17_X64
-          unset GOROOT_1_18_X64
           export HOMEDIR=$HOME
           export HOMEUSER=$RUNNER_USER
           echo $HOMEDIR
