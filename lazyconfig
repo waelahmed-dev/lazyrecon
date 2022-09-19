@@ -10,5 +10,5 @@ export NUMBEROFTHREADS=20
 export REQUESTSPERSECOND=5
 
 export GOPATH=$HOMEDIR/go
-export PATH=/usr/local/go/bin:$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$HOME/go/bin
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 export GO111MODULE=on
