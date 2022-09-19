@@ -44,6 +44,7 @@ jobs:
         run: |
           go version
           unset GOROOT_1_17_X64
+          unset GOROOT_1_18_X64
           export HOMEDIR=$HOME
           export HOMEUSER=$RUNNER_USER
           echo $HOMEDIR
