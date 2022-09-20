@@ -51,7 +51,8 @@ jobs:
           echo "HOMEDIR=$HOMEDIR"
           echo "STORAGEDIR=$STORAGEDIR"
           echo "GO111MODULE=$GO111MODULE"
-          
+          sudo -E ./install.sh
+          ./test/test_install.sh "./test/dependencies_list.txt"
           sudo -E ./lazyrecon.sh "tradingview.com" --wildcard --alt --mad --fuzz --discord
           ls -alth $HOMEDIR/*
           ls -alth $STORAGEDIR/*
